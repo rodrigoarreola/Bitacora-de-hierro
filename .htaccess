@@ -1,0 +1,10 @@
+# Fuerza HTTPS en todo el sitio
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Bloquea acceso directo a credenciales y dumps de esquema,
+# sin importar en qué subcarpeta estén.
+<FilesMatch "(^config\.local\.php$|\.sql$)">
+  Require all denied
+</FilesMatch>

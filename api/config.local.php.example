@@ -1,0 +1,11 @@
+<?php
+/**
+ * Copiar este archivo a config.local.php en el servidor y completar
+ * con las credenciales reales de la base de datos (cPanel → MySQL
+ * Databases en Hostgator). config.local.php nunca se sube a git.
+ */
+
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'usuario_cpanel_bitacorahierro');
+define('DB_USER', 'usuario_cpanel_dbuser');
+define('DB_PASS', 'cambia-esto');

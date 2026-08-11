@@ -6,6 +6,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
 
 ### Added
 
+- Esquema de MySQL (`api/db/schema.sql`): tablas `users`, `weeks`, `day_templates`, `exercises`, `exercise_library`.
+- Script CLI `api/db/create_user.php` para crear/actualizar el usuario único de la app.
+- Backend PHP con PDO: `api/config.php` (conexión + sesión), `api/auth.php` (helpers compartidos).
+- Endpoints de autenticación por sesión: `api/login.php`, `api/logout.php`, `api/session.php`.
+- Endpoints CRUD: `api/weeks.php` (listar, detalle, crear, copiar semana anterior, eliminar), `api/exercises.php` (crear, actualizar, eliminar), `api/library.php` (listar, agregar, eliminar).
+- `.htaccess`: fuerza HTTPS y bloquea acceso directo a `config.local.php` y archivos `.sql`.
+- `api/config.local.php.example` como plantilla de credenciales (el real queda gitignored).
 - `index.html` inicial: frontend completo de la PWA con datos de ejemplo en memoria (sin backend todavía).
   - Header con racha actual / mejor racha (3+ ejercicios marcados, consecutivos, cruzando semanas).
   - Riel de semanas (más reciente primero) con creación de semana nueva restringida a lunes.
@@ -17,3 +24,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
   - Placeholders sin implementar para las vistas de Historial y Progreso.
 - Control de versiones local con git.
 - `README.md` y `CHANGELOG.md`.
+
+### Changed
+
+- `README.md`: documenta la nueva estructura de carpetas, el esquema de base de datos y los pasos de puesta en marcha del backend.

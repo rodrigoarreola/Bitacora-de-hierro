@@ -7,13 +7,47 @@ Un solo usuario. Sin frameworks de frontend. Pensada para desplegarse como archi
 ## Stack
 
 - **Frontend**: HTML/CSS/JS vanilla, sin dependencias externas (iconos SVG inline, fuentes de Google Fonts).
-- **Backend** (pendiente): PHP + MySQL.
-- **Auth** (pendiente): login usuario/contraseña con sesión PHP — sin API keys expuestas ni OAuth.
-- **Hosting**: Hostgator (`tu-dominio.com`).
+- **Backend**: PHP + MySQL (PDO, sin framework).
+- **Auth**: login usuario/contraseña con sesión PHP — sin API keys expuestas ni OAuth.
+- **Hosting**: Hostgator, subdominio dedicado (ej. `bitacora.tu-dominio.com`).
 
 ## Estado actual
 
-Solo existe [`index.html`](index.html): el frontend completo con look and feel terminado, pero **todos los datos viven en memoria** (objeto `state` en el `<script>` del archivo). No hay backend ni persistencia todavía — al recargar la página se pierden los cambios y se regeneran los datos de ejemplo.
+El frontend en [`index.html`](index.html) tiene el look and feel completo, pero **sus datos siguen viviendo en memoria** (objeto `state` en el `<script>` del archivo) — todavía no está conectado a la API. Al recargar la página se pierden los cambios y se regeneran los datos de ejemplo. Esa conexión (reemplazar el `state` en memoria por llamadas `fetch()` a `api/`) es el siguiente paso pendiente.
+
+Ya existen, y funcionan de forma independiente al frontend: el esquema de MySQL y el backend PHP completo (login por sesión + CRUD de semanas/ejercicios/librería) descritos abajo.
+
+### Estructura del proyecto
+
+```
+/
+├── index.html                     Frontend (datos en memoria, sin conectar a la API todavía)
+├── .htaccess                      Fuerza HTTPS, bloquea config.local.php y *.sql
+├── api/
+│   ├── config.php                 Conexión PDO + arranque de sesión
+│   ├── config.local.php.example   Plantilla de credenciales — copiar a config.local.php en el servidor
+│   ├── auth.php                   Helpers: require_login(), respond_ok()/respond_error(), read_json_body()
+│   ├── login.php                  POST { username, password } → inicia sesión
+│   ├── logout.php                 POST → destruye sesión
+│   ├── session.php                GET → { authenticated }
+│   ├── weeks.php                  GET/POST/DELETE semanas (incluye copiar semana anterior)
+│   ├── exercises.php              POST/PUT/DELETE ejercicios de un día
+│   ├── library.php                GET/POST/DELETE librería de ejercicios
+│   └── db/
+│       ├── schema.sql             DDL completo + seed de day_templates
+│       └── create_user.php        Script CLI para crear el usuario único (nunca vía HTTP)
+```
+
+### Esquema de base de datos
+
+Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO), `day_templates` (grupo muscular y notas fijos por día de la semana — Lun–Vie —, sembrados desde la rutina base), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre porque la rutina real incluye valores como `"40(8)"`) y `exercise_library` (nombres para autocompletar).
+
+### Puesta en marcha del backend (una sola vez por entorno)
+
+1. Crear la base de datos en cPanel (MySQL Databases) y un usuario con permisos sobre ella.
+2. Importar `api/db/schema.sql` (phpMyAdmin o `mysql -u user -p nombre_bd < api/db/schema.sql`).
+3. Copiar `api/config.local.php.example` a `api/config.local.php` y completar host/nombre/usuario/contraseña de la BD. Este archivo está en `.gitignore`, nunca se sube a git.
+4. Crear el usuario de la app por SSH: `php api/db/create_user.php <usuario> <contraseña>`.
 
 ### Funcionalidad implementada
 
@@ -41,11 +75,9 @@ Solo existe [`index.html`](index.html): el frontend completo con look and feel t
 
 ## Pendiente
 
-1. Diseñar el esquema de MySQL a partir del modelo de datos actual (`state.weeks[fecha].days[día].exercises[]`).
-2. Backend PHP: login por sesión, endpoints para semanas/días/ejercicios/librería.
-3. Conectar el frontend (hoy 100% en memoria) a los endpoints reales, reemplazando el estado de ejemplo.
-4. Manifest + service worker para instalación como PWA real.
-5. Implementar las vistas de Historial y Progreso (hoy son placeholders).
+1. Conectar el frontend (hoy 100% en memoria) a los endpoints reales de `api/`, reemplazando el estado de ejemplo.
+2. Manifest + service worker para instalación como PWA real.
+3. Implementar las vistas de Historial y Progreso (hoy son placeholders).
 
 ## Desarrollo local
 
