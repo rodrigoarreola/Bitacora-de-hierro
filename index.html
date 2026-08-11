@@ -114,6 +114,14 @@
   <!-- ================= VIEW: PERFIL ================= -->
   <div class="view" id="view-perfil">
     <button type="button" class="logout-btn" id="logout-btn">Cerrar sesión</button>
+
+    <div class="perfil-panel">
+      <div class="lib-title">Tus datos</div>
+      <p class="lib-sub">Respalda o restaura tus semanas y ejercicios en un archivo JSON.</p>
+      <button type="button" class="perfil-btn" id="export-btn"><i class="icon fa-solid fa-download"></i>Exportar datos</button>
+      <button type="button" class="perfil-btn" id="import-btn"><i class="icon fa-solid fa-upload"></i>Importar datos</button>
+      <input type="file" id="import-file-input" class="hidden" accept="application/json,.json">
+    </div>
   </div>
 
   <!-- ================= VIEW: AJUSTES → Librería de ejercicios ================= -->
@@ -147,6 +155,7 @@
   </div>
   <!-- /#app-shell -->
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer></script>
 <script src="js/api.js" defer></script>
 <script src="js/app.js" defer></script>
 </body>

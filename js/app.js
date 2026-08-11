@@ -830,6 +830,11 @@
   // ("estaba en la rutina" no es lo mismo que "se hizo").
   // ============================================================
   let progExercise = null;
+  let progChart = null;
+
+  function cssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
 
   function collectExerciseHistory(name){
     const target = name.trim().toLowerCase();
@@ -879,18 +884,6 @@
     const deltaSign = delta >= 0 ? '+' : '';
     const deltaColor = delta >= 0 ? 'var(--ok)' : 'var(--danger)';
 
-    const W = 320, H = 140, PAD = 22;
-    const minKg = Math.min(...kgs), maxKg = Math.max(...kgs);
-    const range = (maxKg - minKg) || 1;
-    const stepX = points.length > 1 ? (W - PAD * 2) / (points.length - 1) : 0;
-    const coords = points.map((p, i)=>{
-      const x = PAD + i * stepX;
-      const y = H - PAD - ((p.kg - minKg) / range) * (H - PAD * 2);
-      return { x, y };
-    });
-    const pathD = coords.map((c, i)=> (i === 0 ? 'M' : 'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1)).join(' ');
-    const dotsSvg = coords.map((c, i)=> `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="4.5" class="prog-point" data-i="${i}"></circle>`).join('');
-
     contentEl.innerHTML = `
       <div class="summary-strip">
         <div class="sum-chip"><div class="k">Último</div><div class="v accent">${last} kg</div></div>
@@ -899,19 +892,52 @@
       </div>
       <div class="prog-chart-card">
         <div class="prog-ex-name">${escapeHtml(progExercise)}</div>
-        <svg viewBox="0 0 ${W} ${H}" class="prog-svg" preserveAspectRatio="none">
-          <path d="${pathD}" class="prog-line"></path>
-          ${dotsSvg}
-        </svg>
-        <div class="prog-detail" id="prog-detail">Toca un punto para ver fecha, reps y series.</div>
+        <div class="prog-canvas-wrap"><canvas id="prog-canvas"></canvas></div>
       </div>`;
 
-    contentEl.querySelectorAll('.prog-point').forEach(dot=>{
-      dot.addEventListener('click', ()=>{
-        const p = points[parseInt(dot.dataset.i, 10)];
-        document.getElementById('prog-detail').textContent =
-          `${fmtShortDate(p.date)} — ${p.kg} kg × ${p.reps || '—'} reps × ${p.series || '—'} series`;
-      });
+    if(progChart){ progChart.destroy(); progChart = null; }
+
+    const accent = cssVar('--accent');
+    const line = cssVar('--line');
+    const textDim = cssVar('--text-dim');
+    const textFaint = cssVar('--text-faint');
+
+    progChart = new Chart(document.getElementById('prog-canvas'), {
+      type: 'line',
+      data: {
+        labels: points.map(p => fmtShortDate(p.date)),
+        datasets: [{
+          data: kgs,
+          borderColor: accent,
+          backgroundColor: accent + '33',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: cssVar('--surface'),
+          pointBorderColor: accent,
+          pointBorderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx)=>{
+                const p = points[ctx.dataIndex];
+                return `${p.kg} kg × ${p.reps || '—'} reps × ${p.series || '—'} series`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: { grid: { color: line }, ticks: { color: textFaint, font: { size: 9 } } },
+          y: { grid: { color: line }, ticks: { color: textDim, font: { size: 10 } } },
+        },
+      },
     });
   }
 
@@ -919,6 +945,73 @@
     const val = e.target.value.trim();
     const match = EXERCISE_LIBRARY.find(x => x.name.toLowerCase() === val.toLowerCase());
     if(match){ progExercise = match.name; renderProgreso(); }
+  });
+
+  // ============================================================
+  // Perfil: exportar / importar datos (JSON), mismo formato que
+  // api/db/import_weeks_json.php y api/import.php.
+  // ============================================================
+  function buildExportPayload(){
+    return state.order.map(key=>{
+      const week = state.weeks[key];
+      const days = {};
+      DAY_ORDER.forEach(dk=>{
+        days[dk] = week.days[dk].exercises.map(e=>({
+          name: e.name, kg: e.kg, reps: e.reps, series: e.series, note: e.note, done: e.done,
+        }));
+      });
+      return { monday_date: key, days };
+    });
+  }
+
+  document.getElementById('export-btn').addEventListener('click', ()=>{
+    const payload = buildExportPayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bitacora-backup-${toISO(today)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Exportadas ${payload.length} semanas.`);
+  });
+
+  const importFileInput = document.getElementById('import-file-input');
+  document.getElementById('import-btn').addEventListener('click', ()=> importFileInput.click());
+
+  importFileInput.addEventListener('change', async ()=>{
+    const file = importFileInput.files[0];
+    importFileInput.value = '';
+    if(!file) return;
+
+    let payload;
+    try{
+      payload = JSON.parse(await file.text());
+      if(!Array.isArray(payload)) throw new Error('formato inválido');
+    }catch(err){
+      showToast('El archivo no es un JSON válido de Bitácora.');
+      return;
+    }
+
+    const existing = payload.filter(w => state.weeks[w.monday_date]).length;
+    const nuevas = payload.length - existing;
+    const msg = `Vas a importar ${payload.length} semana${payload.length === 1 ? '' : 's'}: `
+      + `${existing} ya existen y se van a reemplazar, ${nuevas} son nuevas. ¿Continuar?`;
+    if(!confirm(msg)) return;
+
+    let result;
+    try{
+      result = await Api.post('api/import.php', payload);
+    }catch(err){
+      showToast(err.message);
+      return;
+    }
+
+    await loadAppData();
+    switchToView('perfil');
+    showToast(`Importado: ${result.weeks} semanas, ${result.exercises} ejercicios.`);
   });
 
   // ============================================================

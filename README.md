@@ -6,7 +6,7 @@ Un solo usuario. Sin frameworks de frontend. Pensada para desplegarse como archi
 
 ## Stack
 
-- **Frontend**: HTML/CSS/JS vanilla, sin framework — dependencias externas solo vía CDN (Google Fonts, Font Awesome).
+- **Frontend**: HTML/CSS/JS vanilla, sin framework — dependencias externas solo vía CDN (Google Fonts, Font Awesome, [Chart.js](https://www.chartjs.org/) 4.4.0 para la gráfica de Progreso).
 - **Backend**: PHP + MySQL (PDO, sin framework).
 - **Auth**: login usuario/contraseña con sesión PHP — sin API keys expuestas ni OAuth.
 - **Hosting**: Hostgator, subcarpeta del dominio principal — `tu-dominio.com/bitacora`.
@@ -43,6 +43,7 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 │   ├── weeks.php                  GET/POST/DELETE semanas (incluye copiar semana anterior)
 │   ├── exercises.php              POST/PUT/DELETE ejercicios de un día
 │   ├── library.php                GET/POST/DELETE librería de ejercicios
+│   ├── import.php                 POST: importa semanas desde JSON (reemplaza las que ya existan, deja intactas las demás)
 │   └── db/
 │       ├── schema.sql             DDL completo + seed de day_templates
 │       └── create_user.php        Script CLI para crear el usuario único (nunca vía HTTP)
@@ -50,7 +51,7 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 
 ### Esquema de base de datos
 
-Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO), `day_templates` (grupo muscular y notas fijos por día de la semana — Lun–Vie —, sembrados desde la rutina base), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre porque la rutina real incluye valores como `"40(8)"`) y `exercise_library` (nombres para autocompletar).
+Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO), `day_templates` (grupo muscular y notas fijos por día de la semana — Lun–Vie —, sembrados desde la rutina base), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre para permitir formatos no numéricos) y `exercise_library` (nombres para autocompletar).
 
 ### Puesta en marcha del backend (una sola vez por entorno)
 
@@ -75,10 +76,11 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 - **Swipe horizontal** entre días dentro del panel.
 - **Confirmaciones** (`confirm()`) antes de borrar ejercicios o semanas.
 - **Calendario**: vista de mes (lunes a domingo), navegable con flechas, por defecto en el mes actual. Cada día lun–vie que pertenece a una semana ya creada pinta una línea de color según ejercicios marcados ese día: rojo (0), amarillo (1–5), verde (6+). Fines de semana y días futuros quedan sin línea (no hay concepto de sábado/domingo en el esquema, y un día que no ha pasado no cuenta como "fallado").
-- **Perfil**: por ahora solo el botón de cerrar sesión (antes vivía en Ajustes).
+- **Perfil**: botón de cerrar sesión (antes vivía en Ajustes), y exportar/importar datos (ver abajo).
 - **Sesión persistente**: cookie de 30 días — no hay que iniciar sesión cada vez que se abre la app.
 - **Historial**: una tarjeta por semana (más reciente primero), con 5 indicadores de día (verde si ese día quedó "cumplido") y el total de ejercicios marcados/total de la semana. Riel de meses arriba para filtrar (mismo estilo que el riel de semanas de "Hoy"), con "Todas" como opción por defecto — una semana que cruza dos meses (ej. 27 abr–3 may) aparece en ambos filtros. Tocar un día específico de la tarjeta te manda a "Hoy" con ese día exacto seleccionado; tocar el resto de la tarjeta cae en lunes.
-- **Progreso**: buscador de ejercicio (mismo autocompletado contra la librería que ya se usa en el panel del día) y gráfica de carga (kg) en el tiempo, en SVG hecho a mano — sin librerías externas. Solo cuenta apariciones marcadas como hechas (`done`), nunca las que solo estaban en la rutina sin marcar. Chips de último peso, mejor peso y cambio desde el primer registro; tocar un punto de la gráfica muestra fecha, reps y series de esa vez.
+- **Progreso**: buscador de ejercicio (mismo autocompletado contra la librería que ya se usa en el panel del día) y gráfica de línea con Chart.js (carga en kg en el tiempo, relleno de área, tooltip nativo con fecha/reps/series al tocar un punto — sin leyenda, porque solo hay una serie por gráfica). Solo cuenta apariciones marcadas como hechas (`done`), nunca las que solo estaban en la rutina sin marcar; valores de `kg` no numéricos se descartan en vez de graficarse como cero. Chips de último peso, mejor peso y cambio desde el primer registro.
+- **Exportar / importar datos** (tab Perfil): exportar arma un JSON con todas las semanas/ejercicios ya cargados en memoria (sin pedir nada nuevo a la API) y lo descarga. Importar lee un archivo con esa misma forma y lo manda a `api/import.php`: valida todo antes de escribir (todo o nada, transacción), y por cada semana del archivo — si ya existe en tu base (mismo lunes), reemplaza sus ejercicios por completo; si no existe, la crea. Las semanas que no vienen en el archivo quedan intactas. Antes de enviar, un `confirm()` te dice cuántas semanas se van a reemplazar y cuántas son nuevas.
 
 ### Identidad visual
 
@@ -119,3 +121,12 @@ Destino: `tu-dominio.com/bitacora`, vía FTP/SFTP. Como todas las rutas del proy
 6. **Verificar**: entrar a `https://tu-dominio.com/bitacora/`, confirmar que carga por HTTPS, que el login funciona, y que el manifest/service worker se registran (DevTools → Application → Manifest / Service Workers, o una auditoría Lighthouse → PWA).
 
 `.htaccess` no necesita ajustes para la subcarpeta: la regla de HTTPS usa `%{HTTP_HOST}%{REQUEST_URI}` (no una ruta fija) y el bloqueo de `config.local.php`/`*.sql` es por nombre de archivo.
+
+### Pendiente de correr en producción
+
+Esta limpieza de datos ya se hizo en local pero todavía no en el servidor — correr una sola vez, vía phpMyAdmin → SQL, sobre la base de producción:
+
+```sql
+UPDATE exercises SET kg = '40', note = '8 placas — la máquina no tenía etiqueta de peso'
+WHERE name = 'Prone leg curl acostado' AND kg = '40(8)';
+```
