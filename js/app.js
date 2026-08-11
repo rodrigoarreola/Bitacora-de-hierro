@@ -1,6 +1,6 @@
 (function(){
   // ============================================================
-  // Configuración de días y rutina base
+  // Configuración de días
   // ============================================================
   const DAY_ORDER  = ['lun','mar','mie','jue','vie'];
   const DAY_NAMES  = {lun:'Lunes', mar:'Martes', mie:'Miércoles', jue:'Jueves', vie:'Viernes'};
@@ -13,97 +13,31 @@
   const RING_R = 16;
   const RING_C = 2 * Math.PI * RING_R;
 
-  let uidCounter = 0;
-  function uid(){ return 'ex' + (++uidCounter); }
-
-  // Ya sin asteriscos en el nombre: cada ejercicio lleva su propia nota
-  // (p. ej. "incluye barra", "×2 la mancuerna") visible directo en la fila.
-  const BASE_TEMPLATE = {
-    lun: { group:'Pecho y Tríceps', notes:'', exercises:[
-      {name:'Press de banca plano con barra', kg:60, reps:12, series:3, note:'incluye barra'},
-      {name:'Press inclinado con barra', kg:50, reps:12, series:3, note:'incluye barra'},
-      {name:'Aperturas con mancuernas o en máquina', kg:60, reps:12, series:3, note:''},
-      {name:'Extensión de tríceps en polea', kg:30, reps:12, series:3, note:''},
-      {name:'Extensión de tríceps con mancuerna', kg:12.5, reps:8, series:3, note:'×2 la mancuerna'},
-      {name:'Copa sobre la cabeza', kg:22.5, reps:12, series:3, note:''},
-      {name:'Press francés con barra Z', kg:'', reps:12, series:'', note:''},
-    ]},
-    mar: { group:'Piernas', notes:'', exercises:[
-      {name:'Sentadilla libre con barra', kg:70, reps:12, series:3, note:'incluye barra'},
-      {name:'Press de pierna', kg:90, reps:12, series:3, note:'solo discos'},
-      {name:'Peso muerto rumano con mancuerna', kg:60, reps:12, series:4, note:''},
-      {name:'Extensión de isquios sentado', kg:60, reps:12, series:3, note:''},
-      {name:'Extensión de cuádriceps sentado', kg:60, reps:12, series:4, note:''},
-      {name:'Abductores en máquina', kg:30, reps:20, series:4, note:''},
-      {name:'Hip thrust en máquina', kg:60, reps:12, series:3, note:''},
-      {name:'Pantorrilla sentado', kg:20, reps:12, series:4, note:''},
-      {name:'Prone leg curl acostado', kg:'40(8)', reps:12, series:3, note:''},
-      {name:'Patada de glúteo en máquina', kg:30, reps:12, series:4, note:''},
-    ]},
-    mie: { group:'Espalda y Bíceps', notes:'Filas sin marcar: variantes que rotan semana a semana.', exercises:[
-      {name:'Jalones al pecho', kg:55, reps:12, series:3, note:''},
-      {name:'Remo con barra T', kg:35, reps:12, series:4, note:''},
-      {name:'Remo con polea baja', kg:60, reps:12, series:3, note:''},
-      {name:'Remo con mancuerna', kg:16, reps:16, series:4, note:''},
-      {name:'Chin ups', kg:30, reps:12, series:4, note:''},
-      {name:'Curl de bíceps predicador', kg:20, reps:10, series:3, note:''},
-      {name:'Curl de bíceps mancuerna', kg:25, reps:8, series:3, note:''},
-      {name:'Curl de bíceps martillo', kg:30, reps:7, series:3, note:''},
-      {name:'Antebrazo', kg:15, reps:12, series:4, note:''},
-    ]},
-    jue: { group:'Hombros', notes:'', exercises:[
-      {name:'Press militar mancuerna', kg:35, reps:12, series:3, note:'peso entre las dos'},
-      {name:'Elevaciones laterales mancuernas', kg:25, reps:10, series:3, note:'peso entre las dos'},
-      {name:'Pájaros en máquina', kg:30, reps:12, series:3, note:''},
-      {name:'Elevación frontal de mancuernas', kg:20, reps:10, series:3, note:'peso entre las dos'},
-      {name:'Remo al mentón barra Z', kg:20, reps:12, series:3, note:'sin barra'},
-      {name:'Rear delt fly en máquina', kg:60, reps:12, series:3, note:''},
-    ]},
-    vie: { group:'Full Body', notes:'Día de cierre — se ajusta según lo que falte de la semana.', exercises:[
-      {name:'Hack squat', kg:50, reps:12, series:3, note:''},
-      {name:'Press de isquiotibiales sentado', kg:50, reps:8, series:4, note:''},
-      {name:'Leg curl acostado', kg:40, reps:12, series:3, note:''},
-      {name:'Press en banco inclinado con mancuerna', kg:45, reps:12, series:3, note:''},
-      {name:'Chin up con máquina', kg:60, reps:10, series:3, note:''},
-      {name:'Press militar en máquina', kg:40, reps:12, series:4, note:''},
-      {name:'Remo en máquina', kg:40, reps:8, series:4, note:''},
-      {name:'Patada de glúteo en máquina', kg:30, reps:8, series:4, note:''},
-      {name:'Extensión de tríceps sobre cabeza', kg:22.5, reps:12, series:4, note:''},
-    ]},
-  };
-
   // ============================================================
   // Librería de ejercicios (reutilizable / autocompletado)
+  // Se carga desde la API en el arranque; ver loadAppData().
   // ============================================================
   const EXERCISE_LIBRARY = [];
-  (function seedLibrary(){
-    const seen = new Set();
-    Object.values(BASE_TEMPLATE).forEach(day=>{
-      day.exercises.forEach(e=>{
-        const key = e.name.trim().toLowerCase();
-        if(key && !seen.has(key)){
-          seen.add(key);
-          EXERCISE_LIBRARY.push({ id: uid(), name: e.name.trim() });
-        }
-      });
-    });
-    EXERCISE_LIBRARY.sort((a,b)=> a.name.localeCompare(b.name, 'es'));
-  })();
 
-  function addToLibrary(name){
+  async function addToLibrary(name){
     const trimmed = (name || '').trim();
     if(!trimmed) return;
     const exists = EXERCISE_LIBRARY.some(e => e.name.toLowerCase() === trimmed.toLowerCase());
     if(exists) return;
-    EXERCISE_LIBRARY.push({ id: uid(), name: trimmed });
+    let entry;
+    try{ entry = await Api.post('api/library.php', { name: trimmed }); }
+    catch(err){ showToast(err.message); return; }
+    EXERCISE_LIBRARY.push(entry);
     EXERCISE_LIBRARY.sort((a,b)=> a.name.localeCompare(b.name, 'es'));
     renderLibraryDatalist();
     renderLibraryView();
   }
 
-  function removeFromLibrary(id){
-    const idx = EXERCISE_LIBRARY.findIndex(e => e.id === id);
+  async function removeFromLibrary(id){
+    const idx = EXERCISE_LIBRARY.findIndex(e => String(e.id) === String(id));
     if(idx === -1) return;
+    try{ await Api.del(`api/library.php?id=${encodeURIComponent(id)}`); }
+    catch(err){ showToast(err.message); return; }
     EXERCISE_LIBRARY.splice(idx, 1);
     renderLibraryDatalist();
     renderLibraryView();
@@ -183,55 +117,23 @@
   }
 
   // ============================================================
-  // Datos de ejemplo: semana actual (sin marcar) + 2 semanas previas
-  // completadas — 3 semanas de historial en total
+  // Estado — caché local de lo que ya se cargó de la API
   // ============================================================
-  function makeWeekDays(deltaKg, allDone){
-    const days = {};
-    DAY_ORDER.forEach(k=>{
-      days[k] = {
-        group: BASE_TEMPLATE[k].group,
-        notes: BASE_TEMPLATE[k].notes,
-        exercises: BASE_TEMPLATE[k].exercises.map(e=>{
-          let kg = e.kg;
-          if(typeof kg === 'number') kg = Math.max(0, +(kg + deltaKg).toFixed(2));
-          return { id:uid(), name:e.name, kg, reps:e.reps, series:e.series, note:e.note||'', done: !!allDone };
-        })
-      };
-    });
-    return days;
-  }
-  function makeEmptyWeekDays(){
-    const days = {};
-    DAY_ORDER.forEach(k=>{ days[k] = { group: BASE_TEMPLATE[k].group, notes: BASE_TEMPLATE[k].notes, exercises: [] }; });
-    return days;
-  }
-
   const today = new Date(); today.setHours(0,0,0,0);
-  const currentMonday = mondayOfWeek(today);
-  const lastMonday = new Date(currentMonday); lastMonday.setDate(lastMonday.getDate() - 7);
-  const prevMonday = new Date(currentMonday); prevMonday.setDate(prevMonday.getDate() - 14);
-
-  const kCurrent = toISO(currentMonday);
-  const kLast = toISO(lastMonday);
-  const kPrev = toISO(prevMonday);
+  const todayMondayKey = toISO(mondayOfWeek(today));
 
   const state = {
-    weeks: {
-      [kPrev]:    { days: makeWeekDays(-2.5, true) },
-      [kLast]:    { days: makeWeekDays(0, true) },
-      [kCurrent]: { days: makeWeekDays(0, false) },
-    },
-    order: [kPrev, kLast, kCurrent].sort((a,b)=> b.localeCompare(a)), // más reciente primero
-    activeWeek: kCurrent,
+    weeks: {},   // { [monday_date]: { days: { lun:{group,notes,exercises[]}, ... } } }
+    order: [],   // monday_date[], más reciente primero (igual que devuelve la API)
+    activeWeek: null,
     activeDay: WEEKDAY_TO_KEY[today.getDay()] || 'lun',
   };
 
   const expandedIds = new Set();
 
-  function currentWeek(){ return state.weeks[state.activeWeek]; }
-  function currentDay(){ return currentWeek().days[state.activeDay]; }
-  function findExercise(id){ return currentDay().exercises.find(e=>e.id===id); }
+  function currentWeek(){ return state.activeWeek ? state.weeks[state.activeWeek] : null; }
+  function currentDay(){ const w = currentWeek(); return w ? w.days[state.activeDay] : null; }
+  function findExercise(id){ const d = currentDay(); return d ? d.exercises.find(e => String(e.id) === String(id)) : null; }
   function getPrevWeekKey(key){
     // state.order va de más reciente a más antigua, así que la semana
     // cronológicamente anterior está en la siguiente posición del arreglo.
@@ -240,11 +142,23 @@
   }
   function findExerciseInPrevWeek(name){
     const prevKey = getPrevWeekKey(state.activeWeek);
-    if(!prevKey) return null;
+    if(!prevKey || !state.weeks[prevKey]) return null;
     const prevDay = state.weeks[prevKey].days[state.activeDay];
     const target = (name || '').trim().toLowerCase();
     if(!target) return null;
     return prevDay.exercises.find(e => e.name.trim().toLowerCase() === target) || null;
+  }
+
+  // La API devuelve group_name/notes por día (join a day_templates) y
+  // exercises tal cual; se traduce group_name→group una sola vez acá para
+  // que el resto del render siga usando el mismo shape que siempre tuvo.
+  function applyWeekDetail(key, detail){
+    const days = {};
+    DAY_ORDER.forEach(dk=>{
+      const d = detail.days[dk];
+      days[dk] = { group: d.group_name, notes: d.notes, exercises: d.exercises };
+    });
+    state.weeks[key] = { days };
   }
 
   function comparisonHtml(curRaw, prevRaw){
@@ -344,13 +258,15 @@
     if(el) el.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
   }
 
-  function deleteWeek(key){
+  async function deleteWeek(key){
     if(state.order.length <= 1){ showToast('Debe quedar al menos una semana.'); return; }
     if(!confirm('¿Eliminar esta semana? Se perderán sus registros.')) return;
+    try{ await Api.del(`api/weeks.php?date=${encodeURIComponent(key)}`); }
+    catch(err){ showToast(err.message); return; }
     delete state.weeks[key];
     state.order = state.order.filter(k => k !== key);
     if(state.activeWeek === key){
-      state.activeWeek = state.order[state.order.length - 1];
+      state.activeWeek = state.order[state.order.length - 1] ?? null;
     }
     renderAll();
     showToast('Semana eliminada.');
@@ -360,6 +276,7 @@
     const host = document.getElementById('day-rack');
     host.innerHTML = '';
     const week = currentWeek();
+    if(!week) return;
     DAY_ORDER.forEach(dk=>{
       const doneCount = week.days[dk].exercises.filter(e=>e.done).length;
       const isCompleted = doneCount >= MIN_DONE_FOR_STREAK;
@@ -382,7 +299,7 @@
   }
 
   function exerciseRowHtml(ex){
-    const expanded = expandedIds.has(ex.id);
+    const expanded = expandedIds.has(String(ex.id));
     let detailHtml = '';
     if(expanded){
       const prevEx = findExerciseInPrevWeek(ex.name);
@@ -422,6 +339,20 @@
 
   function renderDayPanel(){
     const host = document.getElementById('day-panel-host');
+
+    if(!state.activeWeek){
+      host.innerHTML = `
+        <div class="day-panel">
+          <div class="day-empty">
+            <p>Todavía no has creado ninguna semana.</p>
+            <div class="day-empty-actions">
+              <button class="btn-copy-week" type="button" data-action="first-week">+ Nueva semana</button>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
     const day = currentDay();
     const d = dayDate(state.activeWeek, state.activeDay);
     const total = day.exercises.length;
@@ -483,6 +414,11 @@
 
   function updateSummaryStrip(){
     const day = currentDay();
+    if(!day){
+      document.getElementById('sum-series').textContent = '0';
+      document.getElementById('sum-exercises').textContent = '0/0';
+      return;
+    }
     const doneRows = day.exercises.filter(e=>e.done);
     let seriesSum = 0;
     doneRows.forEach(e=>{ const n = parseInt(e.series, 10); if(!isNaN(n)) seriesSum += n; });
@@ -493,47 +429,53 @@
   // ============================================================
   // Acciones sobre ejercicios
   // ============================================================
-  function toggleExercise(id){
+  async function toggleExercise(id){
     const ex = findExercise(id);
     if(!ex) return;
-    ex.done = !ex.done;
+    let updated;
+    try{ updated = await Api.put(`api/exercises.php?id=${encodeURIComponent(id)}`, { done: !ex.done }); }
+    catch(err){ showToast(err.message); return; }
+    ex.done = updated.done;
     renderDayPanel();
     updateStreakBadge();
     updateSummaryStrip();
   }
 
-  function deleteExercise(id){
+  async function deleteExercise(id){
     const ex = findExercise(id);
     if(!ex) return;
     if(!confirm(`¿Eliminar "${ex.name || 'este ejercicio'}"?`)) return;
+    try{ await Api.del(`api/exercises.php?id=${encodeURIComponent(id)}`); }
+    catch(err){ showToast(err.message); return; }
     const day = currentDay();
-    day.exercises = day.exercises.filter(e=>e.id !== id);
-    expandedIds.delete(id);
+    day.exercises = day.exercises.filter(e=>String(e.id) !== String(id));
+    expandedIds.delete(String(id));
     renderDayPanel();
     updateStreakBadge();
     updateSummaryStrip();
   }
 
-  function addExercise(){
-    const day = currentDay();
-    const newId = uid();
-    day.exercises.push({ id: newId, name:'', kg:'', reps:'', series:'', note:'', done:false });
+  async function addExercise(){
+    if(!state.activeWeek) return;
+    let created;
+    try{
+      created = await Api.post('api/exercises.php', { monday_date: state.activeWeek, day_key: state.activeDay });
+    }catch(err){ showToast(err.message); return; }
+    currentDay().exercises.push(created);
     renderDayPanel();
     updateStreakBadge();
     updateSummaryStrip();
-    enterNameEdit(newId);
+    enterNameEdit(created.id);
   }
 
-  function copyPreviousWeek(){
+  async function copyPreviousWeek(){
     const prevKey = getPrevWeekKey(state.activeWeek);
     if(!prevKey) return;
-    const prevWeek = state.weeks[prevKey];
-    const week = currentWeek();
-    DAY_ORDER.forEach(dk=>{
-      week.days[dk].exercises = prevWeek.days[dk].exercises.map(e=>(
-        { id: uid(), name:e.name, kg:e.kg, reps:e.reps, series:e.series, note:e.note||'', done:false }
-      ));
-    });
+    let detail;
+    try{
+      detail = await Api.post(`api/weeks.php?date=${encodeURIComponent(state.activeWeek)}&action=copy-previous`);
+    }catch(err){ showToast(err.message); return; }
+    applyWeekDetail(state.activeWeek, detail);
     renderDayPanel();
     updateStreakBadge();
     updateSummaryStrip();
@@ -541,6 +483,7 @@
   }
 
   function toggleDetail(id){
+    id = String(id);
     if(expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
     renderDayPanel();
   }
@@ -557,7 +500,7 @@
 
   // Delegación de eventos dentro del panel del día
   const dayPanelHost = document.getElementById('day-panel-host');
-  dayPanelHost.addEventListener('click', (e)=>{
+  dayPanelHost.addEventListener('click', async (e)=>{
     const toggleEl = e.target.closest('[data-action="toggle"]');
     if(toggleEl){ toggleExercise(toggleEl.closest('.ex-row').dataset.id); return; }
     const delEl = e.target.closest('[data-action="delete"]');
@@ -572,11 +515,17 @@
       const ex = findExercise(row.dataset.id);
       if(!ex) return;
       const val = prompt('Nota para este ejercicio (ej. incluye barra, ×2 la mancuerna):', ex.note || '');
-      if(val !== null){ ex.note = val.trim(); renderDayPanel(); }
+      if(val === null) return;
+      const trimmed = val.trim();
+      try{ await Api.put(`api/exercises.php?id=${encodeURIComponent(ex.id)}`, { note: trimmed }); }
+      catch(err){ showToast(err.message); return; }
+      ex.note = trimmed;
+      renderDayPanel();
       return;
     }
     if(e.target.closest('[data-action="add-ex"]')){ addExercise(); return; }
     if(e.target.closest('[data-action="copy-week"]')){ copyPreviousWeek(); return; }
+    if(e.target.closest('[data-action="first-week"]')){ addWeekBtn.click(); return; }
   });
 
   dayPanelHost.addEventListener('input', (e)=>{
@@ -594,18 +543,27 @@
     if(input) addToLibrary(input.value);
   });
 
-  // Al salir del campo de nombre, volver a modo "mostrar" (envuelto, altura fija)
-  dayPanelHost.addEventListener('focusout', (e)=>{
-    const input = e.target.closest('.ex-name-input');
+  // Al salir de un campo editable (nombre, kg, rep, ser) se persiste ese
+  // campo contra la API; si es el nombre, además vuelve al modo "mostrar".
+  dayPanelHost.addEventListener('focusout', async (e)=>{
+    const input = e.target.closest('.ex-name-input, .ex-val-input');
     if(!input) return;
-    const cell = input.closest('.ex-name-cell');
     const row = input.closest('.ex-row');
     const ex = findExercise(row.dataset.id);
-    const display = cell.querySelector('.ex-name-display');
-    const hasName = !!(ex && ex.name && ex.name.trim());
-    display.textContent = hasName ? ex.name : 'Nombre del ejercicio';
-    display.classList.toggle('empty', !hasName);
-    cell.classList.remove('editing');
+    if(!ex) return;
+
+    if(input.classList.contains('ex-name-input')){
+      const cell = input.closest('.ex-name-cell');
+      const display = cell.querySelector('.ex-name-display');
+      const hasName = !!(ex.name && ex.name.trim());
+      display.textContent = hasName ? ex.name : 'Nombre del ejercicio';
+      display.classList.toggle('empty', !hasName);
+      cell.classList.remove('editing');
+    }
+
+    const field = input.dataset.field;
+    try{ await Api.put(`api/exercises.php?id=${encodeURIComponent(ex.id)}`, { [field]: ex[field] }); }
+    catch(err){ showToast(err.message); }
   });
 
   // Swipe horizontal entre días
@@ -637,7 +595,7 @@
     const btn = e.target.closest('[data-action="lib-del"]');
     if(!btn) return;
     const row = btn.closest('.lib-row');
-    const ex = EXERCISE_LIBRARY.find(x => x.id === row.dataset.id);
+    const ex = EXERCISE_LIBRARY.find(x => String(x.id) === row.dataset.id);
     if(ex && confirm(`¿Quitar "${ex.name}" de la librería?`)) removeFromLibrary(row.dataset.id);
   });
   document.getElementById('lib-search').addEventListener('input', renderLibraryView);
@@ -687,7 +645,7 @@
   });
   dateInput.addEventListener('click', (e)=> e.stopPropagation());
 
-  dateInput.addEventListener('change', ()=>{
+  dateInput.addEventListener('change', async ()=>{
     if(!dateInput.value) return;
     let picked = fromISO(dateInput.value);
     if(picked.getDay() !== 1){
@@ -701,7 +659,10 @@
       showToast('Ya existe esa semana.');
       return;
     }
-    state.weeks[key] = { days: makeEmptyWeekDays() };
+    let detail;
+    try{ detail = await Api.post('api/weeks.php', { monday_date: key }); }
+    catch(err){ showToast(err.message); return; }
+    applyWeekDetail(key, detail);
     state.order.push(key);
     state.order.sort((a,b)=> b.localeCompare(a)); // más reciente primero
     state.activeWeek = key;
@@ -711,9 +672,85 @@
   });
 
   // ============================================================
-  // Estado inicial
+  // Sesión: login / logout / bootstrap
   // ============================================================
-  renderLibraryDatalist();
-  renderLibraryView();
-  renderAll();
+  const viewLogin = document.getElementById('view-login');
+  const appShell = document.getElementById('app-shell');
+  const loginForm = document.getElementById('login-form');
+  const loginError = document.getElementById('login-error');
+  const loginSubmit = document.getElementById('login-submit');
+  const loginUsername = document.getElementById('login-username');
+  const loginPassword = document.getElementById('login-password');
+
+  function showLogin(){
+    appShell.classList.add('hidden');
+    viewLogin.classList.remove('hidden');
+  }
+  function showApp(){
+    viewLogin.classList.add('hidden');
+    appShell.classList.remove('hidden');
+  }
+
+  Api.onUnauthorized = showLogin;
+
+  async function loadAppData(){
+    const [weekDates, library] = await Promise.all([
+      Api.get('api/weeks.php'),
+      Api.get('api/library.php'),
+    ]);
+
+    state.order = weekDates;
+    EXERCISE_LIBRARY.length = 0;
+    library.forEach(item => EXERCISE_LIBRARY.push(item));
+    EXERCISE_LIBRARY.sort((a,b)=> a.name.localeCompare(b.name, 'es'));
+
+    const details = await Promise.all(
+      state.order.map(key => Api.get(`api/weeks.php?date=${encodeURIComponent(key)}`))
+    );
+    state.order.forEach((key, i) => applyWeekDetail(key, details[i]));
+
+    state.activeWeek = state.order.includes(todayMondayKey) ? todayMondayKey : (state.order[0] ?? null);
+
+    renderLibraryDatalist();
+    renderLibraryView();
+    renderAll();
+  }
+
+  loginForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    loginError.textContent = '';
+    loginSubmit.disabled = true;
+    try{
+      await Api.post('api/login.php', { username: loginUsername.value.trim(), password: loginPassword.value });
+      loginPassword.value = '';
+      showApp();
+      await loadAppData();
+    }catch(err){
+      loginError.textContent = err.message || 'No se pudo iniciar sesión.';
+    }finally{
+      loginSubmit.disabled = false;
+    }
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async ()=>{
+    try{ await Api.post('api/logout.php'); }catch(err){ /* ya no hay sesión útil de todos modos */ }
+    showLogin();
+  });
+
+  // ============================================================
+  // Arranque
+  // ============================================================
+  (async function bootstrap(){
+    try{
+      const session = await Api.get('api/session.php');
+      if(session.authenticated){
+        showApp();
+        await loadAppData();
+      } else {
+        showLogin();
+      }
+    }catch(err){
+      showLogin();
+    }
+  })();
 })();

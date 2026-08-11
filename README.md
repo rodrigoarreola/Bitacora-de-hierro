@@ -13,19 +13,18 @@ Un solo usuario. Sin frameworks de frontend. Pensada para desplegarse como archi
 
 ## Estado actual
 
-El frontend (`index.html` + `css/styles.css` + `js/app.js`) tiene el look and feel completo, pero **sus datos siguen viviendo en memoria** (objeto `state` en `js/app.js`) — todavía no está conectado a la API. Al recargar la página se pierden los cambios y se regeneran los datos de ejemplo. Esa conexión (reemplazar el `state` en memoria por llamadas `fetch()` a `api/`) es el siguiente paso pendiente.
-
-Ya existen, y funcionan de forma independiente al frontend: el esquema de MySQL y el backend PHP completo (login por sesión + CRUD de semanas/ejercicios/librería) descritos abajo.
+El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está **conectado a la API real**: requiere sesión (pantalla de login) y todo lo que se ve — semanas, ejercicios, librería — se lee y se escribe contra MySQL a través de `api/`. Ya no hay datos de ejemplo en memoria.
 
 ### Estructura del proyecto
 
 ```
 /
-├── index.html                     Markup, sin estilos ni lógica inline
+├── index.html                     Markup: pantalla de login + #app-shell con el resto
 ├── css/
-│   └── styles.css                 Todos los estilos (extraídos del <style> original)
+│   └── styles.css                 Todos los estilos, incluyendo login/logout
 ├── js/
-│   └── app.js                     Toda la lógica de UI y el state en memoria (extraído del <script> original)
+│   ├── api.js                     Cliente fetch (apiGet/Post/Put/Delete), maneja 401
+│   └── app.js                     UI, estado local (caché de lo cargado de la API) y bootstrap de sesión
 ├── .htaccess                      Fuerza HTTPS, bloquea config.local.php y *.sql
 ├── api/
 │   ├── config.php                 Conexión PDO + arranque de sesión
@@ -49,7 +48,7 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 ### Puesta en marcha del backend (una sola vez por entorno)
 
 1. Crear la base de datos en cPanel (MySQL Databases) y un usuario con permisos sobre ella.
-2. Importar `api/db/schema.sql` (phpMyAdmin o `mysql -u user -p nombre_bd < api/db/schema.sql`).
+2. Importar `api/db/schema.sql` (phpMyAdmin, o `mysql -u user -p nombre_bd < api/db/schema.sql`). **En Windows/PowerShell no uses `Get-Content -Raw | mysql`** — PowerShell 5.1 lee el archivo con la codepage del sistema en vez de UTF-8 y corrompe los acentos (`Tríceps` → `Tr??ceps`); si necesitas hacerlo desde PowerShell, usa `Get-Content -Raw -Encoding UTF8 | mysql ...` o mejor `cmd /c "mysql -u user -p nombre_bd < api/db/schema.sql"`.
 3. Copiar `api/config.local.php.example` a `api/config.local.php` y completar host/nombre/usuario/contraseña de la BD. Este archivo está en `.gitignore`, nunca se sube a git.
 4. Crear el usuario de la app por SSH: `php api/db/create_user.php <usuario> <contraseña>`.
 
@@ -79,17 +78,18 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 
 ## Pendiente
 
-1. Conectar el frontend (hoy 100% en memoria) a los endpoints reales de `api/`, reemplazando el estado de ejemplo.
-2. Manifest + service worker para instalación como PWA real.
-3. Implementar las vistas de Historial y Progreso (hoy son placeholders).
+1. Manifest + service worker para instalación como PWA real.
+2. Implementar las vistas de Historial y Progreso (hoy son placeholders).
 
 ## Desarrollo local
 
-No requiere build. Basta con abrir `index.html` en un navegador o servirlo con cualquier servidor estático:
+No requiere build, pero sí un servidor con PHP (la app ya llama a `api/`, no sirve con un servidor puramente estático):
 
 ```bash
-python -m http.server 8000
+php -S localhost:8000
 ```
+
+Necesita `api/config.local.php` ya configurado apuntando a una base de datos con el esquema importado — ver "Puesta en marcha del backend" arriba.
 
 ## Despliegue
 

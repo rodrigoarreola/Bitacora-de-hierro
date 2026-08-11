@@ -26,6 +26,23 @@
   <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
 </svg>
 
+  <!-- ================= LOGIN ================= -->
+  <div class="login-screen hidden" id="view-login">
+    <div class="login-card">
+      <div class="brand-mark login-mark"><svg class="icon"><use href="#i-dumbbell"/></svg></div>
+      <h1 class="login-title">Bitácora</h1>
+      <p class="login-sub">Inicia sesión para continuar</p>
+      <form id="login-form" novalidate>
+        <input type="text" id="login-username" placeholder="Usuario" autocomplete="username" required>
+        <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password" required>
+        <button type="submit" id="login-submit">Entrar</button>
+        <p class="login-error" id="login-error"></p>
+      </form>
+    </div>
+  </div>
+
+  <div class="hidden" id="app-shell">
+
   <header class="app-head">
     <div class="brand">
       <div class="brand-mark"><svg class="icon"><use href="#i-dumbbell"/></svg></div>
@@ -84,6 +101,7 @@
 
   <!-- ================= VIEW: AJUSTES → Librería de ejercicios ================= -->
   <div class="view" id="view-ajustes">
+    <button type="button" class="logout-btn" id="logout-btn">Cerrar sesión</button>
     <div class="lib-panel">
       <div class="lib-head">
         <div class="lib-title">Librería de ejercicios</div>
@@ -108,6 +126,10 @@
 
   <div class="toast" id="toast"></div>
 
+  </div>
+  <!-- /#app-shell -->
+
+<script src="js/api.js" defer></script>
 <script src="js/app.js" defer></script>
 </body>
 </html>
