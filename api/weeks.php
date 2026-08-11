@@ -3,50 +3,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/config.php';
 require __DIR__ . '/auth.php';
+require __DIR__ . '/week_helpers.php';
 
 require_login();
-
-function is_monday(string $isoDate): bool
-{
-    $d = DateTime::createFromFormat('Y-m-d', $isoDate);
-    return $d !== false && $d->format('Y-m-d') === $isoDate && $d->format('N') === '1';
-}
-
-function find_week_id(PDO $pdo, string $mondayDate): ?int
-{
-    $stmt = $pdo->prepare('SELECT id FROM weeks WHERE monday_date = :d');
-    $stmt->execute(['d' => $mondayDate]);
-    $id = $stmt->fetchColumn();
-    return $id === false ? null : (int) $id;
-}
-
-function fetch_week_detail(PDO $pdo, int $weekId, string $mondayDate): array
-{
-    $templates = $pdo->query('SELECT day_key, group_name, notes FROM day_templates ORDER BY sort_order')
-        ->fetchAll();
-
-    $days = [];
-    foreach ($templates as $t) {
-        $days[$t['day_key']] = [
-            'group_name' => $t['group_name'],
-            'notes'      => $t['notes'],
-            'exercises'  => [],
-        ];
-    }
-
-    $stmt = $pdo->prepare(
-        'SELECT id, day_key, name, kg, reps, series, note, done
-         FROM exercises WHERE week_id = :week_id ORDER BY day_key, sort_order, id'
-    );
-    $stmt->execute(['week_id' => $weekId]);
-    foreach ($stmt->fetchAll() as $row) {
-        $row['id'] = (int) $row['id'];
-        $row['done'] = (bool) $row['done'];
-        $days[$row['day_key']]['exercises'][] = $row;
-    }
-
-    return ['monday_date' => $mondayDate, 'days' => $days];
-}
 
 $method = $_SERVER['REQUEST_METHOD'];
 $date = isset($_GET['date']) ? trim((string) $_GET['date']) : null;

@@ -18,11 +18,13 @@ CREATE TABLE users (
 
 -- ============================================================
 -- day_templates: grupo muscular y notas por día de la semana.
--- Datos estáticos (5 filas), no se duplican por semana porque
--- el frontend actual nunca los edita por semana individual.
+-- Datos estáticos (7 filas), no se duplican por semana — son el
+-- valor por defecto. Cuando un día se migra a otro (ver
+-- week_day_overrides), el destino usa su propio group_name/notes
+-- en vez de este valor por defecto.
 -- ============================================================
 CREATE TABLE day_templates (
-  day_key    ENUM('lun','mar','mie','jue','vie') NOT NULL PRIMARY KEY,
+  day_key    ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL PRIMARY KEY,
   group_name VARCHAR(80)  NOT NULL DEFAULT '',
   notes      TEXT         NULL,
   sort_order TINYINT      NOT NULL
@@ -33,7 +35,9 @@ INSERT INTO day_templates (day_key, group_name, notes, sort_order) VALUES
   ('mar', 'Piernas',            NULL,                                                        1),
   ('mie', 'Espalda y Bíceps',   'Filas sin marcar: variantes que rotan semana a semana.',    2),
   ('jue', 'Hombros',            NULL,                                                        3),
-  ('vie', 'Full Body',          'Día de cierre — se ajusta según lo que falte de la semana.', 4);
+  ('vie', 'Full Body',          'Día de cierre — se ajusta según lo que falte de la semana.', 4),
+  ('sab', 'Recuperación',       'Día para recuperar un entrenamiento migrado de otro día.',   5),
+  ('dom', 'Descanso',           'El gimnasio no abre los domingos.',                          6);
 
 -- ============================================================
 -- weeks: una fila por semana, identificada por el lunes (ISO).
@@ -54,7 +58,7 @@ CREATE TABLE weeks (
 CREATE TABLE exercises (
   id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   week_id    INT UNSIGNED NOT NULL,
-  day_key    ENUM('lun','mar','mie','jue','vie') NOT NULL,
+  day_key    ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
   name       VARCHAR(150) NOT NULL DEFAULT '',
   kg         VARCHAR(20)  NOT NULL DEFAULT '',
   reps       VARCHAR(20)  NOT NULL DEFAULT '',
@@ -76,4 +80,23 @@ CREATE TABLE exercise_library (
   name       VARCHAR(150) NOT NULL,
   created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_exercise_library_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- week_day_overrides: group_name/notes específicos de una semana,
+-- usados cuando un día se migra a otro (ver "Migrar día" en el
+-- frontend / api/migrate_day.php). Sin fila = el día usa el valor
+-- por defecto de day_templates. migrated_from registra de qué día
+-- vino el contenido, para que el cálculo de racha no cuente el
+-- día de origen como "fallido" cuando en realidad se movió acá.
+-- ============================================================
+CREATE TABLE week_day_overrides (
+  week_id       INT UNSIGNED NOT NULL,
+  day_key       ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
+  group_name    VARCHAR(80) NOT NULL,
+  notes         TEXT NULL,
+  migrated_from ENUM('lun','mar','mie','jue','vie','sab','dom') NULL,
+  PRIMARY KEY (week_id, day_key),
+  CONSTRAINT fk_week_day_overrides_week
+    FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

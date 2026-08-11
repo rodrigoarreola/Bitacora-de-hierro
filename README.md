@@ -41,9 +41,11 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 │   ├── logout.php                 POST → destruye sesión
 │   ├── session.php                GET → { authenticated }
 │   ├── weeks.php                  GET/POST/DELETE semanas (incluye copiar semana anterior)
+│   ├── week_helpers.php           Helpers compartidos: is_monday(), find_week_id(), fetch_week_detail() (usados por weeks.php y migrate_day.php)
 │   ├── exercises.php              POST/PUT/DELETE ejercicios de un día
 │   ├── library.php                GET/POST/DELETE librería de ejercicios
 │   ├── import.php                 POST: importa semanas desde JSON (reemplaza las que ya existan, deja intactas las demás)
+│   ├── migrate_day.php            POST: migra el set completo de ejercicios de un día a otro dentro de la misma semana
 │   └── db/
 │       ├── schema.sql             DDL completo + seed de day_templates
 │       └── create_user.php        Script CLI para crear el usuario único (nunca vía HTTP)
@@ -51,7 +53,7 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 
 ### Esquema de base de datos
 
-Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO), `day_templates` (grupo muscular y notas fijos por día de la semana — Lun–Vie —, sembrados desde la rutina base), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre para permitir formatos no numéricos) y `exercise_library` (nombres para autocompletar).
+Seis tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO), `day_templates` (grupo muscular y notas **por defecto** de cada uno de los 7 días — Lun–Dom —, sembrados desde la rutina base; sábado/domingo llevan un valor genérico ya que no tienen rutina fija), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre para permitir formatos no numéricos), `exercise_library` (nombres para autocompletar) y `week_day_overrides` (group_name/notes específicos de una semana puntual — solo existe una fila cuando ese día recibió contenido migrado de otro día vía "Migrar día"; sin fila, el día usa el valor por defecto de `day_templates`).
 
 ### Puesta en marcha del backend (una sola vez por entorno)
 
@@ -62,23 +64,24 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 
 ### Funcionalidad implementada
 
-- **Header**: racha actual y mejor racha (días consecutivos con 3+ ejercicios marcados como cumplidos, cruzando semanas, lunes a viernes).
+- **Header**: racha actual y mejor racha (días consecutivos con 3+ ejercicios marcados como cumplidos, cruzando semanas, lunes a viernes — sábado suma si tiene contenido, domingo nunca cuenta porque el gimnasio no abre; ver "Migrar día" abajo).
 - **Riel de semanas**: semanas ordenadas de más reciente a más antigua, con botón "Nueva semana" (date picker restringido a lunes — ajusta automáticamente si se elige otro día).
-- **5 tabs de día** (Lun–Vie): se pintan en verde cuando el día está "cumplido" (3+ ejercicios marcados).
+- **7 tabs de día** (Lun–Dom): Lun–Vie llenan el ancho visible; Sáb/Dom quedan revelados solo al hacer scroll horizontal del riel. Se pintan en verde cuando el día está "cumplido" (3+ ejercicios marcados). Un día que recibió contenido migrado de otro muestra un pequeño ícono con el día de origen.
 - **Panel del día**:
   - Ejercicios editables inline: nombre (con autocompletado contra la librería), kg, reps, series.
   - Nota libre por ejercicio (ej. "incluye barra", "×2 la mancuerna").
   - Chevron expandible que compara kg/reps/series contra la semana anterior (flechas subir/bajar/igual).
   - Agregar y eliminar ejercicios (con confirmación al borrar).
   - "Copiar semana pasada" cuando el día está vacío.
+  - "Migrar día": mueve el set completo de ejercicios (mismo grupo muscular, notas y estado marcado) de un día a otro **dentro de la misma semana** — pensado para cuando un entrenamiento entre semana se recupera el sábado. Solo ofrece como destino los días de esa semana que estén vacíos (0 ejercicios); si el destino ya tiene contenido, el backend lo bloquea (nunca hace merge ni sobreescribe). El grupo muscular/notas del día de origen viajan con el contenido migrado, y el día de origen queda libre (vuelve a su valor por defecto).
   - Anillo de progreso (ejercicios marcados / total) y tira de resumen (series de hoy, ejercicios, racha actual, mejor racha).
 - **Librería de ejercicios** (tab Ajustes): lista reutilizable para autocompletar nombres al agregar ejercicios; se alimenta sola con lo que se escribe en cualquier día, y se puede buscar/eliminar manualmente.
 - **Swipe horizontal** entre días dentro del panel.
 - **Confirmaciones** (`confirm()`) antes de borrar ejercicios o semanas.
-- **Calendario**: vista de mes (lunes a domingo), navegable con flechas, por defecto en el mes actual. Cada día lun–vie que pertenece a una semana ya creada pinta una línea de color según ejercicios marcados ese día: rojo (0), amarillo (1–5), verde (6+). Fines de semana y días futuros quedan sin línea (no hay concepto de sábado/domingo en el esquema, y un día que no ha pasado no cuenta como "fallado").
+- **Calendario**: vista de mes (lunes a domingo), navegable con flechas, por defecto en el mes actual. Cada día lun–vie que pertenece a una semana ya creada pinta una línea de color según ejercicios marcados ese día: rojo (0), amarillo (1–5), verde (6+). Sábado se colorea igual, pero solo si tiene algún ejercicio esa semana (un sábado libre no es un día "fallado", así que se deja sin línea en vez de rojo). Domingo nunca lleva línea — el gimnasio no abre. Días futuros tampoco (no cuentan como "fallados" antes de pasar).
 - **Perfil**: botón de cerrar sesión (antes vivía en Ajustes), y exportar/importar datos (ver abajo).
 - **Sesión persistente**: cookie de 30 días — no hay que iniciar sesión cada vez que se abre la app.
-- **Historial**: una tarjeta por semana (más reciente primero), con 5 indicadores de día (verde si ese día quedó "cumplido") y el total de ejercicios marcados/total de la semana. Riel de meses arriba para filtrar (mismo estilo que el riel de semanas de "Hoy"), con "Todas" como opción por defecto — una semana que cruza dos meses (ej. 27 abr–3 may) aparece en ambos filtros. Tocar un día específico de la tarjeta te manda a "Hoy" con ese día exacto seleccionado; tocar el resto de la tarjeta cae en lunes.
+- **Historial**: una tarjeta por semana (más reciente primero), con 6 indicadores de día — Lun–Sáb, sin domingo — (verde si ese día quedó "cumplido") y el total de ejercicios marcados/total de la semana. Riel de meses arriba para filtrar (mismo estilo que el riel de semanas de "Hoy"), con "Todas" como opción por defecto — una semana que cruza dos meses (ej. 27 abr–3 may) aparece en ambos filtros. Tocar un día específico de la tarjeta te manda a "Hoy" con ese día exacto seleccionado; tocar el resto de la tarjeta cae en lunes.
 - **Progreso**: buscador de ejercicio (mismo autocompletado contra la librería que ya se usa en el panel del día) y gráfica de línea con Chart.js (carga en kg en el tiempo, relleno de área, tooltip nativo con fecha/reps/series al tocar un punto — sin leyenda, porque solo hay una serie por gráfica). Solo cuenta apariciones marcadas como hechas (`done`), nunca las que solo estaban en la rutina sin marcar; valores de `kg` no numéricos se descartan en vez de graficarse como cero. Chips de último peso, mejor peso y cambio desde el primer registro.
 - **Exportar / importar datos** (tab Perfil): exportar arma un JSON con todas las semanas/ejercicios ya cargados en memoria (sin pedir nada nuevo a la API) y lo descarga. Importar lee un archivo con esa misma forma y lo manda a `api/import.php`: valida todo antes de escribir (todo o nada, transacción), y por cada semana del archivo — si ya existe en tu base (mismo lunes), reemplaza sus ejercicios por completo; si no existe, la crea. Las semanas que no vienen en el archivo quedan intactas. Antes de enviar, un `confirm()` te dice cuántas semanas se van a reemplazar y cuántas son nuevas.
 
@@ -93,7 +96,7 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 
 `manifest.json` + `sw.js` ya están activos: la app es instalable (Android/desktop vía Chrome/Edge, iOS vía "Agregar a inicio" en Safari). El service worker solo cachea el *app shell* estático (HTML/CSS/JS/íconos) para que cargue rápido e instale — **no cachea nada bajo `api/`**, así que no hay edición de datos offline; sin conexión, la app carga pero no puede leer ni guardar ejercicios. `start_url`/`scope` del manifest y el registro del service worker usan rutas relativas a propósito, para que funcionen igual en `localhost:8000`, en un subdominio o en una subcarpeta como `/bitacora`, sin tocar código.
 
-**Importante en cada deploy que toque `index.html`/`css/`/`js/`**: sube también `sw.js` con `CACHE_NAME` incrementado (`bitacora-shell-v2`, `v3`, ...). Si no, los navegadores que ya instalaron la PWA van a seguir sirviendo el shell viejo desde caché indefinidamente — pasó durante el desarrollo local de esta misma sesión.
+**Importante en cada deploy que toque `index.html`/`css/`/`js/`**: sube también `sw.js` con `CACHE_NAME` incrementado (`bitacora-shell-v2`, `v3`, ... actualmente `v6`). Si no, los navegadores que ya instalaron la PWA van a seguir sirviendo el shell viejo desde caché indefinidamente — pasó varias veces durante el desarrollo local de este proyecto.
 
 ## Pendiente
 
@@ -124,9 +127,34 @@ Destino: `tu-dominio.com/bitacora`, vía FTP/SFTP. Como todas las rutas del proy
 
 ### Pendiente de correr en producción
 
-Esta limpieza de datos ya se hizo en local pero todavía no en el servidor — correr una sola vez, vía phpMyAdmin → SQL, sobre la base de producción:
+Estos cambios ya se hicieron en local pero todavía no en el servidor — correr una sola vez, vía phpMyAdmin → SQL, sobre la base de producción:
 
 ```sql
 UPDATE exercises SET kg = '40', note = '8 placas — la máquina no tenía etiqueta de peso'
 WHERE name = 'Prone leg curl acostado' AND kg = '40(8)';
 ```
+
+```sql
+ALTER TABLE day_templates
+  MODIFY day_key ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL;
+
+INSERT INTO day_templates (day_key, group_name, notes, sort_order) VALUES
+  ('sab', 'Recuperación', 'Día para recuperar un entrenamiento migrado de otro día.', 5),
+  ('dom', 'Descanso', 'El gimnasio no abre los domingos.', 6);
+
+ALTER TABLE exercises
+  MODIFY day_key ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL;
+
+CREATE TABLE week_day_overrides (
+  week_id       INT UNSIGNED NOT NULL,
+  day_key       ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
+  group_name    VARCHAR(80) NOT NULL,
+  notes         TEXT NULL,
+  migrated_from ENUM('lun','mar','mie','jue','vie','sab','dom') NULL,
+  PRIMARY KEY (week_id, day_key),
+  CONSTRAINT fk_week_day_overrides_week
+    FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+(sábado/domingo + "Migrar día" — necesario antes de subir el `js/app.js`/`api/` de esta tanda, o los endpoints van a fallar contra el ENUM viejo de 5 días.)

@@ -6,7 +6,7 @@ require __DIR__ . '/auth.php';
 
 require_login();
 
-const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie'];
+const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 
 function find_week_id_by_date(PDO $pdo, string $mondayDate): ?int
 {

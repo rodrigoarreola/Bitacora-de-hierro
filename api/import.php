@@ -10,7 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond_error('Método no permitido.', 405);
 }
 
-const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie'];
+const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+const REQUIRED_DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie'];
 
 /**
  * Importa una lista de semanas: [{monday_date, days:{lun..vie:[{name,kg,reps,series,note,done}]}}].
@@ -18,6 +19,8 @@ const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie'];
  * (se borran sus ejercicios actuales y se insertan los del archivo).
  * Semanas que no vienen en el archivo quedan intactas. Todo o nada:
  * se valida la forma completa antes de escribir nada en la base.
+ * "sab"/"dom" son opcionales (backups viejos no los tienen) — si
+ * faltan, se importan como día vacío.
  */
 
 $weeks = read_json_body();
@@ -34,9 +37,17 @@ foreach ($weeks as $i => $w) {
     if (!$d || $d->format('Y-m-d') !== $mondayDate || $d->format('N') !== '1') {
         respond_error("Semana #{$i}: \"{$mondayDate}\" no es un lunes válido (YYYY-MM-DD).", 422);
     }
-    foreach (DAY_KEYS as $dayKey) {
+    foreach (REQUIRED_DAY_KEYS as $dayKey) {
         if (!isset($w['days'][$dayKey]) || !is_array($w['days'][$dayKey])) {
             respond_error("Semana {$mondayDate}: falta el día \"{$dayKey}\".", 422);
+        }
+    }
+    foreach (DAY_KEYS as $dayKey) {
+        if (!isset($w['days'][$dayKey])) {
+            continue;
+        }
+        if (!is_array($w['days'][$dayKey])) {
+            respond_error("Semana {$mondayDate}: el día \"{$dayKey}\" debe ser una lista.", 422);
         }
         foreach ($w['days'][$dayKey] as $e) {
             if (!is_array($e) || !array_key_exists('name', $e)) {
@@ -76,7 +87,7 @@ try {
 
         foreach (DAY_KEYS as $dayKey) {
             $sortOrder = 0;
-            foreach ($w['days'][$dayKey] as $e) {
+            foreach ($w['days'][$dayKey] ?? [] as $e) {
                 $name = trim((string) ($e['name'] ?? ''));
                 $insertEx->execute([
                     'week_id'    => $weekId,

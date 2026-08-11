@@ -2,14 +2,16 @@
   // ============================================================
   // Configuración de días
   // ============================================================
-  const DAY_ORDER  = ['lun','mar','mie','jue','vie'];
-  const DAY_NAMES  = {lun:'Lunes', mar:'Martes', mie:'Miércoles', jue:'Jueves', vie:'Viernes'};
-  const DAY_SHORT  = {lun:'Lun', mar:'Mar', mie:'Mié', jue:'Jue', vie:'Vie'};
-  const DAY_LETTER = {lun:'L', mar:'M', mie:'X', jue:'J', vie:'V'};
-  const DAY_OFFSET = {lun:0, mar:1, mie:2, jue:3, vie:4};
+  const DAY_ORDER  = ['lun','mar','mie','jue','vie','sab','dom'];
+  const DAY_NAMES  = {lun:'Lunes', mar:'Martes', mie:'Miércoles', jue:'Jueves', vie:'Viernes', sab:'Sábado', dom:'Domingo'};
+  const DAY_SHORT  = {lun:'Lun', mar:'Mar', mie:'Mié', jue:'Jue', vie:'Vie', sab:'Sáb', dom:'Dom'};
+  const DAY_LETTER = {lun:'L', mar:'M', mie:'X', jue:'J', vie:'V', sab:'S', dom:'D'};
+  const DAY_OFFSET = {lun:0, mar:1, mie:2, jue:3, vie:4, sab:5, dom:6};
   const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const MESES_LARGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const WEEKDAY_TO_KEY = {1:'lun', 2:'mar', 3:'mie', 4:'jue', 5:'vie'};
+  // Sin entrada para domingo (0) a propósito: el gimnasio no abre, así
+  // que computeDayTier() debe seguir devolviendo null para ese día.
+  const WEEKDAY_TO_KEY = {1:'lun', 2:'mar', 3:'mie', 4:'jue', 5:'vie', 6:'sab'};
   const MIN_DONE_FOR_STREAK = 3;
   const RING_R = 16;
   const RING_C = 2 * Math.PI * RING_R;
@@ -131,6 +133,7 @@
   };
 
   const expandedIds = new Set();
+  let migratePickerOpen = false;
 
   function currentWeek(){ return state.activeWeek ? state.weeks[state.activeWeek] : null; }
   function currentDay(){ const w = currentWeek(); return w ? w.days[state.activeDay] : null; }
@@ -157,7 +160,7 @@
     const days = {};
     DAY_ORDER.forEach(dk=>{
       const d = detail.days[dk];
-      days[dk] = { group: d.group_name, notes: d.notes, exercises: d.exercises };
+      days[dk] = { group: d.group_name, notes: d.notes, migratedFrom: d.migrated_from, exercises: d.exercises };
     });
     state.weeks[key] = { days };
   }
@@ -180,18 +183,32 @@
 
   // ============================================================
   // Racha: días "cumplidos" (3+ ejercicios marcados) consecutivos,
-  // cruzando semanas (lunes a viernes, ignorando fines de semana).
-  // Solo cuenta días hasta hoy — los días futuros de la semana en
-  // curso no cortan la racha por estar simplemente aún sin llegar.
+  // cruzando semanas (lunes a viernes normalmente, ignorando domingo
+  // que siempre está cerrado). Solo cuenta días hasta hoy — los días
+  // futuros de la semana en curso no cortan la racha por estar
+  // simplemente aún sin llegar.
+  //
+  // Sábado es un día "bonus": solo entra a la lista si tiene algún
+  // ejercicio esa semana (vacío = neutral, igual que domingo). Y si
+  // un lun-vie quedó vacío porque su contenido se migró justo a ese
+  // sábado (week.days.sab.migratedFrom === dk), ese día de origen se
+  // salta en vez de contar como fallido — el entrenamiento sí pasó,
+  // solo que otro día.
   // ============================================================
   function buildChronoDays(){
     const list = [];
     const ascKeys = [...state.order].sort((a,b)=> a.localeCompare(b));
     ascKeys.forEach(wk=>{
+      const week = state.weeks[wk];
+      const migratedFromSab = week.days.sab ? week.days.sab.migratedFrom : null;
       DAY_ORDER.forEach(dk=>{
+        if(dk === 'dom') return;
         const date = dayDate(wk, dk);
         if(date > today) return;
-        const done = state.weeks[wk].days[dk].exercises.filter(e=>e.done).length;
+        const total = week.days[dk].exercises.length;
+        if(dk === 'sab' && total === 0) return;
+        if(dk !== 'sab' && total === 0 && migratedFromSab === dk) return;
+        const done = week.days[dk].exercises.filter(e=>e.done).length;
         list.push({ date, completed: done >= MIN_DONE_FOR_STREAK });
       });
     });
@@ -263,6 +280,7 @@
   function selectWeek(key){
     if(!state.weeks[key] || key === state.activeWeek) return;
     state.activeWeek = key;
+    migratePickerOpen = false;
     renderAll();
     const el = document.querySelector(`.week-pill[data-week="${key}"]`);
     if(el) el.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
@@ -290,16 +308,19 @@
     DAY_ORDER.forEach(dk=>{
       const doneCount = week.days[dk].exercises.filter(e=>e.done).length;
       const isCompleted = doneCount >= MIN_DONE_FOR_STREAK;
+      const migratedFrom = week.days[dk].migratedFrom;
       const tab = document.createElement('div');
       tab.className = 'day-tab' + (dk === state.activeDay ? ' active' : '') + (isCompleted ? ' completed' : '');
       tab.dataset.day = dk;
       tab.innerHTML = `
+        ${migratedFrom ? `<i class="icon migrated-mark fa-solid fa-right-left" title="Migrado de ${DAY_NAMES[migratedFrom]}"></i>` : ''}
         <div class="plate">${DAY_LETTER[dk]}</div>
         <div class="dname">${DAY_SHORT[dk]}</div>
         <span class="muted-tag">${week.days[dk].group.split(' ')[0]}</span>
       `;
       tab.addEventListener('click', ()=>{
         state.activeDay = dk;
+        migratePickerOpen = false;
         renderDayRack();
         renderDayPanel();
         updateSummaryStrip();
@@ -390,6 +411,32 @@
         ${day.notes ? `<div class="day-notes">${day.notes}</div>` : ''}`;
     }
 
+    // "Migrar día": solo tiene sentido si hay algo que mover y algún otro
+    // día de la misma semana está libre (0 ejercicios) para recibirlo —
+    // el backend bloquea igual, pero no tiene caso ofrecer una opción
+    // que sabemos que va a fallar.
+    const week = currentWeek();
+    const migrateTargets = DAY_ORDER.filter(dk => dk !== state.activeDay && week.days[dk].exercises.length === 0);
+    let migrateHtml = '';
+    if(total > 0 && migrateTargets.length > 0){
+      if(migratePickerOpen){
+        const options = migrateTargets.map(dk =>
+          `<option value="${dk}">${DAY_NAMES[dk]} · ${fmtShortDate(dayDate(state.activeWeek, dk))}</option>`
+        ).join('');
+        migrateHtml = `
+          <div class="migrate-row open">
+            <select id="migrate-target">${options}</select>
+            <button class="btn-migrate-confirm" type="button" data-action="migrate-confirm">Migrar</button>
+            <button class="btn-migrate-cancel" type="button" data-action="migrate-cancel" aria-label="Cancelar"><i class="icon fa-solid fa-xmark"></i></button>
+          </div>`;
+      } else {
+        migrateHtml = `
+          <div class="migrate-row">
+            <button class="btn-migrate" type="button" data-action="migrate-open"><i class="icon fa-solid fa-right-left"></i>Migrar día</button>
+          </div>`;
+      }
+    }
+
     host.innerHTML = `
       <div class="day-panel">
         <div class="day-panel-head">
@@ -405,8 +452,22 @@
             <div class="pct">${done}/${total}</div>
           </div>
         </div>
+        ${migrateHtml}
         ${bodyHtml}
       </div>`;
+  }
+
+  async function migrateDay(toDay){
+    if(!state.activeWeek) return;
+    let detail;
+    try{
+      detail = await Api.post('api/migrate_day.php', { monday_date: state.activeWeek, from_day: state.activeDay, to_day: toDay });
+    }catch(err){ showToast(err.message); return; }
+    applyWeekDetail(state.activeWeek, detail);
+    state.activeDay = toDay;
+    migratePickerOpen = false;
+    renderAll();
+    showToast(`Día migrado a ${DAY_NAMES[toDay]}.`);
   }
 
   function updateStreakBadge(){
@@ -539,6 +600,13 @@
     if(e.target.closest('[data-action="add-ex"]')){ addExercise(); return; }
     if(e.target.closest('[data-action="copy-week"]')){ copyPreviousWeek(); return; }
     if(e.target.closest('[data-action="first-week"]')){ addWeekBtn.click(); return; }
+    if(e.target.closest('[data-action="migrate-open"]')){ migratePickerOpen = true; renderDayPanel(); return; }
+    if(e.target.closest('[data-action="migrate-cancel"]')){ migratePickerOpen = false; renderDayPanel(); return; }
+    if(e.target.closest('[data-action="migrate-confirm"]')){
+      const sel = document.getElementById('migrate-target');
+      if(sel && sel.value) migrateDay(sel.value);
+      return;
+    }
   });
 
   dayPanelHost.addEventListener('input', (e)=>{
@@ -596,6 +664,7 @@
     if(dx < 0 && idx < DAY_ORDER.length - 1){ state.activeDay = DAY_ORDER[idx+1]; }
     else if(dx > 0 && idx > 0){ state.activeDay = DAY_ORDER[idx-1]; }
     else return;
+    migratePickerOpen = false;
     renderDayRack();
     renderDayPanel();
     updateSummaryStrip();
@@ -687,10 +756,10 @@
 
   // ============================================================
   // Calendario: mes actual por defecto, navegable. Lunes a domingo.
-  // Fines de semana y semanas no registradas quedan sin línea — el
-  // esquema no tiene concepto de sábado/domingo, así que "sin actividad"
-  // (rojo) solo aplica a días lun-vie que sí pertenecen a una semana ya
-  // creada.
+  // Sábado se colorea igual que cualquier día lun-vie (WEEKDAY_TO_KEY
+  // lo mapea a 'sab'). Domingo se queda sin línea siempre — no tiene
+  // entrada en WEEKDAY_TO_KEY porque el gimnasio nunca abre ese día.
+  // Días futuros y semanas no registradas tampoco llevan línea.
   // ============================================================
   let calMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -700,6 +769,12 @@
     if(!dayKey) return null;
     const week = state.weeks[toISO(mondayOfWeek(date))];
     if(!week) return null;
+    const total = week.days[dayKey].exercises.length;
+    // Sábado no es un día obligatorio como lun-vie: si nunca se usó ese
+    // sábado (0 ejercicios en total, no solo 0 marcados) se deja sin
+    // línea en vez de rojo — rojo se reserva para "debía entrenar y no
+    // lo hizo", y un sábado libre no es eso.
+    if(dayKey === 'sab' && total === 0) return null;
     const done = week.days[dayKey].exercises.filter(e=>e.done).length;
     if(done === 0) return 'tier-red';
     if(done <= 5) return 'tier-yellow';
@@ -794,7 +869,9 @@
     listEl.innerHTML = keys.map(key=>{
       const week = state.weeks[key];
       let totalDone = 0, totalEx = 0;
-      const dayDots = DAY_ORDER.map(dk=>{
+      // Domingo se excluye del riel de puntos y de los totales: el
+      // gimnasio nunca abre ese día, así que siempre estaría vacío.
+      const dayDots = DAY_ORDER.filter(dk => dk !== 'dom').map(dk=>{
         const day = week.days[dk];
         const done = day.exercises.filter(e=>e.done).length;
         totalDone += done;
@@ -818,6 +895,7 @@
         const dot = e.target.closest('.hist-dot');
         state.activeWeek = card.dataset.week;
         state.activeDay = dot ? dot.dataset.day : 'lun';
+        migratePickerOpen = false;
         renderAll();
         switchToView('hoy');
       });
