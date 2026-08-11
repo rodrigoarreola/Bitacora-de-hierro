@@ -67,7 +67,7 @@
     host.innerHTML = filtered.map(e => `
       <div class="lib-row" data-id="${e.id}">
         <span>${escapeHtml(e.name)}</span>
-        <button type="button" class="lib-del" data-action="lib-del" aria-label="Eliminar de la librería"><svg class="icon"><use href="#i-trash"/></svg></button>
+        <button type="button" class="lib-del" data-action="lib-del" aria-label="Eliminar de la librería"><i class="icon fa-solid fa-trash"></i></button>
       </div>
     `).join('');
   }
@@ -169,10 +169,10 @@
       return `<span>${prevDisplay}</span>`;
     }
     if(cur > prev){
-      return `<span>${prevDisplay}</span><svg class="icon cmp-icon cmp-up"><use href="#i-chevron"/></svg>`;
+      return `<span>${prevDisplay}</span><i class="icon cmp-icon cmp-up fa-solid fa-chevron-down"></i>`;
     }
     if(cur < prev){
-      return `<span>${prevDisplay}</span><svg class="icon cmp-icon cmp-down"><use href="#i-chevron"/></svg>`;
+      return `<span>${prevDisplay}</span><i class="icon cmp-icon cmp-down fa-solid fa-chevron-down"></i>`;
     }
     return `<span>${prevDisplay}</span><span class="cmp-eq">=</span>`;
   }
@@ -198,16 +198,25 @@
     return list;
   }
 
+  // La racha actual no cae a 0 solo porque hoy todavía no se marcó — el día
+  // de hoy sigue "en curso". Solo cuenta como corte cuando un día ya pasó
+  // (es estrictamente anterior a hoy) y no llegó al mínimo de ejercicios.
   function computeStreaks(){
     const days = buildChronoDays();
+    const todayIdx = days.findIndex(d => d.date.getTime() === today.getTime());
+    const pastDays = todayIdx === -1 ? days : days.slice(0, todayIdx);
+    const todayEntry = todayIdx === -1 ? null : days[todayIdx];
+
     let best = 0, run = 0;
-    days.forEach(d=>{
+    pastDays.forEach(d=>{
       if(d.completed){ run++; best = Math.max(best, run); }
       else { run = 0; }
     });
-    let current = 0;
-    for(let i = days.length - 1; i >= 0; i--){
-      if(days[i].completed) current++; else break;
+
+    let current = run;
+    if(todayEntry && todayEntry.completed){
+      current += 1;
+      best = Math.max(best, current);
     }
     return { current, best };
   }
@@ -240,7 +249,7 @@
         del.type = 'button';
         del.className = 'wp-del';
         del.setAttribute('aria-label', 'Eliminar semana');
-        del.innerHTML = '<svg class="icon"><use href="#i-x"/></svg>';
+        del.innerHTML = '<i class="icon fa-solid fa-xmark"></i>';
         del.addEventListener('click', (e)=>{ e.stopPropagation(); deleteWeek(key); });
         pill.appendChild(del);
       }
@@ -323,7 +332,7 @@
     const noteClass = ex.note && ex.note.trim() ? 'ex-note has-note' : 'ex-note';
     return `
       <div class="ex-row ${ex.done ? 'done' : 'pending'}" data-id="${ex.id}">
-        <div class="ex-check" data-action="toggle"><svg class="icon"><use href="#${ex.done ? 'i-check' : 'i-minus'}"/></svg></div>
+        <div class="ex-check" data-action="toggle"><i class="icon fa-solid ${ex.done ? 'fa-check' : 'fa-minus'}"></i></div>
         <div class="ex-name-cell">
           <div class="ex-name-display${hasName ? '' : ' empty'}" data-action="edit-name">${displayText}</div>
           <input class="ex-name-input" data-field="name" list="exercise-library-list" value="${escapeHtml(ex.name)}" placeholder="Nombre del ejercicio">
@@ -332,8 +341,8 @@
         <input class="ex-val-input" data-field="kg" value="${escapeHtml(ex.kg)}" inputmode="decimal" placeholder="—">
         <input class="ex-val-input" data-field="reps" value="${escapeHtml(ex.reps)}" inputmode="numeric" placeholder="—">
         <input class="ex-val-input" data-field="series" value="${escapeHtml(ex.series)}" inputmode="numeric" placeholder="—">
-        <button class="ex-del" type="button" data-action="delete" aria-label="Eliminar ejercicio"><svg class="icon"><use href="#i-trash"/></svg></button>
-        <button class="ex-chevron${expanded ? ' open' : ''}" type="button" data-action="chevron" aria-label="Ver semana pasada"><svg class="icon"><use href="#i-chevron"/></svg></button>
+        <button class="ex-del" type="button" data-action="delete" aria-label="Eliminar ejercicio"><i class="icon fa-solid fa-trash"></i></button>
+        <button class="ex-chevron${expanded ? ' open' : ''}" type="button" data-action="chevron" aria-label="Ver semana pasada"><i class="icon fa-solid fa-chevron-down"></i></button>
       </div>${detailHtml}`;
   }
 
@@ -359,6 +368,7 @@
     const done = day.exercises.filter(e=>e.done).length;
     const ratio = total ? done/total : 0;
     const offset = RING_C * (1 - ratio);
+    const ringTier = done <= 2 ? 'tier-red' : done <= 5 ? 'tier-yellow' : 'tier-green';
 
     let bodyHtml;
     if(total === 0){
@@ -375,7 +385,7 @@
       bodyHtml = `
         <div class="col-heads"><span></span><span>Ejercicio</span><span>Kg</span><span>Rep</span><span>Ser</span><span></span><span></span></div>
         ${day.exercises.map(exerciseRowHtml).join('')}
-        <div class="add-ex-row" data-action="add-ex"><svg class="icon"><use href="#i-plus"/></svg>Agregar ejercicio</div>
+        <div class="add-ex-row" data-action="add-ex"><i class="icon fa-solid fa-plus"></i>Agregar ejercicio</div>
         ${day.notes ? `<div class="day-notes">${day.notes}</div>` : ''}`;
     }
 
@@ -386,7 +396,7 @@
             <div class="grp">${day.group}</div>
             <div class="day-of">${DAY_NAMES[state.activeDay]} · ${fmtShortDate(d)}</div>
           </div>
-          <div class="progress-ring">
+          <div class="progress-ring ${ringTier}">
             <svg width="40" height="40" viewBox="0 0 40 40">
               <circle class="bgc" cx="20" cy="20" r="16"></circle>
               <circle class="fgc" cx="20" cy="20" r="16" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"></circle>
@@ -405,7 +415,6 @@
     badge.textContent = diasLabel(current);
     badge.classList.toggle('complete', current > 0);
 
-    document.getElementById('sum-streak').textContent = diasLabel(current);
     document.getElementById('sum-best-streak').textContent = diasLabel(best);
 
     // Los cards de día dependen del mismo estado, así que se refrescan aquí también

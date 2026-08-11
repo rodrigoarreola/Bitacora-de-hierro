@@ -6,7 +6,7 @@ Un solo usuario. Sin frameworks de frontend. Pensada para desplegarse como archi
 
 ## Stack
 
-- **Frontend**: HTML/CSS/JS vanilla, sin dependencias externas (iconos SVG inline, fuentes de Google Fonts).
+- **Frontend**: HTML/CSS/JS vanilla, sin framework — dependencias externas solo vía CDN (Google Fonts, Font Awesome).
 - **Backend**: PHP + MySQL (PDO, sin framework).
 - **Auth**: login usuario/contraseña con sesión PHP — sin API keys expuestas ni OAuth.
 - **Hosting**: Hostgator, subdominio dedicado (ej. `bitacora.tu-dominio.com`).
@@ -73,7 +73,7 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 
 - Paleta: acero oscuro (`#14171B`, `#1B1F26`) con acento óxido/rojo (`#D9481F`).
 - Tipografía: Big Shoulders Display (títulos), Inter (cuerpo), JetBrains Mono (valores numéricos).
-- Iconos SVG inline vía `<symbol>`/`<use>`, sin librería de iconos externa.
+- Iconos: Font Awesome 6 Free vía CDN.
 - Layout mobile-first, `max-width: 520px`, pensado para instalarse como PWA (aunque todavía falta el manifest y el service worker).
 
 ## Pendiente

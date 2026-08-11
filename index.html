@@ -7,29 +7,16 @@
 <meta name="theme-color" content="#14171B">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-<!-- Sprite: todos los iconos son SVG inline, sin dependencias externas -->
-<svg style="display:none">
-  <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M2 12h4M18 12h4M8 6v12M16 6v12"/></symbol>
-  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.5 13a8.5 8.5 0 1 0 2-6.5L3 8.5"/><path d="M12 8v5l3 2"/></symbol>
-  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></symbol>
-  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h2M8 12h12M4 18h10M16 18h4"/><circle cx="16" cy="6" r="2" fill="var(--bg)"/><circle cx="6" cy="12" r="2" fill="var(--bg)"/><circle cx="14" cy="18" r="2" fill="var(--bg)"/></symbol>
-  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></symbol>
-  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
-  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></symbol>
-  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
-  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
-</svg>
-
   <!-- ================= LOGIN ================= -->
   <div class="login-screen hidden" id="view-login">
     <div class="login-card">
-      <div class="brand-mark login-mark"><svg class="icon"><use href="#i-dumbbell"/></svg></div>
+      <div class="brand-mark login-mark"><i class="icon fa-solid fa-dumbbell"></i></div>
       <h1 class="login-title">Bitácora</h1>
       <p class="login-sub">Inicia sesión para continuar</p>
       <form id="login-form" novalidate>
@@ -45,7 +32,7 @@
 
   <header class="app-head">
     <div class="brand">
-      <div class="brand-mark"><svg class="icon"><use href="#i-dumbbell"/></svg></div>
+      <div class="brand-mark"><i class="icon fa-solid fa-dumbbell"></i></div>
       <div>
         <h1>Bitácora</h1>
         <p class="sub">Registro de entrenamiento</p>
@@ -62,7 +49,7 @@
 
     <div class="week-rail" id="week-rail">
       <button class="add-week" id="add-week-btn" type="button">
-        <svg class="icon"><use href="#i-plus"/></svg>Nueva semana
+        <i class="icon fa-solid fa-plus"></i>Nueva semana
         <input type="date" id="new-week-date" aria-label="Elegir lunes de inicio de semana">
       </button>
       <div id="week-pills" style="display:contents"></div>
@@ -73,7 +60,6 @@
     <div class="summary-strip">
       <div class="sum-chip"><div class="k">Series hoy</div><div class="v accent" id="sum-series">0</div></div>
       <div class="sum-chip"><div class="k">Ejercicios</div><div class="v" id="sum-exercises">0/0</div></div>
-      <div class="sum-chip"><div class="k">Racha actual</div><div class="v" id="sum-streak">0 días</div></div>
       <div class="sum-chip"><div class="k">Mejor racha</div><div class="v" id="sum-best-streak">0 días</div></div>
     </div>
 
@@ -84,7 +70,7 @@
   <!-- ================= VIEW: HISTORIAL (placeholder) ================= -->
   <div class="view" id="view-historial">
     <div class="placeholder">
-      <svg class="icon"><use href="#i-history"/></svg>
+      <i class="icon fa-solid fa-clock-rotate-left"></i>
       <span>Historial</span>
       <p>Aquí irían tus semanas anteriores, una tarjeta por sesión.</p>
     </div>
@@ -93,7 +79,7 @@
   <!-- ================= VIEW: PROGRESO (placeholder) ================= -->
   <div class="view" id="view-progreso">
     <div class="placeholder">
-      <svg class="icon"><use href="#i-chart"/></svg>
+      <i class="icon fa-solid fa-chart-line"></i>
       <span>Progreso</span>
       <p>Aquí irían las gráficas de carga por ejercicio en el tiempo.</p>
     </div>
@@ -109,7 +95,7 @@
       </div>
       <div class="lib-add">
         <input type="text" id="lib-new-input" placeholder="Agregar ejercicio…">
-        <button type="button" id="lib-add-btn" aria-label="Agregar a la librería"><svg class="icon"><use href="#i-plus"/></svg></button>
+        <button type="button" id="lib-add-btn" aria-label="Agregar a la librería"><i class="icon fa-solid fa-plus"></i></button>
       </div>
       <input type="text" id="lib-search" class="lib-search" placeholder="Buscar en la librería…">
       <div class="lib-count" id="lib-count"></div>
@@ -118,10 +104,10 @@
   </div>
 
   <nav class="bottom-nav">
-    <button class="active" data-view="hoy"><svg class="icon"><use href="#i-dumbbell"/></svg>Hoy</button>
-    <button data-view="historial"><svg class="icon"><use href="#i-history"/></svg>Historial</button>
-    <button data-view="progreso"><svg class="icon"><use href="#i-chart"/></svg>Progreso</button>
-    <button data-view="ajustes"><svg class="icon"><use href="#i-settings"/></svg>Ajustes</button>
+    <button class="active" data-view="hoy"><i class="icon fa-solid fa-dumbbell"></i>Hoy</button>
+    <button data-view="historial"><i class="icon fa-solid fa-clock-rotate-left"></i>Historial</button>
+    <button data-view="progreso"><i class="icon fa-solid fa-chart-line"></i>Progreso</button>
+    <button data-view="ajustes"><i class="icon fa-solid fa-sliders"></i>Ajustes</button>
   </nav>
 
   <div class="toast" id="toast"></div>

@@ -34,6 +34,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
 - `index.html` separado en tres archivos: `index.html` (solo markup), `css/styles.css` (estilos) y `js/app.js` (lógica y state en memoria). Sin cambios de comportamiento — verificado sirviendo el sitio localmente.
 - `js/app.js`: el frontend ya no fabrica datos de ejemplo en memoria — arranca pidiendo sesión, semanas y librería a la API, y cada acción (marcar, editar, agregar/borrar, copiar semana, librería) escribe contra los endpoints reales en vez de mutar solo el estado local.
 - Servidor de desarrollo local pasa de `python -m http.server` a `php -S` (la app ya depende de `api/`).
+- `js/app.js`: `computeStreaks()` ya no cuenta el día de hoy como "corte" de racha solo por no estar marcado todavía — la racha actual se congela en el valor de ayer y solo baja a 0 cuando un día ya pasado (no hoy) se queda sin marcar.
+- Resumen del día (`.summary-strip`) pasa de 4 a 3 tarjetas: se quita "Racha actual" (queda solo el badge del header); grid ajustado a 3 columnas.
+- Anillo de progreso del panel del día ahora cambia de color según cuántos ejercicios están marcados: rojo (`--danger`) con 2 o menos, amarillo (`--pending`) con 3 a 5, verde (`--ok`) con 6 o más.
+- Iconos: se reemplazó el sprite SVG inline (`<symbol>`/`<use>`) por Font Awesome 6 Free vía CDN, en `index.html` y en todo el HTML generado dinámicamente en `js/app.js`. `.icon` en `css/styles.css` pasa de `width/height` (SVG) a `font-size` (icon font).
 
 ### Fixed
 
