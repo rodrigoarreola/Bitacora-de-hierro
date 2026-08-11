@@ -26,6 +26,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
 - `README.md` y `CHANGELOG.md`.
 - `js/api.js`: cliente fetch mínimo (`apiGet/apiPost/apiPut/apiDelete`), maneja `401` centralizadamente.
 - Pantalla de login (`#view-login`) que protege toda la app (`#app-shell`); botón de cerrar sesión en Ajustes.
+- `api/db/import_weeks_json.php`: script CLI reutilizable para importar semanas históricas desde JSON (`{monday_date, days:{lun..vie:[{name,kg,reps,series,note,done}]}}`), con modo vista previa por defecto y `--commit` para escribir. Usado para poblar 31 semanas (5 ene–3 ago 2026) desde el historial en Google Sheets del usuario, exportado a xlsx y parseado con un script Python ad-hoc (no versionado) que detectó automáticamente, por bloque de día, si la hoja tenía columna de checkbox — el formato de la hoja original fue cambiando semana a semana.
 
 ### Changed
 
