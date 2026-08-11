@@ -8,3 +8,6 @@ Thumbs.db
 # Config local con credenciales de BD — copiar desde api/config.local.php.example
 api/config.local.php
 .env
+
+# Respaldos exportados desde Perfil (contienen datos reales, no van al repo)
+bitacora-backup-*.json

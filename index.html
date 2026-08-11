@@ -113,7 +113,11 @@
 
   <!-- ================= VIEW: PERFIL ================= -->
   <div class="view" id="view-perfil">
-    <button type="button" class="logout-btn" id="logout-btn">Cerrar sesión</button>
+    <div class="milestones-panel">
+      <div class="lib-title">Hitos y constancia</div>
+      <p class="lib-sub">Calculado a partir de tus semanas registradas en la app.</p>
+      <div id="milestones-host"></div>
+    </div>
 
     <div class="perfil-panel">
       <div class="lib-title">Tus datos</div>
@@ -123,10 +127,12 @@
       <input type="file" id="import-file-input" class="hidden" accept="application/json,.json">
     </div>
 
-    <div class="milestones-panel">
-      <div class="lib-title">Hitos y constancia</div>
-      <p class="lib-sub">Calculado a partir de tus semanas registradas en la app.</p>
-      <div id="milestones-host"></div>
+    <button type="button" class="logout-btn" id="logout-btn">Cerrar sesión</button>
+
+    <div class="changelog-panel">
+      <div class="lib-title">Changelog</div>
+      <p class="changelog-version">Versión actual: <strong id="changelog-current-version">—</strong></p>
+      <div id="changelog-list"></div>
     </div>
   </div>
 

@@ -4,6 +4,7 @@
     --steel:#6F8FA8; --steel-dim:#3E4E5C;
     --text:#EEF1F5; --text-dim:#8B93A1; --text-faint:#5B6270;
     --ok:#5FBF77; --pending:#C9974A; --danger:#E2574C;
+    --gold:#E5C158; --silver:#B8C0CC; --bronze:#C97D4A;
     --font-display:"Big Shoulders Display", sans-serif;
     --font-body:"Inter", -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono:"JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -354,6 +355,9 @@
   .milestone-ico{ font-size:17px; flex-shrink:0; margin-top:2px; width:20px; text-align:center; }
   .milestone-ico.ok{ color:var(--ok); }
   .milestone-ico.danger{ color:var(--danger); }
+  .milestone-ico.gold{ color:var(--gold); }
+  .milestone-ico.silver{ color:var(--silver); }
+  .milestone-ico.bronze{ color:var(--bronze); }
   .milestone-title{ font-size:12.5px; font-weight:700; color:var(--text); }
   .milestone-desc{ font-size:11.5px; color:var(--text-dim); margin:3px 0 0; line-height:1.5; }
   .milestone-divider{ border-top:1px solid var(--line); }
@@ -361,6 +365,27 @@
   .milestone-list{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:8px; }
   .milestone-list li{ font-size:11.5px; color:var(--text-dim); line-height:1.5; }
   .milestone-list strong{ color:var(--text); }
+
+  /* ---------- Perfil: changelog ---------- */
+  .changelog-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px 18px; margin-top:16px; }
+  .changelog-version{ font-size:11.5px; color:var(--text-dim); margin:4px 0 14px; }
+  .changelog-version strong{ color:var(--accent); font-family:var(--font-mono); }
+  .changelog-entry{ border:1px solid var(--line); border-radius:10px; margin-bottom:8px; overflow:hidden; }
+  .changelog-entry:last-child{ margin-bottom:0; }
+  .changelog-entry summary{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 14px; cursor:pointer; list-style:none; background:var(--surface-2);
+  }
+  .changelog-entry summary::-webkit-details-marker{ display:none; }
+  .changelog-entry summary .chev{ font-size:11px; color:var(--text-faint); transition:transform .18s ease; flex-shrink:0; }
+  .changelog-entry[open] summary .chev{ transform:rotate(180deg); }
+  .changelog-entry-heading{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .changelog-entry-version{ font-family:var(--font-mono); font-size:11px; color:var(--accent); font-weight:700; }
+  .changelog-entry-title{ font-size:12.5px; font-weight:700; color:var(--text); }
+  .changelog-entry-date{ font-size:10.5px; color:var(--text-faint); flex-shrink:0; }
+  .changelog-entry-body{ padding:4px 14px 12px; }
+  .changelog-entry-body ul{ margin:0; padding-left:16px; display:flex; flex-direction:column; gap:6px; }
+  .changelog-entry-body li{ font-size:11.5px; color:var(--text-dim); line-height:1.5; }
 
   /* ---------- Calendario ---------- */
   .cal-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px; }

@@ -17,6 +17,42 @@
   const RING_C = 2 * Math.PI * RING_R;
 
   // ============================================================
+  // Changelog para Perfil — versión resumida y de cara al usuario del
+  // CHANGELOG.md técnico del repo (ese sigue siendo la fuente detallada
+  // para desarrollo; esta lista agrupa los mismos cambios en tandas
+  // legibles, con las fechas reales de los commits correspondientes).
+  // La más reciente va primero; CURRENT_VERSION es la [0].
+  // ============================================================
+  const APP_VERSIONS = [
+    { version: '1.5.0', date: '2026-08-11', title: 'Hitos y constancia', items: [
+      'Nueva sección en Perfil con tus períodos de mayor y menor constancia, y una lista de hitos: primera sesión, mejor racha, mejor mes, hueco más largo sin entrenar y año más productivo.',
+    ]},
+    { version: '1.4.0', date: '2026-08-11', title: 'Racha semanal y calendario clicable', items: [
+      'La racha ya no se rompe día por día: una semana necesita 5 o más días cumplidos para no cortarla.',
+      'Tocar un día en el Calendario navega directo a ese día para verlo o editarlo.',
+    ]},
+    { version: '1.3.0', date: '2026-08-11', title: 'Sábado, domingo y Migrar día', items: [
+      'El riel de días crece a 7 (Lun–Dom) — sábado y domingo quedan revelados al hacer scroll horizontal.',
+      'Nueva función "Migrar día": mueve el set completo de ejercicios de un día a otro dentro de la misma semana, recorriendo en cadena si el destino ya tiene contenido.',
+    ]},
+    { version: '1.2.0', date: '2026-08-11', title: 'Historial, Progreso y respaldo de datos', items: [
+      'Vista Historial con una tarjeta por semana, filtrable por mes.',
+      'Vista Progreso con gráfica de carga por ejercicio (Chart.js).',
+      'Exportar e importar todos tus datos como JSON desde Perfil.',
+    ]},
+    { version: '1.1.0', date: '2026-08-11', title: 'PWA instalable y sesión persistente', items: [
+      'La app se puede instalar como PWA (manifest + service worker).',
+      'Sesión persistente de 30 días — ya no hay que iniciar sesión cada vez.',
+      'Nuevas vistas Perfil y Calendario.',
+    ]},
+    { version: '1.0.0', date: '2026-08-11', title: 'Conectada a base de datos real', items: [
+      'El frontend deja de usar datos de ejemplo en memoria y se conecta a la API real: login, semanas y ejercicios persistentes.',
+      'Importador de rutinas históricas desde JSON.',
+    ]},
+  ];
+  const CURRENT_VERSION = APP_VERSIONS[0].version;
+
+  // ============================================================
   // Librería de ejercicios (reutilizable / autocompletado)
   // Se carga desde la API en el arranque; ver loadAppData().
   // ============================================================
@@ -630,14 +666,19 @@
     }
 
     const strongHtml = m.topStrong.length
-      ? m.topStrong.map((r, i) => `
+      ? m.topStrong.map((r, i) => {
+        // 1er lugar: trofeo dorado. 2do y 3ro: medalla plata/bronce.
+        const rankIco = i === 0 ? 'fa-trophy' : 'fa-medal';
+        const rankColor = i === 0 ? 'gold' : i === 1 ? 'silver' : 'bronze';
+        return `
         <div class="milestone-row">
-          <i class="icon milestone-ico ok fa-solid fa-trophy"></i>
+          <i class="icon milestone-ico ${rankColor} fa-solid ${rankIco}"></i>
           <div>
             <div class="milestone-title">${i+1}. ${periodRangeLabel(r.startWk, r.endWk)}</div>
             <p class="milestone-desc">${r.weeks.length} semanas seguidas con ${r.avgPerWeek.toFixed(1)} días de entrenamiento en promedio.</p>
           </div>
-        </div>`).join('<div class="milestone-divider"></div>')
+        </div>`;
+      }).join('<div class="milestone-divider"></div>')
       : `<p class="milestone-empty">Todavía no se distingue un tramo sólido de varias semanas seguidas — sigue registrando para verlo aquí.</p>`;
 
     const weakHtml = m.topWeak.length
@@ -682,6 +723,31 @@
         <ul class="milestone-list">${items.map(i => `<li>${i}</li>`).join('')}</ul>
       </div>`;
   }
+
+  // Changelog: contenido estático (APP_VERSIONS), así que se renderiza
+  // una sola vez — no depende de state.weeks como Hitos.
+  function renderChangelog(){
+    const listEl = document.getElementById('changelog-list');
+    const versionEl = document.getElementById('changelog-current-version');
+    if(!listEl || !versionEl) return;
+
+    versionEl.textContent = CURRENT_VERSION;
+    listEl.innerHTML = APP_VERSIONS.map((v, i) => `
+      <details class="changelog-entry"${i === 0 ? ' open' : ''}>
+        <summary>
+          <div class="changelog-entry-heading">
+            <span class="changelog-entry-version">v${v.version}</span>
+            <span class="changelog-entry-title">${escapeHtml(v.title)}</span>
+          </div>
+          <span class="changelog-entry-date">${fmtShortDate(fromISO(v.date))}</span>
+          <i class="icon chev fa-solid fa-chevron-down"></i>
+        </summary>
+        <div class="changelog-entry-body">
+          <ul>${v.items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+        </div>
+      </details>`).join('');
+  }
+  renderChangelog();
 
   function updateSummaryStrip(){
     const day = currentDay();
