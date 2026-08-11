@@ -1,0 +1,9 @@
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Config local con credenciales de BD (cuando exista el backend PHP)
+config.local.php
+.env
