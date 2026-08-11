@@ -418,10 +418,11 @@
 
     document.getElementById('sum-best-streak').textContent = diasLabel(best);
 
-    // Los cards de día, el calendario y el historial dependen del mismo estado, así que se refrescan aquí también
+    // Los cards de día, el calendario, el historial y progreso dependen del mismo estado, así que se refrescan aquí también
     renderDayRack();
     renderCalendar();
     renderHistorial();
+    renderProgreso();
   }
 
   function updateSummaryStrip(){
@@ -745,6 +746,17 @@
   // ============================================================
   let historialMonth = null; // 'YYYY-MM', o null = todas
 
+  // Meses que toca una semana — [mes-mas-reciente, mes-mas-antiguo] cuando
+  // cruza el corte de mes (ej. 27 abr - 3 may -> ['2026-05','2026-04']),
+  // o un solo elemento cuando cae completa dentro de un mes.
+  function weekMonths(key){
+    const monday = fromISO(key);
+    const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+    const m1 = key.slice(0, 7);
+    const m2 = toISO(sunday).slice(0, 7);
+    return m1 === m2 ? [m1] : [m2, m1];
+  }
+
   function renderHistorial(){
     const railEl = document.getElementById('hist-month-rail');
     const listEl = document.getElementById('hist-list');
@@ -752,8 +764,7 @@
 
     const months = [];
     state.order.forEach(key=>{
-      const ym = key.slice(0, 7);
-      if(!months.includes(ym)) months.push(ym);
+      weekMonths(key).forEach(ym=>{ if(!months.includes(ym)) months.push(ym); });
     });
     if(historialMonth && !months.includes(historialMonth)) historialMonth = null;
 
@@ -773,7 +784,7 @@
       railEl.appendChild(pill);
     });
 
-    const keys = state.order.filter(key => !historialMonth || key.slice(0, 7) === historialMonth);
+    const keys = state.order.filter(key => !historialMonth || weekMonths(key).includes(historialMonth));
 
     if(keys.length === 0){
       listEl.innerHTML = `<p class="hist-empty">No hay semanas en este mes.</p>`;
@@ -789,7 +800,7 @@
         totalDone += done;
         totalEx += day.exercises.length;
         const completed = done >= MIN_DONE_FOR_STREAK;
-        return `<span class="hist-dot${completed ? ' done' : ''}" title="${DAY_NAMES[dk]}">${DAY_LETTER[dk]}</span>`;
+        return `<span class="hist-dot${completed ? ' done' : ''}" data-day="${dk}" title="${DAY_NAMES[dk]}">${DAY_LETTER[dk]}</span>`;
       }).join('');
 
       return `
@@ -803,13 +814,112 @@
     }).join('');
 
     listEl.querySelectorAll('.hist-card').forEach(card=>{
-      card.addEventListener('click', ()=>{
+      card.addEventListener('click', (e)=>{
+        const dot = e.target.closest('.hist-dot');
         state.activeWeek = card.dataset.week;
+        state.activeDay = dot ? dot.dataset.day : 'lun';
         renderAll();
         switchToView('hoy');
       });
     });
   }
+
+  // ============================================================
+  // Progreso: carga (kg) de un ejercicio en el tiempo. Solo cuenta
+  // apariciones marcadas como hechas — lo demás sería un dato falso
+  // ("estaba en la rutina" no es lo mismo que "se hizo").
+  // ============================================================
+  let progExercise = null;
+
+  function collectExerciseHistory(name){
+    const target = name.trim().toLowerCase();
+    const points = [];
+    [...state.order].sort((a, b) => a.localeCompare(b)).forEach(wk=>{
+      DAY_ORDER.forEach(dk=>{
+        state.weeks[wk].days[dk].exercises.forEach(e=>{
+          if(!e.done || e.name.trim().toLowerCase() !== target) return;
+          const kg = parseFloat(e.kg);
+          if(isNaN(kg)) return;
+          points.push({ date: dayDate(wk, dk), kg, reps: e.reps, series: e.series });
+        });
+      });
+    });
+    return points;
+  }
+
+  function renderProgreso(){
+    const contentEl = document.getElementById('prog-content');
+    if(!contentEl) return;
+
+    if(!progExercise){
+      contentEl.innerHTML = `
+        <div class="placeholder">
+          <i class="icon fa-solid fa-chart-line"></i>
+          <span>Progreso</span>
+          <p>Busca un ejercicio arriba para ver su progreso.</p>
+        </div>`;
+      return;
+    }
+
+    const points = collectExerciseHistory(progExercise);
+    if(points.length === 0){
+      contentEl.innerHTML = `
+        <div class="placeholder">
+          <i class="icon fa-solid fa-chart-line"></i>
+          <span>Progreso</span>
+          <p>No hay registros marcados como hechos para "${escapeHtml(progExercise)}" todavía.</p>
+        </div>`;
+      return;
+    }
+
+    const kgs = points.map(p=>p.kg);
+    const last = kgs[kgs.length - 1];
+    const best = Math.max(...kgs);
+    const delta = last - kgs[0];
+    const deltaSign = delta >= 0 ? '+' : '';
+    const deltaColor = delta >= 0 ? 'var(--ok)' : 'var(--danger)';
+
+    const W = 320, H = 140, PAD = 22;
+    const minKg = Math.min(...kgs), maxKg = Math.max(...kgs);
+    const range = (maxKg - minKg) || 1;
+    const stepX = points.length > 1 ? (W - PAD * 2) / (points.length - 1) : 0;
+    const coords = points.map((p, i)=>{
+      const x = PAD + i * stepX;
+      const y = H - PAD - ((p.kg - minKg) / range) * (H - PAD * 2);
+      return { x, y };
+    });
+    const pathD = coords.map((c, i)=> (i === 0 ? 'M' : 'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1)).join(' ');
+    const dotsSvg = coords.map((c, i)=> `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="4.5" class="prog-point" data-i="${i}"></circle>`).join('');
+
+    contentEl.innerHTML = `
+      <div class="summary-strip">
+        <div class="sum-chip"><div class="k">Último</div><div class="v accent">${last} kg</div></div>
+        <div class="sum-chip"><div class="k">Mejor</div><div class="v">${best} kg</div></div>
+        <div class="sum-chip"><div class="k">Cambio</div><div class="v" style="color:${deltaColor}">${deltaSign}${delta.toFixed(1)} kg</div></div>
+      </div>
+      <div class="prog-chart-card">
+        <div class="prog-ex-name">${escapeHtml(progExercise)}</div>
+        <svg viewBox="0 0 ${W} ${H}" class="prog-svg" preserveAspectRatio="none">
+          <path d="${pathD}" class="prog-line"></path>
+          ${dotsSvg}
+        </svg>
+        <div class="prog-detail" id="prog-detail">Toca un punto para ver fecha, reps y series.</div>
+      </div>`;
+
+    contentEl.querySelectorAll('.prog-point').forEach(dot=>{
+      dot.addEventListener('click', ()=>{
+        const p = points[parseInt(dot.dataset.i, 10)];
+        document.getElementById('prog-detail').textContent =
+          `${fmtShortDate(p.date)} — ${p.kg} kg × ${p.reps || '—'} reps × ${p.series || '—'} series`;
+      });
+    });
+  }
+
+  document.getElementById('prog-search').addEventListener('input', (e)=>{
+    const val = e.target.value.trim();
+    const match = EXERCISE_LIBRARY.find(x => x.name.toLowerCase() === val.toLowerCase());
+    if(match){ progExercise = match.name; renderProgreso(); }
+  });
 
   // ============================================================
   // Sesión: login / logout / bootstrap

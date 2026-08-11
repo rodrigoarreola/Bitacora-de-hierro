@@ -77,8 +77,8 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 - **Calendario**: vista de mes (lunes a domingo), navegable con flechas, por defecto en el mes actual. Cada día lun–vie que pertenece a una semana ya creada pinta una línea de color según ejercicios marcados ese día: rojo (0), amarillo (1–5), verde (6+). Fines de semana y días futuros quedan sin línea (no hay concepto de sábado/domingo en el esquema, y un día que no ha pasado no cuenta como "fallado").
 - **Perfil**: por ahora solo el botón de cerrar sesión (antes vivía en Ajustes).
 - **Sesión persistente**: cookie de 30 días — no hay que iniciar sesión cada vez que se abre la app.
-- **Historial**: una tarjeta por semana (más reciente primero), con 5 indicadores de día (verde si ese día quedó "cumplido") y el total de ejercicios marcados/total de la semana. Riel de meses arriba para filtrar (mismo estilo que el riel de semanas de "Hoy"), con "Todas" como opción por defecto. Tocar una tarjeta selecciona esa semana y te manda a "Hoy".
-- Vista de **Progreso**: placeholder sin implementar (gráficas de carga por ejercicio en el tiempo — pendiente).
+- **Historial**: una tarjeta por semana (más reciente primero), con 5 indicadores de día (verde si ese día quedó "cumplido") y el total de ejercicios marcados/total de la semana. Riel de meses arriba para filtrar (mismo estilo que el riel de semanas de "Hoy"), con "Todas" como opción por defecto — una semana que cruza dos meses (ej. 27 abr–3 may) aparece en ambos filtros. Tocar un día específico de la tarjeta te manda a "Hoy" con ese día exacto seleccionado; tocar el resto de la tarjeta cae en lunes.
+- **Progreso**: buscador de ejercicio (mismo autocompletado contra la librería que ya se usa en el panel del día) y gráfica de carga (kg) en el tiempo, en SVG hecho a mano — sin librerías externas. Solo cuenta apariciones marcadas como hechas (`done`), nunca las que solo estaban en la rutina sin marcar. Chips de último peso, mejor peso y cambio desde el primer registro; tocar un punto de la gráfica muestra fecha, reps y series de esa vez.
 
 ### Identidad visual
 
@@ -95,7 +95,7 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 
 ## Pendiente
 
-1. Implementar la vista de Progreso (gráficas de carga por ejercicio en el tiempo — hoy es un placeholder).
+Nada del alcance original queda sin implementar. Ideas para más adelante, sin comprometerse: comparar dos ejercicios a la vez en Progreso, un dashboard con mini-gráficas de todos los ejercicios, y gráficas de reps/series como líneas independientes (hoy solo se ve al tocar un punto).
 
 ## Desarrollo local
 
