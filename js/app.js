@@ -189,25 +189,27 @@
   // simplemente aún sin llegar.
   //
   // Sábado es un día "bonus": solo entra a la lista si tiene algún
-  // ejercicio esa semana (vacío = neutral, igual que domingo). Y si
-  // un lun-vie quedó vacío porque su contenido se migró justo a ese
-  // sábado (week.days.sab.migratedFrom === dk), ese día de origen se
-  // salta en vez de contar como fallido — el entrenamiento sí pasó,
-  // solo que otro día.
+  // ejercicio esa semana (vacío = neutral, igual que domingo). "Migrar
+  // día" puede vaciar cualquier día lun-vie (su contenido se recorrió a
+  // otro día posterior, en cadena) — ese día de origen se salta en vez
+  // de contar como fallido. Se detecta juntando todos los migratedFrom
+  // que aparecen esa semana: si alguno apunta a este día y este día ya
+  // no tiene ejercicios, es porque se vació por una migración, no por
+  // abandono.
   // ============================================================
   function buildChronoDays(){
     const list = [];
     const ascKeys = [...state.order].sort((a,b)=> a.localeCompare(b));
     ascKeys.forEach(wk=>{
       const week = state.weeks[wk];
-      const migratedFromSab = week.days.sab ? week.days.sab.migratedFrom : null;
+      const migratedFromSet = new Set(DAY_ORDER.map(dk => week.days[dk].migratedFrom).filter(Boolean));
       DAY_ORDER.forEach(dk=>{
         if(dk === 'dom') return;
         const date = dayDate(wk, dk);
         if(date > today) return;
         const total = week.days[dk].exercises.length;
         if(dk === 'sab' && total === 0) return;
-        if(dk !== 'sab' && total === 0 && migratedFromSab === dk) return;
+        if(dk !== 'sab' && total === 0 && migratedFromSet.has(dk)) return;
         const done = week.days[dk].exercises.filter(e=>e.done).length;
         list.push({ date, completed: done >= MIN_DONE_FOR_STREAK });
       });
@@ -411,18 +413,22 @@
         ${day.notes ? `<div class="day-notes">${day.notes}</div>` : ''}`;
     }
 
-    // "Migrar día": solo tiene sentido si hay algo que mover y algún otro
-    // día de la misma semana está libre (0 ejercicios) para recibirlo —
-    // el backend bloquea igual, pero no tiene caso ofrecer una opción
-    // que sabemos que va a fallar.
+    // "Migrar día": el destino puede ser cualquier día posterior de la
+    // misma semana, tenga o no contenido ya — si lo tiene, el backend lo
+    // recorre en cadena hacia el día siguiente (y así sucesivamente)
+    // hasta encontrar un hueco. Solo se oculta el botón si activeDay es
+    // el último de la semana (domingo — no hay ningún día posterior).
     const week = currentWeek();
-    const migrateTargets = DAY_ORDER.filter(dk => dk !== state.activeDay && week.days[dk].exercises.length === 0);
+    const activeIdx = DAY_ORDER.indexOf(state.activeDay);
+    const migrateTargets = DAY_ORDER.filter((dk, idx) => idx > activeIdx);
     let migrateHtml = '';
     if(total > 0 && migrateTargets.length > 0){
       if(migratePickerOpen){
-        const options = migrateTargets.map(dk =>
-          `<option value="${dk}">${DAY_NAMES[dk]} · ${fmtShortDate(dayDate(state.activeWeek, dk))}</option>`
-        ).join('');
+        const options = migrateTargets.map(dk => {
+          const occupied = week.days[dk].exercises.length > 0;
+          const label = `${DAY_NAMES[dk]} · ${fmtShortDate(dayDate(state.activeWeek, dk))}${occupied ? ' — ya tiene rutina, se recorre' : ''}`;
+          return `<option value="${dk}">${label}</option>`;
+        }).join('');
         migrateHtml = `
           <div class="migrate-row open">
             <select id="migrate-target">${options}</select>
@@ -467,7 +473,10 @@
     state.activeDay = toDay;
     migratePickerOpen = false;
     renderAll();
-    showToast(`Día migrado a ${DAY_NAMES[toDay]}.`);
+    const shifted = detail.shifted || 0;
+    showToast(shifted > 0
+      ? `Día migrado a ${DAY_NAMES[toDay]} — se recorrieron ${shifted} día${shifted === 1 ? '' : 's'} más.`
+      : `Día migrado a ${DAY_NAMES[toDay]}.`);
   }
 
   function updateStreakBadge(){
