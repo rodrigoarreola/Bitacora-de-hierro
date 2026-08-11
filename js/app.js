@@ -418,9 +418,10 @@
 
     document.getElementById('sum-best-streak').textContent = diasLabel(best);
 
-    // Los cards de día y el calendario dependen del mismo estado, así que se refrescan aquí también
+    // Los cards de día, el calendario y el historial dependen del mismo estado, así que se refrescan aquí también
     renderDayRack();
     renderCalendar();
+    renderHistorial();
   }
 
   function updateSummaryStrip(){
@@ -623,13 +624,14 @@
   // ============================================================
   // Navegación: tabs inferiores
   // ============================================================
+  function switchToView(name){
+    document.querySelectorAll('nav.bottom-nav button').forEach(b=>b.classList.toggle('active', b.dataset.view === name));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+  }
+
   document.querySelectorAll('nav.bottom-nav button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('nav.bottom-nav button').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-      document.getElementById('view-' + btn.dataset.view).classList.add('active');
-    });
+    btn.addEventListener('click', ()=> switchToView(btn.dataset.view));
   });
 
   // ============================================================
@@ -736,6 +738,78 @@
     calMonth.setMonth(calMonth.getMonth() + 1);
     renderCalendar();
   });
+
+  // ============================================================
+  // Historial: tarjeta por semana, filtrable por mes con un riel
+  // (mismo look que el riel de semanas de "Hoy": .week-rail/.week-pill).
+  // ============================================================
+  let historialMonth = null; // 'YYYY-MM', o null = todas
+
+  function renderHistorial(){
+    const railEl = document.getElementById('hist-month-rail');
+    const listEl = document.getElementById('hist-list');
+    if(!railEl || !listEl) return;
+
+    const months = [];
+    state.order.forEach(key=>{
+      const ym = key.slice(0, 7);
+      if(!months.includes(ym)) months.push(ym);
+    });
+    if(historialMonth && !months.includes(historialMonth)) historialMonth = null;
+
+    railEl.innerHTML = '';
+    const allPill = document.createElement('div');
+    allPill.className = 'week-pill' + (historialMonth === null ? ' active' : '');
+    allPill.textContent = 'Todas';
+    allPill.addEventListener('click', ()=>{ historialMonth = null; renderHistorial(); });
+    railEl.appendChild(allPill);
+
+    months.forEach(ym=>{
+      const [y, m] = ym.split('-');
+      const pill = document.createElement('div');
+      pill.className = 'week-pill' + (historialMonth === ym ? ' active' : '');
+      pill.textContent = `${MESES_LARGO[parseInt(m, 10) - 1]} ${y}`;
+      pill.addEventListener('click', ()=>{ historialMonth = ym; renderHistorial(); });
+      railEl.appendChild(pill);
+    });
+
+    const keys = state.order.filter(key => !historialMonth || key.slice(0, 7) === historialMonth);
+
+    if(keys.length === 0){
+      listEl.innerHTML = `<p class="hist-empty">No hay semanas en este mes.</p>`;
+      return;
+    }
+
+    listEl.innerHTML = keys.map(key=>{
+      const week = state.weeks[key];
+      let totalDone = 0, totalEx = 0;
+      const dayDots = DAY_ORDER.map(dk=>{
+        const day = week.days[dk];
+        const done = day.exercises.filter(e=>e.done).length;
+        totalDone += done;
+        totalEx += day.exercises.length;
+        const completed = done >= MIN_DONE_FOR_STREAK;
+        return `<span class="hist-dot${completed ? ' done' : ''}" title="${DAY_NAMES[dk]}">${DAY_LETTER[dk]}</span>`;
+      }).join('');
+
+      return `
+        <div class="hist-card" data-week="${key}">
+          <div class="hist-card-head">
+            <span class="hist-card-label">${weekLabel(key)}</span>
+            <span class="hist-card-total">${totalDone}/${totalEx}</span>
+          </div>
+          <div class="hist-card-days">${dayDots}</div>
+        </div>`;
+    }).join('');
+
+    listEl.querySelectorAll('.hist-card').forEach(card=>{
+      card.addEventListener('click', ()=>{
+        state.activeWeek = card.dataset.week;
+        renderAll();
+        switchToView('hoy');
+      });
+    });
+  }
 
   // ============================================================
   // Sesión: login / logout / bootstrap

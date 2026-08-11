@@ -77,7 +77,8 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 - **Calendario**: vista de mes (lunes a domingo), navegable con flechas, por defecto en el mes actual. Cada día lun–vie que pertenece a una semana ya creada pinta una línea de color según ejercicios marcados ese día: rojo (0), amarillo (1–5), verde (6+). Fines de semana y días futuros quedan sin línea (no hay concepto de sábado/domingo en el esquema, y un día que no ha pasado no cuenta como "fallado").
 - **Perfil**: por ahora solo el botón de cerrar sesión (antes vivía en Ajustes).
 - **Sesión persistente**: cookie de 30 días — no hay que iniciar sesión cada vez que se abre la app.
-- Vistas de **Historial** y **Progreso**: placeholders sin implementar.
+- **Historial**: una tarjeta por semana (más reciente primero), con 5 indicadores de día (verde si ese día quedó "cumplido") y el total de ejercicios marcados/total de la semana. Riel de meses arriba para filtrar (mismo estilo que el riel de semanas de "Hoy"), con "Todas" como opción por defecto. Tocar una tarjeta selecciona esa semana y te manda a "Hoy".
+- Vista de **Progreso**: placeholder sin implementar (gráficas de carga por ejercicio en el tiempo — pendiente).
 
 ### Identidad visual
 
@@ -94,7 +95,7 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 
 ## Pendiente
 
-1. Implementar las vistas de Historial y Progreso (hoy son placeholders).
+1. Implementar la vista de Progreso (gráficas de carga por ejercicio en el tiempo — hoy es un placeholder).
 
 ## Desarrollo local
 

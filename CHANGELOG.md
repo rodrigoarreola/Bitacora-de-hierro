@@ -31,6 +31,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
 - Vista y tab **Calendario**: grid mensual lunes–domingo, navegable (mes actual por defecto), calculado enteramente del lado del cliente a partir de `state.weeks` ya cargado (sin llamadas nuevas a la API). Línea de color por día lun–vie perteneciente a una semana registrada: rojo (0 ejercicios marcados), amarillo (1–5), verde (6+); fines de semana y días futuros quedan sin línea.
 - Vista y tab **Perfil**: por ahora solo aloja el botón de cerrar sesión (se removió de Ajustes).
 - Sesión persistente de 30 días (`api/config.php`): cookie + `session.gc_maxlifetime` a 2,592,000 segundos, en vez de cookie de sesión que expiraba al cerrar el navegador.
+- Vista y tab **Historial**: tarjeta por semana (más reciente primero) con 5 indicadores de día y total de ejercicios marcados/total; riel de meses arriba (reutiliza `.week-rail`/`.week-pill` de "Hoy") como filtro, con "Todas" por defecto. Tocar una tarjeta selecciona esa semana y navega a "Hoy" (nuevo helper `switchToView()`, extraído del handler de nav para reutilizarlo desde el click de la tarjeta). Todo calculado del lado del cliente desde `state.weeks` ya cargado, sin llamadas nuevas a la API.
 
 ### Changed
 
@@ -48,6 +49,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
 
 ### Fixed
 
+- `sw.js`: `CACHE_NAME` a `v3` (subió a `v2` en la tanda anterior, y volvió a pasar lo mismo desarrollando Historial — cada cambio a `index.html`/`css/`/`js/` necesita este bump o el navegador sigue sirviendo el shell viejo desde caché).
 - `js/api.js`: un `401` en cualquier endpoint pisaba el mensaje real del servidor con un genérico "No autenticado." — ahora `login.php` devuelve su propio mensaje ("Usuario o contraseña incorrectos.") y el aviso de sesión expirada es un efecto aparte, no reemplaza el mensaje.
 - `js/app.js`: IDs de ejercicio comparados como string vs number en varios lugares (`findExercise`, `expandedIds`, borrado) — los ejercicios vienen de la API con `id` numérico pero el DOM siempre entrega `dataset.id` como string; sin normalizar, el chevron de "semana pasada" nunca abría y algunas comparaciones de ID fallaban silenciosamente.
 - `README.md`: documentado que `Get-Content -Raw | mysql` en PowerShell corrompe acentos al importar `schema.sql` (detectado porque corrompió el seed de `day_templates` en el ambiente local) — se documenta la alternativa correcta.
