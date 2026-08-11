@@ -9,7 +9,7 @@ Un solo usuario. Sin frameworks de frontend. Pensada para desplegarse como archi
 - **Frontend**: HTML/CSS/JS vanilla, sin framework — dependencias externas solo vía CDN (Google Fonts, Font Awesome).
 - **Backend**: PHP + MySQL (PDO, sin framework).
 - **Auth**: login usuario/contraseña con sesión PHP — sin API keys expuestas ni OAuth.
-- **Hosting**: Hostgator, subdominio dedicado (ej. `bitacora.tu-dominio.com`).
+- **Hosting**: Hostgator, subcarpeta del dominio principal — `tu-dominio.com/bitacora`.
 
 ## Estado actual
 
@@ -20,11 +20,16 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 ```
 /
 ├── index.html                     Markup: pantalla de login + #app-shell con el resto
+├── manifest.json                  Manifest de la PWA (rutas relativas, funciona en cualquier subcarpeta)
+├── sw.js                          Service worker: cachea el app shell, nunca api/
+├── icons/
+│   ├── icon-192.png                Ícono de la PWA (mancuerna --accent sobre --bg)
+│   └── icon-512.png
 ├── css/
 │   └── styles.css                 Todos los estilos, incluyendo login/logout
 ├── js/
 │   ├── api.js                     Cliente fetch (apiGet/Post/Put/Delete), maneja 401
-│   └── app.js                     UI, estado local (caché de lo cargado de la API) y bootstrap de sesión
+│   └── app.js                     UI, estado local (caché de lo cargado de la API), bootstrap de sesión y registro del service worker
 ├── .htaccess                      Fuerza HTTPS, bloquea config.local.php y *.sql
 ├── api/
 │   ├── config.php                 Conexión PDO + arranque de sesión
@@ -74,12 +79,15 @@ Cinco tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 - Paleta: acero oscuro (`#14171B`, `#1B1F26`) con acento óxido/rojo (`#D9481F`).
 - Tipografía: Big Shoulders Display (títulos), Inter (cuerpo), JetBrains Mono (valores numéricos).
 - Iconos: Font Awesome 6 Free vía CDN.
-- Layout mobile-first, `max-width: 520px`, pensado para instalarse como PWA (aunque todavía falta el manifest y el service worker).
+- Layout mobile-first, `max-width: 520px`.
+
+### PWA
+
+`manifest.json` + `sw.js` ya están activos: la app es instalable (Android/desktop vía Chrome/Edge, iOS vía "Agregar a inicio" en Safari). El service worker solo cachea el *app shell* estático (HTML/CSS/JS/íconos) para que cargue rápido e instale — **no cachea nada bajo `api/`**, así que no hay edición de datos offline; sin conexión, la app carga pero no puede leer ni guardar ejercicios. `start_url`/`scope` del manifest y el registro del service worker usan rutas relativas a propósito, para que funcionen igual en `localhost:8000`, en un subdominio o en una subcarpeta como `/bitacora`, sin tocar código.
 
 ## Pendiente
 
-1. Manifest + service worker para instalación como PWA real.
-2. Implementar las vistas de Historial y Progreso (hoy son placeholders).
+1. Implementar las vistas de Historial y Progreso (hoy son placeholders).
 
 ## Desarrollo local
 
@@ -93,4 +101,13 @@ Necesita `api/config.local.php` ya configurado apuntando a una base de datos con
 
 ## Despliegue
 
-Subir los archivos sueltos al hosting (sin empaquetar en zip), directamente a la ruta correspondiente en Hostgator.
+Destino: `tu-dominio.com/bitacora`, vía FTP/SFTP. Como todas las rutas del proyecto son relativas, no hace falta tocar ni una línea de código por vivir en una subcarpeta en vez de un subdominio.
+
+1. **Base de datos**: en cPanel → MySQL Databases, crear la base y un usuario con permisos sobre ella (igual que en local, con `bitacora_app` como referencia de nombre).
+2. **Subir archivos**: todo el árbol del repo tal como está en git a la carpeta `/bitacora` del hosting, **excepto** lo que ya está en `.gitignore` (`api/config.local.php`, `.claude/`) — esos no se suben.
+3. **Importar el esquema**: `api/db/schema.sql` vía phpMyAdmin (Importar → seleccionar el archivo). Evita hacerlo desde PowerShell con `Get-Content -Raw | mysql` — ver la nota de encoding más abajo.
+4. **Config local de producción**: crear `api/config.local.php` directo en el servidor (editor de archivos de cPanel, o edítalo local y súbelo por FTP aparte — nunca por git) a partir de `api/config.local.php.example`, con las credenciales reales de la base.
+5. **Usuario de la app**: `php api/db/create_user.php <usuario> <contraseña>` — si Hostgator te da acceso SSH en tu plan, córrelo ahí. Si no hay SSH, avísame y armamos una alternativa, ya que ese script es CLI-only por diseño (no se puede invocar por URL).
+6. **Verificar**: entrar a `https://tu-dominio.com/bitacora/`, confirmar que carga por HTTPS, que el login funciona, y que el manifest/service worker se registran (DevTools → Application → Manifest / Service Workers, o una auditoría Lighthouse → PWA).
+
+`.htaccess` no necesita ajustes para la subcarpeta: la regla de HTTPS usa `%{HTTP_HOST}%{REQUEST_URI}` (no una ruta fija) y el bloqueo de `config.local.php`/`*.sql` es por nombre de archivo.

@@ -747,6 +747,13 @@
   });
 
   // ============================================================
+  // Service worker (PWA): cachea el app shell, no depende de la sesión.
+  // ============================================================
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* PWA es un extra, no bloquea la app si falla */ });
+  }
+
+  // ============================================================
   // Arranque
   // ============================================================
   (async function bootstrap(){
