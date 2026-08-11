@@ -64,7 +64,7 @@ Seis tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único us
 
 ### Funcionalidad implementada
 
-- **Header**: racha actual y mejor racha (días consecutivos con 3+ ejercicios marcados como cumplidos, cruzando semanas, lunes a viernes — sábado suma si tiene contenido, domingo nunca cuenta porque el gimnasio no abre; ver "Migrar día" abajo).
+- **Header**: racha actual y mejor racha, en días (3+ ejercicios marcados = día cumplido). El corte ya no es día por día: una semana (lun–sáb, domingo nunca cuenta) necesita **al menos 5 días cumplidos** para no romper la racha — si los alcanza, todos sus días cumplidos suman normal; si no, la racha se corta ahí aunque algún día suelto sí haya llegado a 3 ejercicios. La semana en curso nunca se juzga como "rota" hasta que termine.
 - **Riel de semanas**: semanas ordenadas de más reciente a más antigua, con botón "Nueva semana" (date picker restringido a lunes — ajusta automáticamente si se elige otro día).
 - **7 tabs de día** (Lun–Dom): Lun–Vie llenan el ancho visible; Sáb/Dom quedan revelados solo al hacer scroll horizontal del riel. Se pintan en verde cuando el día está "cumplido" (3+ ejercicios marcados). Un día que recibió contenido migrado de otro muestra un pequeño ícono con el día de origen.
 - **Panel del día**:

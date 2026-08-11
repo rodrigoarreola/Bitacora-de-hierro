@@ -218,27 +218,41 @@
     return list;
   }
 
-  // La racha actual no cae a 0 solo porque hoy todavía no se marcó — el día
-  // de hoy sigue "en curso". Solo cuenta como corte cuando un día ya pasó
-  // (es estrictamente anterior a hoy) y no llegó al mínimo de ejercicios.
+  // La racha se cuenta en días (3+ ejercicios marcados), pero el corte ya
+  // no es día por día — es semanal: una semana (lun-sáb) necesita al menos
+  // WEEK_STREAK_MIN_DAYS días cumplidos para no romper la racha. Si los
+  // alcanza, todos sus días cumplidos suman normal a la cuenta; si no, la
+  // racha se corta ahí (esos días no suman, aunque individualmente hayan
+  // llegado a 3 ejercicios). La semana en curso nunca se juzga como "rota"
+  // hasta que termine — sus días cumplidos hasta hoy se van sumando igual,
+  // el mismo criterio que antes aplicaba solo a "hoy".
+  const WEEK_STREAK_MIN_DAYS = 5;
+
   function computeStreaks(){
     const days = buildChronoDays();
-    const todayIdx = days.findIndex(d => d.date.getTime() === today.getTime());
-    const pastDays = todayIdx === -1 ? days : days.slice(0, todayIdx);
-    const todayEntry = todayIdx === -1 ? null : days[todayIdx];
+    const currentWeekKey = toISO(mondayOfWeek(today));
+
+    const byWeek = new Map();
+    days.forEach(d=>{
+      const wk = toISO(mondayOfWeek(d.date));
+      if(!byWeek.has(wk)) byWeek.set(wk, []);
+      byWeek.get(wk).push(d);
+    });
+    const weekKeys = [...byWeek.keys()].sort((a,b)=> a.localeCompare(b));
 
     let best = 0, run = 0;
-    pastDays.forEach(d=>{
-      if(d.completed){ run++; best = Math.max(best, run); }
-      else { run = 0; }
+    weekKeys.forEach(wk=>{
+      const entries = byWeek.get(wk);
+      const isCurrentWeek = wk === currentWeekKey;
+      const qualifies = isCurrentWeek || entries.filter(e=>e.completed).length >= WEEK_STREAK_MIN_DAYS;
+      if(qualifies){
+        entries.forEach(e=>{ if(e.completed){ run++; best = Math.max(best, run); } });
+      } else {
+        run = 0;
+      }
     });
 
-    let current = run;
-    if(todayEntry && todayEntry.completed){
-      current += 1;
-      best = Math.max(best, current);
-    }
-    return { current, best };
+    return { current: run, best };
   }
 
   // ============================================================
