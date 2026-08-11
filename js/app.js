@@ -1314,12 +1314,22 @@
     return state.order.map(key=>{
       const week = state.weeks[key];
       const days = {};
+      const overrides = {};
       DAY_ORDER.forEach(dk=>{
-        days[dk] = week.days[dk].exercises.map(e=>({
+        const day = week.days[dk];
+        days[dk] = day.exercises.map(e=>({
           name: e.name, kg: e.kg, reps: e.reps, series: e.series, note: e.note, done: e.done,
         }));
+        // Días con contenido migrado tienen su propio group/notes (no el
+        // default de day_templates) — se exportan aparte para que un
+        // reimport los restaure igual, en vez de perder la migración.
+        if(day.migratedFrom){
+          overrides[dk] = { group_name: day.group, notes: day.notes, migrated_from: day.migratedFrom };
+        }
       });
-      return { monday_date: key, days };
+      const weekPayload = { monday_date: key, days };
+      if(Object.keys(overrides).length) weekPayload.overrides = overrides;
+      return weekPayload;
     });
   }
 

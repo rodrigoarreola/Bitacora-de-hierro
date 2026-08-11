@@ -14,13 +14,17 @@ const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 const REQUIRED_DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie'];
 
 /**
- * Importa una lista de semanas: [{monday_date, days:{lun..vie:[{name,kg,reps,series,note,done}]}}].
+ * Importa una lista de semanas: [{monday_date, days:{lun..vie:[{name,kg,reps,series,note,done}]}, overrides?}].
  * Semana que ya existe (mismo monday_date) se reemplaza por completo
- * (se borran sus ejercicios actuales y se insertan los del archivo).
- * Semanas que no vienen en el archivo quedan intactas. Todo o nada:
- * se valida la forma completa antes de escribir nada en la base.
+ * (se borran sus ejercicios y overrides actuales y se insertan los del
+ * archivo). Semanas que no vienen en el archivo quedan intactas. Todo
+ * o nada: se valida la forma completa antes de escribir nada en la base.
  * "sab"/"dom" son opcionales (backups viejos no los tienen) — si
  * faltan, se importan como día vacío.
+ * "overrides" es opcional (backups de antes de "Migrar día" no lo
+ * tienen): { [day_key]: {group_name, notes, migrated_from} } — solo
+ * para días cuyo grupo/notas no son los del template por defecto,
+ * porque recibieron contenido migrado de otro día esa semana.
  */
 
 $weeks = read_json_body();
@@ -55,11 +59,30 @@ foreach ($weeks as $i => $w) {
             }
         }
     }
+    if (isset($w['overrides'])) {
+        if (!is_array($w['overrides'])) {
+            respond_error("Semana {$mondayDate}: \"overrides\" debe ser un objeto.", 422);
+        }
+        foreach ($w['overrides'] as $dayKey => $ov) {
+            if (!in_array($dayKey, DAY_KEYS, true) || !is_array($ov) || !isset($ov['group_name'])) {
+                respond_error("Semana {$mondayDate}: override de \"{$dayKey}\" con formato inválido.", 422);
+            }
+            $mf = $ov['migrated_from'] ?? null;
+            if ($mf !== null && !in_array($mf, DAY_KEYS, true)) {
+                respond_error("Semana {$mondayDate}: migrated_from inválido en override de \"{$dayKey}\".", 422);
+            }
+        }
+    }
 }
 
 $findWeek = $pdo->prepare('SELECT id FROM weeks WHERE monday_date = :d');
 $insertWeek = $pdo->prepare('INSERT INTO weeks (monday_date) VALUES (:d)');
 $deleteExercises = $pdo->prepare('DELETE FROM exercises WHERE week_id = :w');
+$deleteOverrides = $pdo->prepare('DELETE FROM week_day_overrides WHERE week_id = :w');
+$insertOverride = $pdo->prepare(
+    'INSERT INTO week_day_overrides (week_id, day_key, group_name, notes, migrated_from)
+     VALUES (:week_id, :day_key, :group_name, :notes, :migrated_from)'
+);
 $insertEx = $pdo->prepare(
     'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order)
      VALUES (:week_id, :day_key, :name, :kg, :reps, :series, :note, :done, :sort_order)'
@@ -83,6 +106,17 @@ try {
         } else {
             $weekId = (int) $weekId;
             $deleteExercises->execute(['w' => $weekId]);
+            $deleteOverrides->execute(['w' => $weekId]);
+        }
+
+        foreach (($w['overrides'] ?? []) as $dayKey => $ov) {
+            $insertOverride->execute([
+                'week_id'       => $weekId,
+                'day_key'       => $dayKey,
+                'group_name'    => (string) $ov['group_name'],
+                'notes'         => isset($ov['notes']) && $ov['notes'] !== '' ? (string) $ov['notes'] : null,
+                'migrated_from' => $ov['migrated_from'] ?? null,
+            ]);
         }
 
         foreach (DAY_KEYS as $dayKey) {
