@@ -819,8 +819,10 @@
       const otherMonth = cursor.getMonth() !== calMonth.getMonth();
       const isToday = cursor.getTime() === today.getTime();
       const tier = computeDayTier(cursor);
+      const wk = toISO(mondayOfWeek(cursor));
+      const hasWeek = !!state.weeks[wk];
       html += `
-        <div class="cal-day${otherMonth ? ' other-month' : ''}${isToday ? ' today' : ''}">
+        <div class="cal-day${otherMonth ? ' other-month' : ''}${isToday ? ' today' : ''}${hasWeek ? ' clickable' : ''}" data-date="${toISO(cursor)}">
           <div class="num">${cursor.getDate()}</div>
           <div class="cal-line${tier ? ' ' + tier : ''}"></div>
         </div>`;
@@ -836,6 +838,22 @@
   document.getElementById('cal-next').addEventListener('click', ()=>{
     calMonth.setMonth(calMonth.getMonth() + 1);
     renderCalendar();
+  });
+
+  // Tocar un día del calendario navega a "Hoy" con esa semana/día
+  // seleccionados, para verlo o editarlo — mismo patrón que Historial.
+  // Solo funciona si esa semana ya existe; días sin semana no hacen nada.
+  document.getElementById('cal-grid').addEventListener('click', (e)=>{
+    const cell = e.target.closest('.cal-day');
+    if(!cell || !cell.classList.contains('clickable')) return;
+    const date = fromISO(cell.dataset.date);
+    const wk = toISO(mondayOfWeek(date));
+    if(!state.weeks[wk]) return;
+    state.activeWeek = wk;
+    state.activeDay = DAY_ORDER[(date.getDay() + 6) % 7];
+    migratePickerOpen = false;
+    renderAll();
+    switchToView('hoy');
   });
 
   // ============================================================
