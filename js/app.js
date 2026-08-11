@@ -8,6 +8,7 @@
   const DAY_LETTER = {lun:'L', mar:'M', mie:'X', jue:'J', vie:'V'};
   const DAY_OFFSET = {lun:0, mar:1, mie:2, jue:3, vie:4};
   const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const MESES_LARGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const WEEKDAY_TO_KEY = {1:'lun', 2:'mar', 3:'mie', 4:'jue', 5:'vie'};
   const MIN_DONE_FOR_STREAK = 3;
   const RING_R = 16;
@@ -417,8 +418,9 @@
 
     document.getElementById('sum-best-streak').textContent = diasLabel(best);
 
-    // Los cards de día dependen del mismo estado, así que se refrescan aquí también
+    // Los cards de día y el calendario dependen del mismo estado, así que se refrescan aquí también
     renderDayRack();
+    renderCalendar();
   }
 
   function updateSummaryStrip(){
@@ -678,6 +680,61 @@
     state.activeDay = 'lun';
     renderAll();
     showToast('Semana creada — agrégale ejercicios o cópiala de la anterior.');
+  });
+
+  // ============================================================
+  // Calendario: mes actual por defecto, navegable. Lunes a domingo.
+  // Fines de semana y semanas no registradas quedan sin línea — el
+  // esquema no tiene concepto de sábado/domingo, así que "sin actividad"
+  // (rojo) solo aplica a días lun-vie que sí pertenecen a una semana ya
+  // creada.
+  // ============================================================
+  let calMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  function computeDayTier(date){
+    if(date > today) return null; // día futuro, todavía no "pasó" — sin línea
+    const dayKey = WEEKDAY_TO_KEY[date.getDay()];
+    if(!dayKey) return null;
+    const week = state.weeks[toISO(mondayOfWeek(date))];
+    if(!week) return null;
+    const done = week.days[dayKey].exercises.filter(e=>e.done).length;
+    if(done === 0) return 'tier-red';
+    if(done <= 5) return 'tier-yellow';
+    return 'tier-green';
+  }
+
+  function renderCalendar(){
+    const titleEl = document.getElementById('cal-title');
+    const gridEl = document.getElementById('cal-grid');
+    if(!titleEl || !gridEl) return;
+
+    titleEl.textContent = `${MESES_LARGO[calMonth.getMonth()]} ${calMonth.getFullYear()}`;
+
+    const firstOfMonth = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
+    const cursor = mondayOfWeek(firstOfMonth);
+
+    let html = '';
+    for(let i = 0; i < 42; i++){
+      const otherMonth = cursor.getMonth() !== calMonth.getMonth();
+      const isToday = cursor.getTime() === today.getTime();
+      const tier = computeDayTier(cursor);
+      html += `
+        <div class="cal-day${otherMonth ? ' other-month' : ''}${isToday ? ' today' : ''}">
+          <div class="num">${cursor.getDate()}</div>
+          <div class="cal-line${tier ? ' ' + tier : ''}"></div>
+        </div>`;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    gridEl.innerHTML = html;
+  }
+
+  document.getElementById('cal-prev').addEventListener('click', ()=>{
+    calMonth.setMonth(calMonth.getMonth() - 1);
+    renderCalendar();
+  });
+  document.getElementById('cal-next').addEventListener('click', ()=>{
+    calMonth.setMonth(calMonth.getMonth() + 1);
+    renderCalendar();
   });
 
   // ============================================================

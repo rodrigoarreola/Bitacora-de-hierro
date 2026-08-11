@@ -18,8 +18,14 @@ require $localConfig;
 $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
 
+// Sesión persistente: 30 días. App de un solo usuario en su propio
+// dispositivo, así que se prioriza no tener que iniciar sesión seguido
+// por encima del riesgo de una sesión larga.
+const SESSION_LIFETIME = 30 * 24 * 60 * 60;
+ini_set('session.gc_maxlifetime', (string) SESSION_LIFETIME);
+
 session_set_cookie_params([
-    'lifetime' => 0,
+    'lifetime' => SESSION_LIFETIME,
     'path'     => '/',
     'domain'   => '',
     'secure'   => $isHttps,

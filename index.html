@@ -91,9 +91,33 @@
     </div>
   </div>
 
+  <!-- ================= VIEW: CALENDARIO ================= -->
+  <div class="view" id="view-calendario">
+    <div class="cal-panel">
+      <div class="cal-head">
+        <button type="button" class="cal-nav" id="cal-prev" aria-label="Mes anterior"><i class="icon fa-solid fa-chevron-left"></i></button>
+        <div class="cal-title" id="cal-title">—</div>
+        <button type="button" class="cal-nav" id="cal-next" aria-label="Mes siguiente"><i class="icon fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="cal-weekdays">
+        <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <span class="cal-legend-item"><span class="cal-dot tier-red"></span>Sin actividad</span>
+        <span class="cal-legend-item"><span class="cal-dot tier-yellow"></span>1–5 ejercicios</span>
+        <span class="cal-legend-item"><span class="cal-dot tier-green"></span>6+ ejercicios</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= VIEW: PERFIL ================= -->
+  <div class="view" id="view-perfil">
+    <button type="button" class="logout-btn" id="logout-btn">Cerrar sesión</button>
+  </div>
+
   <!-- ================= VIEW: AJUSTES → Librería de ejercicios ================= -->
   <div class="view" id="view-ajustes">
-    <button type="button" class="logout-btn" id="logout-btn">Cerrar sesión</button>
     <div class="lib-panel">
       <div class="lib-head">
         <div class="lib-title">Librería de ejercicios</div>
@@ -113,6 +137,8 @@
     <button class="active" data-view="hoy"><i class="icon fa-solid fa-dumbbell"></i>Hoy</button>
     <button data-view="historial"><i class="icon fa-solid fa-clock-rotate-left"></i>Historial</button>
     <button data-view="progreso"><i class="icon fa-solid fa-chart-line"></i>Progreso</button>
+    <button data-view="calendario"><i class="icon fa-solid fa-calendar-days"></i>Calendario</button>
+    <button data-view="perfil"><i class="icon fa-solid fa-user"></i>Perfil</button>
     <button data-view="ajustes"><i class="icon fa-solid fa-sliders"></i>Ajustes</button>
   </nav>
 
