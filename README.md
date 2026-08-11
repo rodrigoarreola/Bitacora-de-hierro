@@ -13,7 +13,7 @@ Un solo usuario. Sin frameworks de frontend. Pensada para desplegarse como archi
 
 ## Estado actual
 
-El frontend en [`index.html`](index.html) tiene el look and feel completo, pero **sus datos siguen viviendo en memoria** (objeto `state` en el `<script>` del archivo) — todavía no está conectado a la API. Al recargar la página se pierden los cambios y se regeneran los datos de ejemplo. Esa conexión (reemplazar el `state` en memoria por llamadas `fetch()` a `api/`) es el siguiente paso pendiente.
+El frontend (`index.html` + `css/styles.css` + `js/app.js`) tiene el look and feel completo, pero **sus datos siguen viviendo en memoria** (objeto `state` en `js/app.js`) — todavía no está conectado a la API. Al recargar la página se pierden los cambios y se regeneran los datos de ejemplo. Esa conexión (reemplazar el `state` en memoria por llamadas `fetch()` a `api/`) es el siguiente paso pendiente.
 
 Ya existen, y funcionan de forma independiente al frontend: el esquema de MySQL y el backend PHP completo (login por sesión + CRUD de semanas/ejercicios/librería) descritos abajo.
 
@@ -21,7 +21,11 @@ Ya existen, y funcionan de forma independiente al frontend: el esquema de MySQL 
 
 ```
 /
-├── index.html                     Frontend (datos en memoria, sin conectar a la API todavía)
+├── index.html                     Markup, sin estilos ni lógica inline
+├── css/
+│   └── styles.css                 Todos los estilos (extraídos del <style> original)
+├── js/
+│   └── app.js                     Toda la lógica de UI y el state en memoria (extraído del <script> original)
 ├── .htaccess                      Fuerza HTTPS, bloquea config.local.php y *.sql
 ├── api/
 │   ├── config.php                 Conexión PDO + arranque de sesión

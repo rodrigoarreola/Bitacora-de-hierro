@@ -3,6 +3,7 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+.claude/
 
 # Config local con credenciales de BD — copiar desde api/config.local.php.example
 api/config.local.php
