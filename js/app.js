@@ -105,6 +105,7 @@
     return d;
   }
   function fmtShortDate(d){ return `${d.getDate()} ${MESES[d.getMonth()]}`; }
+  function fmtLongDate(d){ return `${d.getDate()} ${MESES_LARGO[d.getMonth()].toLowerCase()} ${d.getFullYear()}`; }
   function weekLabel(weekKey){
     const monday = fromISO(weekKey);
     const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
@@ -228,7 +229,10 @@
   // el mismo criterio que antes aplicaba solo a "hoy".
   const WEEK_STREAK_MIN_DAYS = 5;
 
-  function computeStreaks(){
+  // Misma caminata semana-por-semana que computeStreaks(), pero además
+  // guarda las fechas de inicio/fin de la mejor racha — lo necesita la
+  // sección de Hitos para mostrar el rango de fechas, no solo el número.
+  function computeStreakDetail(){
     const days = buildChronoDays();
     const currentWeekKey = toISO(mondayOfWeek(today));
 
@@ -240,19 +244,125 @@
     });
     const weekKeys = [...byWeek.keys()].sort((a,b)=> a.localeCompare(b));
 
-    let best = 0, run = 0;
+    let best = 0, run = 0, bestStart = null, bestEnd = null, runStart = null;
     weekKeys.forEach(wk=>{
       const entries = byWeek.get(wk);
       const isCurrentWeek = wk === currentWeekKey;
       const qualifies = isCurrentWeek || entries.filter(e=>e.completed).length >= WEEK_STREAK_MIN_DAYS;
       if(qualifies){
-        entries.forEach(e=>{ if(e.completed){ run++; best = Math.max(best, run); } });
+        entries.forEach(e=>{
+          if(e.completed){
+            if(run === 0) runStart = e.date;
+            run++;
+            if(run > best){ best = run; bestStart = runStart; bestEnd = e.date; }
+          }
+        });
       } else {
         run = 0;
+        runStart = null;
       }
     });
 
-    return { current: run, best };
+    return { current: run, best, bestStart, bestEnd };
+  }
+
+  function computeStreaks(){
+    const { current, best } = computeStreakDetail();
+    return { current, best };
+  }
+
+  // ============================================================
+  // Hitos: estadísticas de constancia para Perfil, calculadas del
+  // lado del cliente desde state.weeks ya cargado — mismo criterio de
+  // "día cumplido" (3+ ejercicios) que la racha. No depende de ningún
+  // historial externo (ej. Garmin); crece solo con lo que ya está en
+  // la app, así que con pocos meses de datos es normal que salga poco.
+  // ============================================================
+  const MILESTONE_STRONG_MIN = 3; // días/semana para contar como "buena" semana
+  const MILESTONE_WEAK_MAX = 1;   // días/semana para contar como "floja" semana
+  const MILESTONE_MIN_RUN_WEEKS = 2; // no mostrar un tramo de una sola semana
+
+  function periodRangeLabel(startWk, endWk){
+    const start = fromISO(startWk);
+    const end = fromISO(endWk);
+    end.setDate(end.getDate() + 6); // domingo de la semana final
+    if(start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()){
+      return `${MESES_LARGO[start.getMonth()]} ${start.getFullYear()}`;
+    }
+    if(start.getFullYear() === end.getFullYear()){
+      return `${MESES_LARGO[start.getMonth()]}–${MESES_LARGO[end.getMonth()]} ${start.getFullYear()}`;
+    }
+    return `${MESES_LARGO[start.getMonth()]} ${start.getFullYear()} – ${MESES_LARGO[end.getMonth()]} ${end.getFullYear()}`;
+  }
+
+  function findRuns(weekStats, predicate){
+    const runs = [];
+    let cur = null;
+    weekStats.forEach(w=>{
+      if(predicate(w)){
+        if(!cur){ cur = { startWk: w.wk, endWk: w.wk, weeks: [w] }; }
+        else { cur.endWk = w.wk; cur.weeks.push(w); }
+      } else if(cur){ runs.push(cur); cur = null; }
+    });
+    if(cur) runs.push(cur);
+    runs.forEach(r=>{
+      r.totalDays = r.weeks.reduce((s,w)=> s + w.count, 0);
+      r.avgPerWeek = r.totalDays / r.weeks.length;
+    });
+    return runs;
+  }
+
+  function computeMilestones(){
+    const days = buildChronoDays();
+    const trained = days.filter(d => d.completed);
+    if(trained.length === 0) return null;
+
+    const firstDate = trained[0].date;
+    const { best: bestStreak, bestStart, bestEnd } = computeStreakDetail();
+
+    const byMonth = new Map();
+    const byYear = new Map();
+    trained.forEach(d=>{
+      const mk = `${d.date.getFullYear()}-${String(d.date.getMonth()+1).padStart(2,'0')}`;
+      byMonth.set(mk, (byMonth.get(mk) || 0) + 1);
+      const y = d.date.getFullYear();
+      byYear.set(y, (byYear.get(y) || 0) + 1);
+    });
+    let bestMonthKey = null, bestMonthCount = 0;
+    byMonth.forEach((count, key)=>{ if(count > bestMonthCount){ bestMonthCount = count; bestMonthKey = key; } });
+    let bestYear = null, bestYearCount = 0;
+    byYear.forEach((count, y)=>{ if(count > bestYearCount){ bestYearCount = count; bestYear = y; } });
+
+    let maxGapDays = 0, maxGapStart = null, maxGapEnd = null;
+    for(let i = 1; i < trained.length; i++){
+      const gap = Math.round((trained[i].date - trained[i-1].date) / 86400000);
+      if(gap > maxGapDays){ maxGapDays = gap; maxGapStart = trained[i-1].date; maxGapEnd = trained[i].date; }
+    }
+
+    // Constancia semanal: días cumplidos por semana (lun-sáb), excluyendo
+    // la semana en curso (todavía incompleta, no sirve para detectar tramos).
+    const byWeek = new Map();
+    days.forEach(d=>{
+      const wk = toISO(mondayOfWeek(d.date));
+      if(!byWeek.has(wk)) byWeek.set(wk, []);
+      byWeek.get(wk).push(d);
+    });
+    const currentWeekKey = toISO(mondayOfWeek(today));
+    const weekStats = [...byWeek.keys()]
+      .filter(wk => wk !== currentWeekKey)
+      .sort((a,b)=> a.localeCompare(b))
+      .map(wk => ({ wk, count: byWeek.get(wk).filter(e=>e.completed).length }));
+
+    const topStrong = findRuns(weekStats, w => w.count >= MILESTONE_STRONG_MIN)
+      .filter(r => r.weeks.length >= MILESTONE_MIN_RUN_WEEKS)
+      .sort((a,b)=> b.weeks.length - a.weeks.length || b.avgPerWeek - a.avgPerWeek)
+      .slice(0, 3);
+    const topWeak = findRuns(weekStats, w => w.count <= MILESTONE_WEAK_MAX)
+      .filter(r => r.weeks.length >= MILESTONE_MIN_RUN_WEEKS)
+      .sort((a,b)=> b.weeks.length - a.weeks.length)
+      .slice(0, 3);
+
+    return { firstDate, bestStreak, bestStart, bestEnd, bestMonthKey, bestMonthCount, bestYear, bestYearCount, maxGapDays, maxGapStart, maxGapEnd, topStrong, topWeak };
   }
 
   // ============================================================
@@ -502,11 +612,75 @@
 
     document.getElementById('sum-best-streak').textContent = diasLabel(best);
 
-    // Los cards de día, el calendario, el historial y progreso dependen del mismo estado, así que se refrescan aquí también
+    // Los cards de día, el calendario, el historial, progreso e hitos dependen del mismo estado, así que se refrescan aquí también
     renderDayRack();
     renderCalendar();
     renderHistorial();
     renderProgreso();
+    renderMilestones();
+  }
+
+  function renderMilestones(){
+    const host = document.getElementById('milestones-host');
+    if(!host) return;
+    const m = computeMilestones();
+    if(!m){
+      host.innerHTML = `<p class="milestone-empty">Todavía no hay días marcados como cumplidos — cuando registres algunos, tus hitos van a aparecer aquí.</p>`;
+      return;
+    }
+
+    const strongHtml = m.topStrong.length
+      ? m.topStrong.map((r, i) => `
+        <div class="milestone-row">
+          <i class="icon milestone-ico ok fa-solid fa-trophy"></i>
+          <div>
+            <div class="milestone-title">${i+1}. ${periodRangeLabel(r.startWk, r.endWk)}</div>
+            <p class="milestone-desc">${r.weeks.length} semanas seguidas con ${r.avgPerWeek.toFixed(1)} días de entrenamiento en promedio.</p>
+          </div>
+        </div>`).join('<div class="milestone-divider"></div>')
+      : `<p class="milestone-empty">Todavía no se distingue un tramo sólido de varias semanas seguidas — sigue registrando para verlo aquí.</p>`;
+
+    const weakHtml = m.topWeak.length
+      ? m.topWeak.map(r => `
+        <div class="milestone-row">
+          <i class="icon milestone-ico danger fa-solid fa-triangle-exclamation"></i>
+          <div>
+            <div class="milestone-title">${periodRangeLabel(r.startWk, r.endWk)}</div>
+            <p class="milestone-desc">${r.weeks.length} semanas con muy poca o nula actividad.</p>
+          </div>
+        </div>`).join('<div class="milestone-divider"></div>')
+      : `<p class="milestone-empty">Sin tramos flojos de varias semanas todavía — bien ahí.</p>`;
+
+    const items = [
+      `Primer entrenamiento registrado: <strong>${fmtLongDate(m.firstDate)}</strong>`,
+    ];
+    if(m.bestStreak > 0){
+      items.push(`Mejor racha: <strong>${diasLabel(m.bestStreak)} seguidos</strong> (${fmtShortDate(m.bestStart)} – ${fmtShortDate(m.bestEnd)})`);
+    }
+    if(m.bestMonthKey){
+      const [y, mo] = m.bestMonthKey.split('-');
+      items.push(`Mes con más entrenamientos: <strong>${MESES_LARGO[parseInt(mo,10)-1]} ${y}</strong> (${m.bestMonthCount})`);
+    }
+    if(m.maxGapDays > 0){
+      items.push(`Hueco más largo sin entrenar: <strong>${m.maxGapDays} días</strong> (${fmtShortDate(m.maxGapStart)} – ${fmtShortDate(m.maxGapEnd)})`);
+    }
+    if(m.bestYear){
+      items.push(`Año más productivo: <strong>${m.bestYear}</strong> (${m.bestYearCount} días entrenados)`);
+    }
+
+    host.innerHTML = `
+      <div class="milestone-block">
+        <div class="milestone-block-title">Tus periodos de mayor constancia</div>
+        ${strongHtml}
+      </div>
+      <div class="milestone-block">
+        <div class="milestone-block-title">Tus periodos de menor constancia</div>
+        ${weakHtml}
+      </div>
+      <div class="milestone-block">
+        <div class="milestone-block-title">Hitos interesantes</div>
+        <ul class="milestone-list">${items.map(i => `<li>${i}</li>`).join('')}</ul>
+      </div>`;
   }
 
   function updateSummaryStrip(){
