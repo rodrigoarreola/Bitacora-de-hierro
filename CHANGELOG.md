@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.28.0] - 2026-08-12 — Label "Semana pasada" en dos líneas
+
+### Changed
+
+- `.ex-detail-label` ("Semana pasada:") pasa a ocupar dos líneas (`Semana<br>pasada:`) en vez de una sola forzada con `white-space:nowrap` — libera ancho horizontal junto al botón "Ver progreso" dentro de `.ex-detail-head-left` (columnas 1-2 del grid alineado con `.ex-row`, ver 1.27.0).
+
 ## [1.27.0] - 2026-08-12 — Detalle de un ejercicio alineado con la fila
 
 ### Changed
