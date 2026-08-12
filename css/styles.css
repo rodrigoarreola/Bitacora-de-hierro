@@ -205,6 +205,8 @@
   .cmp-down{ color:var(--pending); }
   .cmp-eq{ color:var(--text-faint); font-size:11px; }
   .ex-detail-empty{ font-size:11px; color:var(--text-faint); margin:0; }
+  .ex-detail-suggestion{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:11px; color:var(--text-dim); }
+  .ex-detail-suggestion strong{ color:var(--accent); font-family:var(--font-mono); }
 
   .add-ex-row{
     display:flex; align-items:center; gap:7px; padding:11px 14px; border-top:1px solid var(--line);

@@ -31,6 +31,13 @@
     milestone_min_run_weeks: 2,
   };
 
+  // Progresión sugerida: incremento fijo, no editable desde Ajustes a
+  // propósito — api/settings.php fuerza todas las reglas a entero
+  // ((int) $value), así que sumar esta acá obligaría a extender ese
+  // endpoint para aceptar decimales. Queda como constante simple hasta
+  // que valga la pena ese cambio.
+  const PROGRESSION_INCREMENT_KG = 2.5;
+
   // ============================================================
   // Changelog para Perfil — versión resumida y de cara al usuario del
   // CHANGELOG.md técnico del repo (ese sigue siendo la fuente detallada
@@ -39,6 +46,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.12.0', date: '2026-08-12', title: 'Progresión sugerida', items: [
+      'Al expandir un ejercicio que la semana pasada se marcó como hecho, aparece un peso sugerido para esta semana.',
+    ]},
     { version: '1.11.0', date: '2026-08-12', title: 'Nota libre por semana', items: [
       'Nuevo campo en "Hoy" para anotar cómo fue la semana completa (lesiones, ajustes) — se guarda solo, separado de las notas por ejercicio.',
     ]},
@@ -605,6 +615,17 @@
       if(!prevEx){
         detailHtml = `<div class="ex-detail"><p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div>`;
       } else {
+        // Progresión sugerida: solo si la semana pasada se marcó como
+        // hecha (si no, no hay nada que "progresar" todavía) y su kg es
+        // numérico. Es una sugerencia de referencia, no se precarga en el
+        // input — evita pisar algo que el usuario ya haya escrito.
+        const prevKg = parseFloat(prevEx.kg);
+        let suggestionHtml = '';
+        if(prevEx.done && !isNaN(prevKg)){
+          const suggested = prevKg + PROGRESSION_INCREMENT_KG;
+          const suggestedLabel = Number.isInteger(suggested) ? suggested : suggested.toFixed(1);
+          suggestionHtml = `<div class="ex-detail-suggestion">Sugerido esta semana: <strong>${suggestedLabel} kg</strong></div>`;
+        }
         detailHtml = `
           <div class="ex-detail">
             <div class="ex-detail-label">Semana pasada</div>
@@ -613,6 +634,7 @@
               <div class="ex-detail-item"><span class="k">Rep</span><span class="v">${comparisonHtml(ex.reps, prevEx.reps)}</span></div>
               <div class="ex-detail-item"><span class="k">Ser</span><span class="v">${comparisonHtml(ex.series, prevEx.series)}</span></div>
             </div>
+            ${suggestionHtml}
           </div>`;
       }
     }
