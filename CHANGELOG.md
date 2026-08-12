@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.25.0] - 2026-08-12 — Detalle de un ejercicio: todo en una fila
+
+### Changed
+
+- El apilado vertical de 1.24.0 (botón, label, grid cada uno en su propia línea) no era lo que se pidió — el usuario lo aclaró con una captura: quería los tres en una sola fila, con el grid alineado a la derecha, como estaba de hecho más cerca del diseño original. Reestructurado con dos contenedores flex anidados: `.ex-detail-head` (fila completa, `justify-content:space-between`) con `.ex-detail-head-left` (botón + label, agrupados con poco espacio entre sí) a la izquierda y `.ex-detail-grid` a la derecha. Mismo cambio en la rama "sin datos de la semana pasada" (mensaje + botón en la misma fila). Verificado con capturas de pantalla que coincide con lo pedido, y que Calendario (que comparte `computeDayTier()` con el heatmap) no se vio afectado por el ajuste del heatmap de la versión anterior.
+
 ## [1.24.0] - 2026-08-12 — Ajustes al heatmap y al detalle de un ejercicio
 
 ### Changed
