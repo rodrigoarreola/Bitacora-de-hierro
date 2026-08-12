@@ -64,5 +64,9 @@ function fetch_week_detail(PDO $pdo, int $weekId, string $mondayDate): array
         $days[$row['day_key']]['exercises'][] = $row;
     }
 
-    return ['monday_date' => $mondayDate, 'days' => $days];
+    $stmtNote = $pdo->prepare('SELECT note FROM weeks WHERE id = :id');
+    $stmtNote->execute(['id' => $weekId]);
+    $note = $stmtNote->fetchColumn();
+
+    return ['monday_date' => $mondayDate, 'note' => $note ?: '', 'days' => $days];
 }

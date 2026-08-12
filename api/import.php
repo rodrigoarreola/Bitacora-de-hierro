@@ -77,6 +77,7 @@ foreach ($weeks as $i => $w) {
 
 $findWeek = $pdo->prepare('SELECT id FROM weeks WHERE monday_date = :d');
 $insertWeek = $pdo->prepare('INSERT INTO weeks (monday_date) VALUES (:d)');
+$updateWeekNote = $pdo->prepare('UPDATE weeks SET note = :n WHERE id = :id');
 $deleteExercises = $pdo->prepare('DELETE FROM exercises WHERE week_id = :w');
 $deleteOverrides = $pdo->prepare('DELETE FROM week_day_overrides WHERE week_id = :w');
 $insertOverride = $pdo->prepare(
@@ -108,6 +109,8 @@ try {
             $deleteExercises->execute(['w' => $weekId]);
             $deleteOverrides->execute(['w' => $weekId]);
         }
+
+        $updateWeekNote->execute(['n' => (string) ($w['note'] ?? ''), 'id' => $weekId]);
 
         foreach (($w['overrides'] ?? []) as $dayKey => $ov) {
             $insertOverride->execute([

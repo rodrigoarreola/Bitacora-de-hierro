@@ -84,6 +84,23 @@ if ($method === 'POST') {
     respond_ok(fetch_week_detail($pdo, $weekId, $mondayDate), 201);
 }
 
+if ($method === 'PUT') {
+    if ($date === null) {
+        respond_error('Falta el parámetro date.', 422);
+    }
+    $weekId = find_week_id($pdo, $date);
+    if ($weekId === null) {
+        respond_error('Semana no encontrada.', 404);
+    }
+    $body = read_json_body();
+    if (!array_key_exists('note', $body)) {
+        respond_error('Nada que actualizar.', 422);
+    }
+    $pdo->prepare('UPDATE weeks SET note = :n WHERE id = :id')
+        ->execute(['n' => (string) $body['note'], 'id' => $weekId]);
+    respond_ok(fetch_week_detail($pdo, $weekId, $date));
+}
+
 if ($method === 'DELETE') {
     if ($date === null) {
         respond_error('Falta el parámetro date.', 422);

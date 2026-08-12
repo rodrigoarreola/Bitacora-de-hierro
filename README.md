@@ -139,3 +139,9 @@ CREATE TABLE app_settings (
 ```
 
 (reglas editables desde Ajustes — necesaria antes de subir el `js/app.js`/`api/` de esta tanda, o `api/settings.php` va a fallar con "tabla no existe". Puede empezar vacía: sin filas, cada regla usa su valor por defecto, ver `api/settings.php`.)
+
+```sql
+ALTER TABLE weeks ADD COLUMN note TEXT NULL AFTER monday_date;
+```
+
+(nota libre por semana, editable desde "Hoy" — necesaria antes de subir el `js/app.js`/`api/` de esta tanda, o `api/weeks.php` va a fallar al intentar leer/escribir `note`. Nullable, no requiere backfill.)

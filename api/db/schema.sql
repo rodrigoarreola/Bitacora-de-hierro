@@ -113,3 +113,10 @@ CREATE TABLE app_settings (
   setting_value VARCHAR(255) NOT NULL,
   updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- weeks.note: nota libre de la semana completa (cómo se sintió,
+-- lesiones, ajustes), separada de exercises.note que es por
+-- ejercicio. Nullable — la mayoría de semanas no van a tener nota.
+-- ============================================================
+ALTER TABLE weeks ADD COLUMN note TEXT NULL AFTER monday_date;

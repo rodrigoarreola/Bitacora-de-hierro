@@ -39,6 +39,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.11.0', date: '2026-08-12', title: 'Nota libre por semana', items: [
+      'Nuevo campo en "Hoy" para anotar cómo fue la semana completa (lesiones, ajustes) — se guarda solo, separado de las notas por ejercicio.',
+    ]},
     { version: '1.10.0', date: '2026-08-12', title: 'Balance por grupo muscular', items: [
       'Nuevo panel en Historial con cuántos días cumplidos tuvo cada grupo muscular en el período filtrado.',
     ]},
@@ -275,7 +278,7 @@
       const d = detail.days[dk];
       days[dk] = { group: d.group_name, notes: d.notes, migratedFrom: d.migrated_from, exercises: d.exercises };
     });
-    state.weeks[key] = { days };
+    state.weeks[key] = { days, note: detail.note || '' };
   }
 
   function comparisonHtml(curRaw, prevRaw){
@@ -498,8 +501,21 @@
     renderWeekPills();
     renderDayRack();
     renderDayPanel();
+    renderWeekNote();
     updateStreakBadge();
     updateSummaryStrip();
+  }
+
+  // Nota libre de la semana activa (separada de la nota por ejercicio).
+  // El chequeo de activeElement evita pisar lo que el usuario está
+  // escribiendo si algo dispara un re-render mientras el textarea tiene foco.
+  function renderWeekNote(){
+    const el = document.getElementById('week-note-input');
+    const panel = document.getElementById('week-note-panel');
+    const week = currentWeek();
+    panel.classList.toggle('hidden', !week);
+    if(!week) return;
+    if(document.activeElement !== el) el.value = week.note || '';
   }
 
   function renderWeekPills(){
@@ -1088,6 +1104,20 @@
   document.getElementById('rules-save-btn').addEventListener('click', saveRules);
 
   // ============================================================
+  // Nota libre de la semana: se guarda sola al salir del campo, mismo
+  // patrón que el resto de los inputs de la app.
+  // ============================================================
+  document.getElementById('week-note-input').addEventListener('focusout', async (e)=>{
+    if(!state.activeWeek) return;
+    const week = currentWeek();
+    const val = e.target.value;
+    if(week.note === val) return;
+    week.note = val;
+    try{ await Api.put(`api/weeks.php?date=${encodeURIComponent(state.activeWeek)}`, { note: val }); }
+    catch(err){ showToast(err.message); }
+  });
+
+  // ============================================================
   // Navegación: tabs inferiores
   // ============================================================
   function switchToView(name){
@@ -1642,6 +1672,7 @@
       });
       const weekPayload = { monday_date: key, days };
       if(Object.keys(overrides).length) weekPayload.overrides = overrides;
+      if(week.note) weekPayload.note = week.note;
       return weekPayload;
     });
   }
