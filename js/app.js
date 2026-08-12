@@ -45,6 +45,10 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.24.0', date: '2026-08-12', title: 'Ajustes al heatmap y al detalle de un ejercicio', items: [
+      'El heatmap anual ya no pinta rojo un día sin ningún ejercicio registrado — el rojo queda solo para cuando sí hubo ejercicios pero ninguno se marcó.',
+      'En el detalle expandido de un ejercicio, "Ver progreso" pasa a estar primero, arriba del label "Semana pasada:".',
+    ]},
     { version: '1.23.0', date: '2026-08-12', title: 'Protección contra fuerza bruta en login', items: [
       '5 intentos fallidos seguidos bloquean el login 15 minutos — antes no había ningún límite.',
     ]},
@@ -729,7 +733,7 @@
     if(expanded){
       const prevEx = findExerciseInPrevWeek(ex.name);
       if(!prevEx){
-        detailHtml = `<div class="ex-detail"><div class="ex-detail-head"><p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p>${progressBtnHtml}</div></div>`;
+        detailHtml = `<div class="ex-detail">${progressBtnHtml}<p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div>`;
       } else {
         // Progresión sugerida: solo si la semana pasada se marcó como
         // hecha (si no, no hay nada que "progresar" todavía) y su kg es
@@ -744,10 +748,8 @@
         }
         detailHtml = `
           <div class="ex-detail">
-            <div class="ex-detail-head">
-              <div class="ex-detail-label">Semana pasada</div>
-              ${progressBtnHtml}
-            </div>
+            ${progressBtnHtml}
+            <div class="ex-detail-label">Semana pasada:</div>
             <div class="ex-detail-grid">
               <div class="ex-detail-item"><span class="k">Kg</span><span class="v">${comparisonHtml(ex.kg, prevEx.kg)}</span></div>
               <div class="ex-detail-item"><span class="k">Rep</span><span class="v">${comparisonHtml(ex.reps, prevEx.reps)}</span></div>
@@ -1390,6 +1392,19 @@
     return 'tier-green';
   }
 
+  // Distinto de "tier === null": un día puede tener tier-red porque no se
+  // marcó nada (0 ejercicios *registrados*) o porque se registraron
+  // ejercicios y ninguno se marcó — computeDayTier() no distingue los dos
+  // casos porque en Calendario da igual (día obligatorio vacío = rojo
+  // también). El heatmap sí necesita distinguirlos (ver renderHeatmap()).
+  function dayHasExercises(date){
+    const dayKey = WEEKDAY_TO_KEY[date.getDay()];
+    if(!dayKey) return false;
+    const week = state.weeks[toISO(mondayOfWeek(date))];
+    if(!week) return false;
+    return week.days[dayKey].exercises.length > 0;
+  }
+
   function renderCalendar(){
     const titleEl = document.getElementById('cal-title');
     const gridEl = document.getElementById('cal-grid');
@@ -1511,7 +1526,11 @@
     const cursor = new Date(gridStart);
     while(cursor <= gridEnd){
       const inYear = cursor.getFullYear() === heatmapYear;
-      const tier = inYear ? computeDayTier(cursor) : null;
+      let tier = inYear ? computeDayTier(cursor) : null;
+      // A diferencia de Calendario, el heatmap no pinta rojo un día sin
+      // ningún ejercicio registrado — "sin datos" y "sin cumplir" no son
+      // lo mismo acá, aunque computeDayTier() los junte en tier-red.
+      if(tier === 'tier-red' && !dayHasExercises(cursor)) tier = null;
       html += `<div class="heat-cell${inYear ? '' : ' out'}${tier ? ' ' + tier : ''}" title="${inYear ? fmtFullDate(cursor) : ''}"></div>`;
       cursor.setDate(cursor.getDate() + 1);
     }

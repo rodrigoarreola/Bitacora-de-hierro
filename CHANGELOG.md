@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.24.0] - 2026-08-12 — Ajustes al heatmap y al detalle de un ejercicio
+
+### Changed
+
+- **Heatmap anual**: `computeDayTier()` (compartido con Calendario) trata "0 ejercicios registrados" y "ejercicios registrados pero ninguno marcado" igual — ambos devuelven `tier-red`, porque en la vista de mes un día lun-vie vacío sí cuenta como "debía entrenar y no lo hizo". El heatmap necesita distinguirlos: un día realmente sin datos no debería pintarse igual que un día fallado. Nuevo helper `dayHasExercises(date)` y un downgrade puntual en `renderHeatmap()` (`tier-red` → sin pintar cuando ese día no tiene ningún ejercicio registrado) — sin tocar `computeDayTier()` ni la vista de mes, que se queda con su comportamiento de siempre. Verificado que 20 celdas que antes salían rojas (sin datos) ahora quedan sin pintar, mientras Calendario (mismo período) sigue mostrando esos mismos días en rojo sin cambios.
+- **Detalle expandido de un ejercicio**: el botón "Ver progreso" pasa a ir primero (antes del label), seguido de "Semana pasada:" (con dos puntos, antes sin) y recién después el grid de comparación — se quita el contenedor `.ex-detail-head` que los ponía lado a lado.
+
 ## [1.23.0] - 2026-08-12 — Protección contra fuerza bruta en login
 
 ### Added
