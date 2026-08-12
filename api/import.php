@@ -136,7 +136,11 @@ try {
                 ]);
                 $exCount++;
 
-                if ($name !== '') {
+                // Los nombres "Garmin: ..." son filas sinteticas generadas al
+                // importar historico de Garmin (categoria agregada, no un
+                // ejercicio real) -- no tiene caso que aparezcan como sugerencia
+                // de autocompletado al agregar ejercicios nuevos.
+                if ($name !== '' && !str_starts_with($name, 'Garmin: ')) {
                     $libCheck->execute(['name' => $name]);
                     if ($libCheck->fetchColumn() === false) {
                         $libInsert->execute(['name' => $name]);
