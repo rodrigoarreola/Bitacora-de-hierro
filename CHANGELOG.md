@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.22.0] - 2026-08-12 — Backups descargables desde Perfil
+
+### Added
+
+- **Pantalla de backups** en Perfil: nuevo endpoint `api/backups.php` (autenticado, `require_login()` igual que el resto de la API) con dos acciones — sin parámetros (o `?action=list`) lista los backups de `api/db/backups/` (`glob('backup-*.json')`, orden descendente por nombre, que ya es cronológico) devolviendo fecha y tamaño vía el `respond_ok()` de siempre; `?action=download&file=<nombre>` sirve el archivo crudo con `Content-Disposition: attachment`, saltándose el sobre `{ok,data}` porque acá el cliente necesita el JSON tal cual, no envuelto — por eso la descarga va por un `<a href>` normal en vez de por `Api.get()` (que siempre espera `{ok,data}`). El nombre de archivo se valida contra el mismo patrón exacto que genera `backup_export.php` antes de tocar el filesystem, para no abrir una ruta de path traversal siendo el único dato que manda el cliente en este endpoint — verificado que `../../config.local.php` y nombres con caracteres extra devuelven 422 en vez de leer nada. El `.htaccess` (`Require all denied`) de `api/db/backups/` sigue intacto — este endpoint vive fuera de esa carpeta y lee los archivos del lado del servidor, no depende de acceso directo por navegador a esa ruta. Verificado también que list y download devuelven 401 sin sesión. Cierra el hueco que ya documentaba el README ("bajarlos requiere FTP, no hay pantalla en la app para eso todavía").
+
 ## [1.21.0] - 2026-08-12 — Botón "Ver progreso" en el detalle de un ejercicio
 
 ### Added

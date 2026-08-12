@@ -413,6 +413,19 @@
   .perfil-btn:hover{ border-color:var(--accent-dim); color:var(--accent); }
   .perfil-btn .icon{ font-size:13px; }
 
+  /* ---------- Perfil: backups automáticos ---------- */
+  .backup-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+    padding:10px 14px; margin-top:10px; text-decoration:none; color:var(--text);
+  }
+  .backup-row:hover{ border-color:var(--accent-dim); }
+  .backup-row-info{ display:flex; flex-direction:column; gap:2px; }
+  .backup-row-date{ font-size:12px; font-weight:600; }
+  .backup-row-size{ font-size:10.5px; color:var(--text-faint); font-family:var(--font-mono); }
+  .backup-row .icon{ font-size:13px; color:var(--text-faint); }
+  .backup-row:hover .icon{ color:var(--accent); }
+
   /* ---------- Perfil: hitos y constancia ---------- */
   .milestones-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px 18px; margin-top:16px; }
   .milestones-panel .lib-sub{ margin-bottom:2px; }

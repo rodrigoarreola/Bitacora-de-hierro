@@ -23,7 +23,11 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 /
 ├── index.html                     Markup: pantalla de login + #app-shell con el resto
 ├── manifest.json                  Manifest de la PWA (rutas relativas, funciona en cualquier subcarpeta)
-├── sw.js                          Service worker: cachea el app shell, nunca api/
+├── sw.js                          Service worker: cachea el app shell, nunca api/ — CACHE_NAME se recalcula solo (ver .githooks/)
+├── scripts/
+│   └── bump-sw-cache.php          Recalcula CACHE_NAME de sw.js según hash del app shell — lo corre .githooks/pre-commit, no hace falta a mano
+├── .githooks/
+│   └── pre-commit                 Corre bump-sw-cache.php en cada commit — activar con `git config core.hooksPath .githooks`
 ├── icons/
 │   ├── icon-192.png                Ícono de la PWA (mancuerna --accent sobre --bg)
 │   └── icon-512.png
@@ -48,6 +52,7 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 │   ├── import.php                 POST: importa semanas desde JSON (reemplaza las que ya existan, deja intactas las demás)
 │   ├── migrate_day.php            POST: migra el set completo de ejercicios de un día a otro dentro de la misma semana (en cadena si el destino ya tiene contenido)
 │   ├── settings.php               GET/PUT reglas editables (Ajustes) — mínimos de racha/Hitos
+│   ├── backups.php                GET: lista y descarga los backups generados por backup_export.php (Perfil → Backups)
 │   └── db/
 │       ├── schema.sql             DDL completo + seed de day_templates
 │       ├── create_user.php        Script CLI para crear el usuario único (nunca vía HTTP)
@@ -92,6 +97,7 @@ Siete tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 - **Edición offline** (alcance acotado): si se pierde la conexión al editar un ejercicio ya existente (marcar hecho, cambiar nombre/kg/reps/series/nota, borrar) o la nota de una semana, el cambio se guarda en una cola local (IndexedDB) y se reintenta solo al reconectar. Conflictos se resuelven con last-write-wins por timestamp (`exercises.updated_at`). Un banner arriba de la app avisa "Sin conexión" y cuántos cambios están pendientes. Quedan fuera de la cola (siguen fallando sin conexión, como antes): crear semana, agregar ejercicio, migrar día, copiar semana pasada, importar datos y la librería de ejercicios.
 - **Progreso**: buscador de ejercicio (mismo autocompletado contra la librería que ya se usa en el panel del día) y gráfica de línea con Chart.js (carga en kg en el tiempo, relleno de área, tooltip nativo con fecha/reps/series al tocar un punto — sin leyenda, porque solo hay una serie por gráfica). Solo cuenta apariciones marcadas como hechas (`done`), nunca las que solo estaban en la rutina sin marcar; valores de `kg` no numéricos se descartan en vez de graficarse como cero. Chips de último peso, mejor peso y cambio desde el primer registro.
 - **Exportar / importar datos** (tab Perfil): exportar arma un JSON con todas las semanas/ejercicios ya cargados en memoria (sin pedir nada nuevo a la API) y lo descarga. Importar lee un archivo con esa misma forma y lo manda a `api/import.php`: valida todo antes de escribir (todo o nada, transacción), y por cada semana del archivo — si ya existe en tu base (mismo lunes), reemplaza sus ejercicios por completo; si no existe, la crea. Las semanas que no vienen en el archivo quedan intactas. Antes de enviar, un `confirm()` te dice cuántas semanas se van a reemplazar y cuántas son nuevas.
+- **Backups automáticos** (tab Perfil): lista los volcados que genera el cron del servidor (`api/db/backup_export.php`, ver "Backup automático (cron)" en Despliegue) vía `api/backups.php`, con fecha y tamaño, cada uno descargable con un click — antes solo se podían bajar por FTP.
 
 ### Identidad visual
 
@@ -142,7 +148,7 @@ No requiere acceso SSH — cPanel → **Cron Jobs** funciona por sí solo (es un
 1. cPanel → Cron Jobs → Add New Cron Job.
 2. Frecuencia sugerida: semanal (ej. "Once Per Week" — domingos 3:00 AM).
 3. Comando: `php /home/<usuario_cpanel>/<ruta_a_bitacora>/api/db/backup_export.php` (ajustar la ruta real del hosting; se puede confirmar con `pwd` en Terminal si hay acceso, o preguntándole a soporte de Hostgator la ruta absoluta de la cuenta).
-4. Los backups quedan en el servidor — bajarlos requiere FTP, no hay una pantalla en la app para eso todavía.
+4. Los backups quedan disponibles para descargar desde la app (Perfil → "Backups automáticos") vía `api/backups.php`, sin necesitar FTP.
 
 ### Pendiente de correr en producción
 

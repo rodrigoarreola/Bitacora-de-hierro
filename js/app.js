@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.22.0', date: '2026-08-12', title: 'Backups descargables desde Perfil', items: [
+      'Nuevo panel en Perfil que lista los backups automáticos del servidor con fecha y tamaño, cada uno descargable con un click — antes había que bajarlos por FTP.',
+    ]},
     { version: '1.21.0', date: '2026-08-12', title: 'Botón Ver progreso en el detalle de un ejercicio', items: [
       'Al expandir un ejercicio en "Hoy" (chevron de "semana pasada"), un botón nuevo "Ver progreso" te lleva directo a la gráfica de ese ejercicio en Progreso, con el buscador ya cargado.',
     ]},
@@ -1301,7 +1304,10 @@
   }
 
   document.querySelectorAll('nav.bottom-nav button').forEach(btn=>{
-    btn.addEventListener('click', ()=> switchToView(btn.dataset.view));
+    btn.addEventListener('click', ()=>{
+      switchToView(btn.dataset.view);
+      if(btn.dataset.view === 'perfil') loadBackupsList();
+    });
   });
 
   // ============================================================
@@ -1907,6 +1913,40 @@
     switchToView('perfil');
     showToast(`Importado: ${result.weeks} semanas, ${result.exercises} ejercicios.`);
   });
+
+  // ============================================================
+  // Backups automáticos (Perfil): lista de volcados generados por el
+  // cron del servidor (api/db/backup_export.php). Se pide de nuevo cada
+  // vez que se abre Perfil — la lista es chica, no vale la pena cachear.
+  // ============================================================
+  async function loadBackupsList(){
+    const hostEl = document.getElementById('backups-list');
+    if(!hostEl) return;
+    let backups;
+    try{
+      backups = await Api.get('api/backups.php');
+    }catch(err){
+      hostEl.innerHTML = `<p class="lib-sub">No se pudo cargar la lista de backups.</p>`;
+      return;
+    }
+    if(!backups.length){
+      hostEl.innerHTML = `<p class="lib-sub">Sin backups todavía.</p>`;
+      return;
+    }
+    hostEl.innerHTML = backups.map(b => {
+      const kb = (b.sizeBytes / 1024).toFixed(1);
+      const dateLabel = b.date || b.filename;
+      const href = `api/backups.php?action=download&file=${encodeURIComponent(b.filename)}`;
+      return `
+        <a class="backup-row" href="${href}" download="${b.filename}">
+          <span class="backup-row-info">
+            <span class="backup-row-date">${dateLabel}</span>
+            <span class="backup-row-size">${kb} KB</span>
+          </span>
+          <i class="icon fa-solid fa-download"></i>
+        </a>`;
+    }).join('');
+  }
 
   // ============================================================
   // Sesión: login / logout / bootstrap
