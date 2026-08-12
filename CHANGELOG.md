@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.21.0] - 2026-08-12 — Botón "Ver progreso" en el detalle de un ejercicio
+
+### Added
+
+- **"Ver progreso"** en el detalle expandido de un ejercicio (`exerciseRowHtml()`, `js/app.js`): botón nuevo al lado del label "Semana pasada" (o del mensaje "Sin datos..." cuando no hay comparación previa — aparece en las dos ramas del detalle, ya que Progreso no depende de tener datos de la semana pasada) que navega directo a la vista Progreso con ese ejercicio cargado en el buscador (`goToProgress()`, nuevo). El nombre del ejercicio viaja en un `data-name` en el propio botón en vez de buscarse subiendo por el DOM, porque el detalle expandido (`.ex-detail`) se renderiza como hermano de la fila (`.ex-row`), no como hijo — un `.closest('.ex-row')` desde dentro del detalle no lo encuentra. **Orden de llamadas importa**: `switchToView('progreso')` se llama antes de `renderProgreso()`, al revés del patrón que usa el resto de la navegación de la app (`renderAll(); switchToView(...)`) — acá sí importa porque `renderProgreso()` dibuja un gráfico de Chart.js sobre un `<canvas>` que mide 0×0 mientras su vista está oculta (`.view{display:none}`), así que dibujarlo antes de mostrar la vista lo dejaría deforme. Verificado con un ejercicio real (con historial) y uno de prueba sin historial previo, ambas ramas cargan el gráfico correctamente.
+
 ## [1.20.0] - 2026-08-12 — Heatmap anual con niveles rojo/amarillo/verde
 
 ### Changed

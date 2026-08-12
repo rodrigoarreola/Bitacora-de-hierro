@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.21.0', date: '2026-08-12', title: 'Botón Ver progreso en el detalle de un ejercicio', items: [
+      'Al expandir un ejercicio en "Hoy" (chevron de "semana pasada"), un botón nuevo "Ver progreso" te lleva directo a la gráfica de ese ejercicio en Progreso, con el buscador ya cargado.',
+    ]},
     { version: '1.20.0', date: '2026-08-12', title: 'Heatmap anual con niveles rojo/amarillo/verde', items: [
       'El heatmap anual de Calendario ya no solo pinta verde: ahora usa el mismo criterio rojo/amarillo/verde que la vista de mes, así que se ven también los días fallados y los flojos, no solo los cumplidos.',
     ]},
@@ -708,11 +711,19 @@
 
   function exerciseRowHtml(ex){
     const expanded = expandedIds.has(String(ex.id));
+    const hasName = !!(ex.name && ex.name.trim());
+    // Botón para saltar a Progreso con este ejercicio ya cargado — no
+    // depende de tener datos de la semana pasada (Progreso usa todo el
+    // historial vía collectExerciseHistory()), así que aparece en las dos
+    // ramas del detalle expandido, no solo cuando hay comparación.
+    const progressBtnHtml = hasName
+      ? `<button type="button" class="ex-progress-btn" data-action="view-progress" data-name="${escapeHtml(ex.name)}"><i class="icon fa-solid fa-chart-line"></i>Ver progreso</button>`
+      : '';
     let detailHtml = '';
     if(expanded){
       const prevEx = findExerciseInPrevWeek(ex.name);
       if(!prevEx){
-        detailHtml = `<div class="ex-detail"><p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div>`;
+        detailHtml = `<div class="ex-detail"><div class="ex-detail-head"><p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p>${progressBtnHtml}</div></div>`;
       } else {
         // Progresión sugerida: solo si la semana pasada se marcó como
         // hecha (si no, no hay nada que "progresar" todavía) y su kg es
@@ -727,7 +738,10 @@
         }
         detailHtml = `
           <div class="ex-detail">
-            <div class="ex-detail-label">Semana pasada</div>
+            <div class="ex-detail-head">
+              <div class="ex-detail-label">Semana pasada</div>
+              ${progressBtnHtml}
+            </div>
             <div class="ex-detail-grid">
               <div class="ex-detail-item"><span class="k">Kg</span><span class="v">${comparisonHtml(ex.kg, prevEx.kg)}</span></div>
               <div class="ex-detail-item"><span class="k">Rep</span><span class="v">${comparisonHtml(ex.reps, prevEx.reps)}</span></div>
@@ -737,7 +751,6 @@
           </div>`;
       }
     }
-    const hasName = !!(ex.name && ex.name.trim());
     const displayText = hasName ? escapeHtml(ex.name) : 'Nombre del ejercicio';
     const noteText = ex.note && ex.note.trim() ? escapeHtml(ex.note.trim()) : '+ nota';
     const noteClass = ex.note && ex.note.trim() ? 'ex-note has-note' : 'ex-note';
@@ -1111,6 +1124,8 @@
     if(delEl){ deleteExercise(delEl.closest('.ex-row').dataset.id); return; }
     const chevronEl = e.target.closest('[data-action="chevron"]');
     if(chevronEl){ toggleDetail(chevronEl.closest('.ex-row').dataset.id); return; }
+    const progressEl = e.target.closest('[data-action="view-progress"]');
+    if(progressEl){ goToProgress(progressEl.dataset.name); return; }
     const nameEl = e.target.closest('[data-action="edit-name"]');
     if(nameEl){ enterNameEdit(nameEl.closest('.ex-row').dataset.id); return; }
     const noteEl = e.target.closest('[data-action="edit-note"]');
@@ -1271,6 +1286,18 @@
     document.querySelectorAll('nav.bottom-nav button').forEach(b=>b.classList.toggle('active', b.dataset.view === name));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.getElementById('view-' + name).classList.add('active');
+  }
+
+  // Navega a Progreso con un ejercicio puntual ya cargado (botón "Ver
+  // progreso" del detalle expandido). switchToView() va antes de
+  // renderProgreso() a propósito: .view{display:none} deja el canvas de
+  // Chart.js en 0×0 hasta que la vista queda visible, así que dibujar el
+  // gráfico mientras todavía está oculto lo dejaría deforme.
+  function goToProgress(name){
+    progExercise = name;
+    document.getElementById('prog-search').value = name;
+    switchToView('progreso');
+    renderProgreso();
   }
 
   document.querySelectorAll('nav.bottom-nav button').forEach(btn=>{
