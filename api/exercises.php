@@ -74,6 +74,40 @@ if ($method === 'PUT') {
     }
 
     $body = read_json_body();
+
+    // client_time solo viene en mutaciones reproducidas desde la cola
+    // offline (ver js/offline-queue.js) — si el registro ya tiene un
+    // cambio más nuevo que este, se descarta en vez de pisarlo
+    // (last-write-wins). Las ediciones normales en vivo no mandan
+    // client_time y se comportan exactamente igual que siempre.
+    //
+    // La comparación se hace como una DURACIÓN ("hace cuántos segundos
+    // fue client_time"), no como timestamps absolutos: el servidor PHP y
+    // MySQL pueden estar en zonas horarias distintas (en este entorno,
+    // PHP corre en UTC y MySQL 6 horas atrás), así que comparar
+    // strtotime(client_time) directo contra strtotime(updated_at) da
+    // resultados falsos. Una duración en segundos, calculada con
+    // DateTime timezone-aware en PHP, es independiente de en qué zona
+    // esté cada sistema — y se compara contra NOW() de MySQL, no contra
+    // updated_at parseado por PHP, para que ambos lados de la
+    // comparación vivan en el reloj de MySQL.
+    if (isset($body['client_time'])) {
+        try {
+            $clientDt = new DateTime((string) $body['client_time']);
+            $nowUtc = new DateTime('now', new DateTimeZone('UTC'));
+            $secondsAgo = max(0, $nowUtc->getTimestamp() - $clientDt->getTimestamp());
+
+            $stmt = $pdo->prepare('SELECT (updated_at > (NOW() - INTERVAL :secs SECOND)) AS is_newer FROM exercises WHERE id = :id');
+            $stmt->execute(['secs' => $secondsAgo, 'id' => $id]);
+            if ((bool) $stmt->fetchColumn()) {
+                respond_ok(array_merge(fetch_exercise($pdo, $id), ['stale' => true]));
+            }
+        } catch (Exception $e) {
+            // client_time con formato inválido: se ignora el guard y se aplica normal, no vale la pena bloquear la escritura por esto.
+        }
+    }
+    unset($body['client_time']);
+
     $editable = ['name', 'kg', 'reps', 'series', 'note', 'done'];
     $sets = [];
     $params = ['id' => $id];

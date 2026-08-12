@@ -120,3 +120,13 @@ CREATE TABLE app_settings (
 -- ejercicio. Nullable — la mayoría de semanas no van a tener nota.
 -- ============================================================
 ALTER TABLE weeks ADD COLUMN note TEXT NULL AFTER monday_date;
+
+-- ============================================================
+-- exercises.updated_at: habilita last-write-wins para la cola de
+-- edición offline (ver js/offline-queue.js) — al reproducir una
+-- mutación encolada, el backend compara su client_time contra este
+-- valor y descarta la mutación si el registro ya tiene un cambio
+-- más nuevo que el que se está reproduciendo.
+-- ============================================================
+ALTER TABLE exercises ADD COLUMN updated_at DATETIME NOT NULL
+  DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;

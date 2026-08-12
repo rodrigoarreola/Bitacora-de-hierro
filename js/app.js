@@ -46,6 +46,10 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.14.0', date: '2026-08-12', title: 'Edición offline', items: [
+      'Marcar/editar/borrar un ejercicio o la nota de una semana ya no se pierde si se corta la conexión — se guarda y sincroniza solo al reconectar.',
+      'Alcance acotado: crear semana, agregar ejercicio, migrar día, copiar semana pasada, importar datos y la librería siguen necesitando conexión.',
+    ]},
     { version: '1.13.0', date: '2026-08-12', title: 'Backup automático', items: [
       'Script para respaldar todas tus semanas automáticamente por cron — configuración en el README, sección "Backup automático (cron)".',
     ]},
@@ -1802,7 +1806,42 @@
     renderLibraryView();
     renderRulesPanel();
     renderAll();
+    await refreshOfflineBanner();
   }
+
+  // ============================================================
+  // Edición offline: banner de estado + disparo de sincronización.
+  // Alcance acotado a propósito — ver PLAN-8-FEATURES.md feature 8 y el
+  // CHANGELOG para el detalle de qué queda fuera (crear semana, agregar
+  // ejercicio, migrar día, copiar semana, importar, librería).
+  // ============================================================
+  async function refreshOfflineBanner(){
+    const pendingCount = window.OfflineQueue ? await window.OfflineQueue.count() : 0;
+    const banner = document.getElementById('offline-banner');
+    if(!banner) return;
+    const offline = !navigator.onLine;
+    if(!offline && pendingCount === 0){ banner.classList.add('hidden'); return; }
+    banner.classList.remove('hidden');
+    banner.textContent = offline
+      ? (pendingCount > 0 ? `Sin conexión — ${pendingCount} cambio${pendingCount===1?'':'s'} pendiente${pendingCount===1?'':'s'} de sincronizar.` : 'Sin conexión.')
+      : `Sincronizando ${pendingCount} cambio${pendingCount===1?'':'s'}…`;
+  }
+
+  async function syncOfflineQueue(){
+    if(!window.OfflineQueue || !navigator.onLine) return;
+    const result = await window.OfflineQueue.flush(Api.replayMutation);
+    if(result.synced > 0){
+      await loadAppData(); // resincroniza todo el estado desde el servidor — más simple y seguro que parchear campo por campo
+      let msg = `${result.synced} cambio${result.synced===1?'':'s'} sincronizado${result.synced===1?'':'s'}.`;
+      if(result.stale > 0) msg += ` ${result.stale} se descartó${result.stale===1?'':'aron'} por ser más viejo${result.stale===1?'':'s'} que un cambio posterior.`;
+      showToast(msg);
+    }
+    await refreshOfflineBanner();
+  }
+
+  window.addEventListener('online', syncOfflineQueue);
+  window.addEventListener('offline', refreshOfflineBanner);
+  Api.onQueueChange = refreshOfflineBanner;
 
   loginForm.addEventListener('submit', async (e)=>{
     e.preventDefault();
@@ -1841,6 +1880,7 @@
       if(session.authenticated){
         showApp();
         await loadAppData();
+        await syncOfflineQueue(); // por si quedó una cola sin sincronizar de una sesión anterior cerrada offline
       } else {
         showLogin();
       }

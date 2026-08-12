@@ -158,3 +158,10 @@ ALTER TABLE weeks ADD COLUMN note TEXT NULL AFTER monday_date;
 ```
 
 (nota libre por semana, editable desde "Hoy" — necesaria antes de subir el `js/app.js`/`api/` de esta tanda, o `api/weeks.php` va a fallar al intentar leer/escribir `note`. Nullable, no requiere backfill.)
+
+```sql
+ALTER TABLE exercises ADD COLUMN updated_at DATETIME NOT NULL
+  DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
+```
+
+(habilita last-write-wins para la edición offline — necesaria antes de subir el `js/`/`api/` de esta tanda, o `api/exercises.php` va a fallar al reproducir mutaciones encoladas con `client_time`. `DEFAULT CURRENT_TIMESTAMP` rellena automáticamente todas las filas existentes al correr el `ALTER`, no requiere backfill manual.)
