@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.19.0] - 2026-08-12 — Auto-bump de caché del service worker
+
+### Added
+
+- **Auto-bump de `CACHE_NAME`**: nuevo `scripts/bump-sw-cache.php`, corrido automáticamente por un hook de git (`.githooks/pre-commit`) en cada commit — hashea el contenido de `index.html`, `css/styles.css`, `js/app.js`, `js/api.js` y `js/offline-queue.js` (`sha1`, primeros 10 caracteres) y reescribe `CACHE_NAME` en `sw.js` (`bitacora-shell-<hash>`) solo si alguno de esos archivos cambió respecto al último bump — un commit que no toca el app shell no vuelve a tocar `sw.js`. Reemplaza el bump manual (`v2` → `v15` a mano en 15+ commits), que el propio equipo se olvidó de hacer varias veces durante el desarrollo, dejando navegadores con la PWA instalada sirviendo el shell viejo desde caché sin avisar. Requiere activar el hook una sola vez por clon del repo: `git config core.hooksPath .githooks` (documentado en el README). Sin dependencias nuevas — usa PHP CLI, que el proyecto ya requiere para correr localmente; no se introdujo Node/npm solo para esto.
+
 ## [1.18.0] - 2026-08-12 — Menor constancia por días reales
 
 ### Changed

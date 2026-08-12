@@ -104,7 +104,7 @@ Siete tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único u
 
 `manifest.json` + `sw.js` ya están activos: la app es instalable (Android/desktop vía Chrome/Edge, iOS vía "Agregar a inicio" en Safari). El service worker solo cachea el *app shell* estático (HTML/CSS/JS/íconos) para que cargue rápido e instale — **no cachea nada bajo `api/`**, así que no hay edición de datos offline; sin conexión, la app carga pero no puede leer ni guardar ejercicios. `start_url`/`scope` del manifest y el registro del service worker usan rutas relativas a propósito, para que funcionen igual en `localhost:8000`, en un subdominio o en una subcarpeta como `/bitacora`, sin tocar código.
 
-**Importante en cada deploy que toque `index.html`/`css/`/`js/`**: sube también `sw.js` con `CACHE_NAME` incrementado (`bitacora-shell-v2`, `v3`, ... actualmente `v15`). Si no, los navegadores que ya instalaron la PWA van a seguir sirviendo el shell viejo desde caché indefinidamente — pasó varias veces durante el desarrollo local de este proyecto.
+`CACHE_NAME` de `sw.js` se recalcula solo: un git hook (`.githooks/pre-commit` → `scripts/bump-sw-cache.php`) hashea el contenido de `index.html`/`css/styles.css`/`js/app.js`/`js/api.js`/`js/offline-queue.js` en cada commit y reescribe `CACHE_NAME` (`bitacora-shell-<hash10>`) solo si alguno cambió — ya no hace falta acordarse de bumpearlo a mano, que era la causa de que varias veces durante el desarrollo local de este proyecto un navegador con la PWA instalada siguiera sirviendo el shell viejo desde caché. **Activar el hook una sola vez por clon del repo**: `git config core.hooksPath .githooks`.
 
 ## Pendiente
 

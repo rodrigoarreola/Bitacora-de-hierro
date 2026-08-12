@@ -1,0 +1,22 @@
+#!/bin/sh
+# Auto-bump de CACHE_NAME en sw.js. Corre antes de que el commit se
+# materialice: si scripts/bump-sw-cache.php reescribe sw.js, lo agrega al
+# mismo commit que ya se está armando (no genera un commit aparte ni loop).
+# Activar una vez por clon del repo: git config core.hooksPath .githooks
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root" || exit 1
+
+php scripts/bump-sw-cache.php
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo "pre-commit: bump-sw-cache.php falló, commit abortado." >&2
+  exit 1
+fi
+
+if ! git diff --quiet -- sw.js; then
+  git add sw.js
+fi
+
+exit 0

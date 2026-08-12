@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.19.0', date: '2026-08-12', title: 'Auto-bump de caché del service worker', items: [
+      'Ya no hace falta acordarse de subir el número de caché de la PWA a mano en cada cambio — se recalcula solo a partir del contenido, así que un navegador con la app instalada siempre agarra la versión nueva.',
+    ]},
     { version: '1.18.0', date: '2026-08-12', title: 'Menor constancia por días reales', items: [
       'Los períodos de "menor constancia" ahora se miden en días reales entre un entrenamiento y el siguiente, no en semanas — más precisos, sin fechas repetidas raras.',
       '"Hueco más largo sin entrenar" ahora muestra el año.',
