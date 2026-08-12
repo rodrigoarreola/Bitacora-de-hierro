@@ -194,15 +194,21 @@
   .ex-chevron.open .icon{ transform:rotate(180deg); }
   .ex-chevron.open{ color:var(--accent); }
 
-  .ex-detail{ padding:10px 12px 12px 34px; border-top:1px dashed var(--line); background:rgba(255,255,255,0.02); }
-  .ex-detail-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .ex-detail-head-left{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
-  .ex-detail-label{ font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); font-weight:700; }
-  .ex-progress-btn{ display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--accent); font-size:10.5px; font-weight:700; cursor:pointer; padding:3px 0; }
+  /* Mismas columnas que .ex-row (22px check / 1fr nombre / 38-30-30 kg-rep-ser
+     / 18-18 del-chevron) para que el grid de "semana pasada" quede alineado
+     debajo del kg/rep/ser actual, en vez de un flex suelto con su propio
+     espaciado. */
+  .ex-detail{
+    display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px; gap:5px;
+    padding:10px 12px; border-top:1px dashed var(--line); background:rgba(255,255,255,0.02);
+  }
+  .ex-detail-head-left{ grid-column:1 / 3; display:flex; align-items:center; gap:10px; min-width:0; }
+  .ex-detail-empty-row{ grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .ex-detail-label{ font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); font-weight:700; white-space:nowrap; }
+  .ex-progress-btn{ display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--accent); font-size:10.5px; font-weight:700; cursor:pointer; padding:3px 0; flex-shrink:0; }
   .ex-progress-btn .icon{ font-size:10px; }
   .ex-progress-btn:hover{ color:var(--accent-dim); }
-  .ex-detail-grid{ display:flex; gap:18px; }
-  .ex-detail-item{ display:flex; flex-direction:column; gap:3px; }
+  .ex-detail-item{ display:flex; flex-direction:column; align-items:center; gap:3px; }
   .ex-detail-item .k{ font-size:8.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; }
   .ex-detail-item .v{ display:flex; align-items:center; gap:3px; font-family:var(--font-mono); font-size:12.5px; color:var(--text); font-weight:600; }
   .cmp-icon{ font-size:10px; }
@@ -210,7 +216,7 @@
   .cmp-down{ color:var(--pending); }
   .cmp-eq{ color:var(--text-faint); font-size:11px; }
   .ex-detail-empty{ font-size:11px; color:var(--text-faint); margin:0; }
-  .ex-detail-suggestion{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:11px; color:var(--text-dim); }
+  .ex-detail-suggestion{ grid-column:1 / -1; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:11px; color:var(--text-dim); }
   .ex-detail-suggestion strong{ color:var(--accent); font-family:var(--font-mono); }
 
   .add-ex-row{

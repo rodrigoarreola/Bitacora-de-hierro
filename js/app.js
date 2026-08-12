@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.27.0', date: '2026-08-12', title: 'Detalle de un ejercicio alineado con la fila', items: [
+      'Los valores de "semana pasada" (Kg/Rep/Ser) ahora quedan exactamente debajo de las columnas Kg/Rep/Ser de la fila del ejercicio, en vez de con su propio espaciado suelto.',
+    ]},
     { version: '1.26.0', date: '2026-08-12', title: 'Heatmap anual sin rojo', items: [
       'El heatmap anual deja de pintar rojo — un día sin pintar ya se lee como "no cumplido", sin necesitar un color de más entre 365 celdas.',
     ]},
@@ -739,7 +742,7 @@
     if(expanded){
       const prevEx = findExerciseInPrevWeek(ex.name);
       if(!prevEx){
-        detailHtml = `<div class="ex-detail"><div class="ex-detail-head"><div class="ex-detail-head-left">${progressBtnHtml}<p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div></div></div>`;
+        detailHtml = `<div class="ex-detail"><div class="ex-detail-empty-row">${progressBtnHtml}<p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div></div>`;
       } else {
         // Progresión sugerida: solo si la semana pasada se marcó como
         // hecha (si no, no hay nada que "progresar" todavía) y su kg es
@@ -754,17 +757,13 @@
         }
         detailHtml = `
           <div class="ex-detail">
-            <div class="ex-detail-head">
-              <div class="ex-detail-head-left">
-                ${progressBtnHtml}
-                <div class="ex-detail-label">Semana pasada:</div>
-              </div>
-              <div class="ex-detail-grid">
-                <div class="ex-detail-item"><span class="k">Kg</span><span class="v">${comparisonHtml(ex.kg, prevEx.kg)}</span></div>
-                <div class="ex-detail-item"><span class="k">Rep</span><span class="v">${comparisonHtml(ex.reps, prevEx.reps)}</span></div>
-                <div class="ex-detail-item"><span class="k">Ser</span><span class="v">${comparisonHtml(ex.series, prevEx.series)}</span></div>
-              </div>
+            <div class="ex-detail-head-left">
+              ${progressBtnHtml}
+              <div class="ex-detail-label">Semana pasada:</div>
             </div>
+            <div class="ex-detail-item"><span class="k">Kg</span><span class="v">${comparisonHtml(ex.kg, prevEx.kg)}</span></div>
+            <div class="ex-detail-item"><span class="k">Rep</span><span class="v">${comparisonHtml(ex.reps, prevEx.reps)}</span></div>
+            <div class="ex-detail-item"><span class="k">Ser</span><span class="v">${comparisonHtml(ex.series, prevEx.series)}</span></div>
             ${suggestionHtml}
           </div>`;
       }

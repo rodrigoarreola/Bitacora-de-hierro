@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.27.0] - 2026-08-12 — Detalle de un ejercicio alineado con la fila
+
+### Changed
+
+- `.ex-detail` pasa de un `flex` con su propio espaciado a usar el mismo `grid-template-columns` que `.ex-row` (`22px 1fr 38px 30px 30px 18px 18px`, mismo `gap` y mismo padding horizontal de 12px) — así el grid de "semana pasada" (Kg/Rep/Ser) queda exactamente debajo de las columnas Kg/Rep/Ser de la fila del ejercicio arriba, en vez de con un espaciado (`gap:18px`) que no correspondía a los anchos reales de esas columnas. `.ex-detail-head-left` (botón "Ver progreso" + label "Semana pasada:") ocupa las columnas 1-2 (check + nombre) de esa misma fila del grid; `.ex-detail-suggestion` sigue como fila aparte, ahora expandida a todo el ancho (`grid-column:1/-1`). Verificado con `getBoundingClientRect()` que los tres pares de columnas (kg, rep, ser) coinciden en píxeles exactos entre la fila y el detalle.
+
 ## [1.26.0] - 2026-08-12 — Heatmap anual sin rojo
 
 ### Changed
