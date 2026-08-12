@@ -39,6 +39,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.9.0', date: '2026-08-12', title: 'PR automático', items: [
+      'Al marcar un ejercicio como hecho con un kg mayor a tu mejor registro histórico para ese ejercicio, aparece un aviso de nuevo récord.',
+    ]},
     { version: '1.8.0', date: '2026-08-12', title: 'Compartir como imagen', items: [
       'Nuevo botón para compartir el día activo o una semana de Historial como imagen (PNG) — comparte directo desde el celular o la descarga.',
     ]},
@@ -874,10 +877,23 @@
   async function toggleExercise(id){
     const ex = findExercise(id);
     if(!ex) return;
-    let updated;
-    try{ updated = await Api.put(`api/exercises.php?id=${encodeURIComponent(id)}`, { done: !ex.done }); }
+    const newDone = !ex.done;
+    // El mejor histórico se calcula ANTES de aplicar el toggle, para no
+    // comparar el ejercicio contra sí mismo. Se calcula local en vez de
+    // leerlo de la respuesta del servidor a propósito: la cola de edición
+    // offline puede devolver una respuesta sin eco real cuando no hay
+    // conexión, así que ex.done siempre se fija con el valor calculado
+    // acá, nunca con lo que devuelva la API.
+    const prevBest = (newDone && ex.name.trim()) ? bestPriorKgForExercise(ex.name) : null;
+    try{ await Api.put(`api/exercises.php?id=${encodeURIComponent(id)}`, { done: newDone }); }
     catch(err){ showToast(err.message); return; }
-    ex.done = updated.done;
+    ex.done = newDone;
+    if(newDone && prevBest !== null){
+      const kg = parseFloat(ex.kg);
+      if(!isNaN(kg) && kg > prevBest){
+        showToast(`Nuevo récord en "${ex.name.trim()}": ${kg} kg (antes ${prevBest} kg).`);
+      }
+    }
     renderDayPanel();
     updateStreakBadge();
     updateSummaryStrip();
@@ -1428,6 +1444,25 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 'image/png');
+  }
+
+  // Mejor kg histórico registrado para un ejercicio (solo apariciones ya
+  // marcadas como hechas, mismo criterio de tolerancia que el resto de la
+  // app). Usado por PR automático — ver toggleExercise().
+  function bestPriorKgForExercise(name){
+    const target = name.trim().toLowerCase();
+    let best = null;
+    state.order.forEach(wk=>{
+      DAY_ORDER.forEach(dk=>{
+        state.weeks[wk].days[dk].exercises.forEach(e=>{
+          if(!e.done || e.name.trim().toLowerCase() !== target) return;
+          const kg = parseFloat(e.kg);
+          if(isNaN(kg)) return;
+          if(best === null || kg > best) best = kg;
+        });
+      });
+    });
+    return best;
   }
 
   function collectExerciseHistory(name){
