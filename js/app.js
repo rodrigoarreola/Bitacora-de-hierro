@@ -39,6 +39,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.10.0', date: '2026-08-12', title: 'Balance por grupo muscular', items: [
+      'Nuevo panel en Historial con cuántos días cumplidos tuvo cada grupo muscular en el período filtrado.',
+    ]},
     { version: '1.9.0', date: '2026-08-12', title: 'PR automático', items: [
       'Al marcar un ejercicio como hecho con un kg mayor a tu mejor registro histórico para ese ejercicio, aparece un aviso de nuevo récord.',
     ]},
@@ -1323,6 +1326,45 @@
     return m1 === m2 ? [m1] : [m2, m1];
   }
 
+  // Balance por grupo muscular: cuántos días "cumplidos" tuvo cada grupo
+  // en el período filtrado (mismo weekKeys ya filtrado por mes que arma
+  // renderHistorial()). Mismo criterio de "día cumplido" que la racha.
+  function computeGroupBalance(weekKeys){
+    const byGroup = new Map();
+    weekKeys.forEach(wk=>{
+      const week = state.weeks[wk];
+      DAY_ORDER.filter(dk => dk !== 'dom').forEach(dk=>{
+        const date = dayDate(wk, dk);
+        if(date > today) return;
+        const day = week.days[dk];
+        const done = day.exercises.filter(e=>e.done).length;
+        if(done < RULES.min_done_per_day) return;
+        const group = day.group || 'Sin grupo';
+        byGroup.set(group, (byGroup.get(group) || 0) + 1);
+      });
+    });
+    return [...byGroup.entries()]
+      .map(([group, days]) => ({ group, days }))
+      .sort((a,b)=> b.days - a.days);
+  }
+
+  function renderGroupBalance(weekKeys){
+    const host = document.getElementById('group-balance-host');
+    if(!host) return;
+    const rows = computeGroupBalance(weekKeys);
+    if(rows.length === 0){
+      host.innerHTML = `<p class="balance-empty">Sin días cumplidos en este período todavía.</p>`;
+      return;
+    }
+    const max = rows[0].days;
+    host.innerHTML = rows.map(r => `
+      <div class="balance-row">
+        <span class="balance-label">${escapeHtml(r.group)}</span>
+        <div class="balance-bar-track"><div class="balance-bar-fill" style="width:${(r.days/max*100).toFixed(0)}%"></div></div>
+        <span class="balance-value">${r.days}</span>
+      </div>`).join('');
+  }
+
   function renderHistorial(){
     const railEl = document.getElementById('hist-month-rail');
     const listEl = document.getElementById('hist-list');
@@ -1351,6 +1393,7 @@
     });
 
     const keys = state.order.filter(key => !historialMonth || weekMonths(key).includes(historialMonth));
+    renderGroupBalance(keys);
 
     if(keys.length === 0){
       listEl.innerHTML = `<p class="hist-empty">No hay semanas en este mes.</p>`;
