@@ -100,3 +100,16 @@ CREATE TABLE week_day_overrides (
   CONSTRAINT fk_week_day_overrides_week
     FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- app_settings: reglas de negocio editables desde Ajustes (ver
+-- api/settings.php), reemplazando constantes que antes vivían fijas
+-- en js/app.js. Sin fila para una clave = se usa el valor por
+-- defecto definido en api/settings.php, así que no hace falta
+-- sembrar filas al crear la tabla.
+-- ============================================================
+CREATE TABLE app_settings (
+  setting_key   VARCHAR(60)  NOT NULL PRIMARY KEY,
+  setting_value VARCHAR(255) NOT NULL,
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

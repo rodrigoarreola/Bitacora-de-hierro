@@ -12,9 +12,24 @@
   // Sin entrada para domingo (0) a propósito: el gimnasio no abre, así
   // que computeDayTier() debe seguir devolviendo null para ese día.
   const WEEKDAY_TO_KEY = {1:'lun', 2:'mar', 3:'mie', 4:'jue', 5:'vie', 6:'sab'};
-  const MIN_DONE_FOR_STREAK = 3;
   const RING_R = 16;
   const RING_C = 2 * Math.PI * RING_R;
+
+  // ============================================================
+  // Reglas: valores editables desde Ajustes (api/settings.php), con
+  // estos defaults como respaldo mientras carga la API o si algo
+  // falla. Reemplazan lo que antes eran constantes fijas — cualquier
+  // función que las use debe leer de este objeto mutable, no de una
+  // copia local, para que un cambio guardado en Ajustes se refleje
+  // de inmediato sin recargar la página.
+  // ============================================================
+  const RULES = {
+    min_done_per_day: 3,
+    week_streak_min_days: 5,
+    milestone_strong_min: 3,
+    milestone_weak_max: 1,
+    milestone_min_run_weeks: 2,
+  };
 
   // ============================================================
   // Changelog para Perfil — versión resumida y de cara al usuario del
@@ -109,6 +124,42 @@
         <button type="button" class="lib-del" data-action="lib-del" aria-label="Eliminar de la librería"><i class="icon fa-solid fa-trash"></i></button>
       </div>
     `).join('');
+  }
+
+  function renderRulesPanel(){
+    Object.keys(RULES).forEach(key=>{
+      const input = document.getElementById(`rule-${key}`);
+      if(input) input.value = RULES[key];
+    });
+  }
+
+  async function saveRules(){
+    const btn = document.getElementById('rules-save-btn');
+    const body = {};
+    for(const key of Object.keys(RULES)){
+      const input = document.getElementById(`rule-${key}`);
+      if(!input) continue;
+      const val = parseInt(input.value, 10);
+      if(!Number.isFinite(val)){ showToast('Todas las reglas deben ser números.'); return; }
+      body[key] = val;
+    }
+    btn.disabled = true;
+    try{
+      const updated = await Api.put('api/settings.php', body);
+      Object.assign(RULES, updated);
+      renderRulesPanel();
+      // Estas reglas alimentan la racha, el riel de días, Historial e
+      // Hitos — se refrescan todos para que el cambio se vea de inmediato,
+      // no solo la próxima vez que se navegue a esa vista.
+      renderAll();
+      renderHistorial();
+      renderMilestones();
+      showToast('Reglas guardadas.');
+    }catch(err){
+      showToast(err.message);
+    }finally{
+      btn.disabled = false;
+    }
   }
 
   // ============================================================
@@ -255,22 +306,22 @@
         if(dk === 'sab' && total === 0) return;
         if(dk !== 'sab' && total === 0 && migratedFromSet.has(dk)) return;
         const done = week.days[dk].exercises.filter(e=>e.done).length;
-        list.push({ date, completed: done >= MIN_DONE_FOR_STREAK });
+        list.push({ date, completed: done >= RULES.min_done_per_day });
       });
     });
     list.sort((a,b)=> a.date - b.date);
     return list;
   }
 
-  // La racha se cuenta en días (3+ ejercicios marcados), pero el corte ya
-  // no es día por día — es semanal: una semana (lun-sáb) necesita al menos
-  // WEEK_STREAK_MIN_DAYS días cumplidos para no romper la racha. Si los
-  // alcanza, todos sus días cumplidos suman normal a la cuenta; si no, la
-  // racha se corta ahí (esos días no suman, aunque individualmente hayan
-  // llegado a 3 ejercicios). La semana en curso nunca se juzga como "rota"
-  // hasta que termine — sus días cumplidos hasta hoy se van sumando igual,
-  // el mismo criterio que antes aplicaba solo a "hoy".
-  const WEEK_STREAK_MIN_DAYS = 5;
+  // La racha se cuenta en días (RULES.min_done_per_day+ ejercicios
+  // marcados), pero el corte ya no es día por día — es semanal: una
+  // semana (lun-sáb) necesita al menos RULES.week_streak_min_days días
+  // cumplidos para no romper la racha. Si los alcanza, todos sus días
+  // cumplidos suman normal a la cuenta; si no, la racha se corta ahí
+  // (esos días no suman, aunque individualmente hayan llegado al mínimo).
+  // La semana en curso nunca se juzga como "rota" hasta que termine —
+  // sus días cumplidos hasta hoy se van sumando igual, el mismo criterio
+  // que antes aplicaba solo a "hoy".
 
   // Misma caminata semana-por-semana que computeStreaks(), pero además
   // guarda las fechas de inicio/fin de la mejor racha — lo necesita la
@@ -291,7 +342,7 @@
     weekKeys.forEach(wk=>{
       const entries = byWeek.get(wk);
       const isCurrentWeek = wk === currentWeekKey;
-      const qualifies = isCurrentWeek || entries.filter(e=>e.completed).length >= WEEK_STREAK_MIN_DAYS;
+      const qualifies = isCurrentWeek || entries.filter(e=>e.completed).length >= RULES.week_streak_min_days;
       if(qualifies){
         entries.forEach(e=>{
           if(e.completed){
@@ -317,13 +368,11 @@
   // ============================================================
   // Hitos: estadísticas de constancia para Perfil, calculadas del
   // lado del cliente desde state.weeks ya cargado — mismo criterio de
-  // "día cumplido" (3+ ejercicios) que la racha. No depende de ningún
-  // historial externo (ej. Garmin); crece solo con lo que ya está en
-  // la app, así que con pocos meses de datos es normal que salga poco.
+  // "día cumplido" (RULES.min_done_per_day+ ejercicios) que la racha.
+  // No depende de ningún historial externo (ej. Garmin); crece solo
+  // con lo que ya está en la app, así que con pocos meses de datos es
+  // normal que salga poco. Umbrales en RULES.milestone_*.
   // ============================================================
-  const MILESTONE_STRONG_MIN = 3; // días/semana para contar como "buena" semana
-  const MILESTONE_WEAK_MAX = 1;   // días/semana para contar como "floja" semana
-  const MILESTONE_MIN_RUN_WEEKS = 2; // no mostrar un tramo de una sola semana
 
   // startDate/endDate son los días REALES de entrenamiento (primero y
   // último) dentro del tramo, no el lunes/domingo calendario de la
@@ -412,12 +461,12 @@
       .sort((a,b)=> a.localeCompare(b))
       .map(wk => ({ wk, count: byWeek.get(wk).filter(e=>e.completed).length }));
 
-    const topStrong = findRuns(weekStats, w => w.count >= MILESTONE_STRONG_MIN, days)
-      .filter(r => r.weeks.length >= MILESTONE_MIN_RUN_WEEKS)
+    const topStrong = findRuns(weekStats, w => w.count >= RULES.milestone_strong_min, days)
+      .filter(r => r.weeks.length >= RULES.milestone_min_run_weeks)
       .sort((a,b)=> b.weeks.length - a.weeks.length || b.avgPerWeek - a.avgPerWeek)
       .slice(0, 3);
-    const topWeak = findRuns(weekStats, w => w.count <= MILESTONE_WEAK_MAX, days)
-      .filter(r => r.weeks.length >= MILESTONE_MIN_RUN_WEEKS)
+    const topWeak = findRuns(weekStats, w => w.count <= RULES.milestone_weak_max, days)
+      .filter(r => r.weeks.length >= RULES.milestone_min_run_weeks)
       .sort((a,b)=> b.weeks.length - a.weeks.length)
       .slice(0, 3);
 
@@ -492,7 +541,7 @@
     if(!week) return;
     DAY_ORDER.forEach(dk=>{
       const doneCount = week.days[dk].exercises.filter(e=>e.done).length;
-      const isCompleted = doneCount >= MIN_DONE_FOR_STREAK;
+      const isCompleted = doneCount >= RULES.min_done_per_day;
       const migratedFrom = week.days[dk].migratedFrom;
       const tab = document.createElement('div');
       tab.className = 'day-tab' + (dk === state.activeDay ? ' active' : '') + (isCompleted ? ' completed' : '');
@@ -674,6 +723,7 @@
     // Los cards de día, el calendario, el historial, progreso e hitos dependen del mismo estado, así que se refrescan aquí también
     renderDayRack();
     renderCalendar();
+    renderHeatmap();
     renderHistorial();
     renderProgreso();
     renderMilestones();
@@ -978,6 +1028,11 @@
   });
 
   // ============================================================
+  // Reglas: eventos de la vista Ajustes
+  // ============================================================
+  document.getElementById('rules-save-btn').addEventListener('click', saveRules);
+
+  // ============================================================
   // Navegación: tabs inferiores
   // ============================================================
   function switchToView(name){
@@ -1148,6 +1203,58 @@
   });
 
   // ============================================================
+  // Heatmap anual (Calendario): grid estilo GitHub de 365 días del
+  // año elegido, filtrado con un riel de años (mismo patrón que
+  // .week-rail/.week-pill). De momento solo pinta verde los días
+  // cumplidos (mismo criterio que la racha, vía buildChronoDays()) —
+  // sin niveles rojo/amarillo, es una primera versión.
+  // ============================================================
+  const HEATMAP_YEARS = [2026, 2025, 2024, 2023];
+  let heatmapYear = today.getFullYear();
+
+  function renderHeatmap(){
+    const railEl = document.getElementById('heatmap-year-rail');
+    const gridEl = document.getElementById('heatmap-grid');
+    if(!railEl || !gridEl) return;
+
+    if(!HEATMAP_YEARS.includes(heatmapYear)) heatmapYear = HEATMAP_YEARS[0];
+    railEl.innerHTML = HEATMAP_YEARS.map(y => `
+      <div class="week-pill${y === heatmapYear ? ' active' : ''}" data-year="${y}">${y}</div>
+    `).join('');
+
+    const completedDates = new Set(
+      buildChronoDays()
+        .filter(d => d.completed && d.date.getFullYear() === heatmapYear)
+        .map(d => toISO(d.date))
+    );
+
+    const jan1 = new Date(heatmapYear, 0, 1);
+    const dec31 = new Date(heatmapYear, 11, 31);
+    const gridStart = mondayOfWeek(jan1);
+    const gridEnd = new Date(dec31);
+    const endDow = (dec31.getDay() + 6) % 7; // 0=lun..6=dom
+    gridEnd.setDate(gridEnd.getDate() + (6 - endDow));
+
+    let html = '';
+    const cursor = new Date(gridStart);
+    while(cursor <= gridEnd){
+      const inYear = cursor.getFullYear() === heatmapYear;
+      const iso = toISO(cursor);
+      const done = inYear && completedDates.has(iso);
+      html += `<div class="heat-cell${inYear ? '' : ' out'}${done ? ' done' : ''}" title="${inYear ? fmtFullDate(cursor) : ''}"></div>`;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    gridEl.innerHTML = html;
+  }
+
+  document.getElementById('heatmap-year-rail').addEventListener('click', (e)=>{
+    const pill = e.target.closest('[data-year]');
+    if(!pill) return;
+    heatmapYear = parseInt(pill.dataset.year, 10);
+    renderHeatmap();
+  });
+
+  // ============================================================
   // Historial: tarjeta por semana, filtrable por mes con un riel
   // (mismo look que el riel de semanas de "Hoy": .week-rail/.week-pill).
   // ============================================================
@@ -1208,7 +1315,7 @@
         const done = day.exercises.filter(e=>e.done).length;
         totalDone += done;
         totalEx += day.exercises.length;
-        const completed = done >= MIN_DONE_FOR_STREAK;
+        const completed = done >= RULES.min_done_per_day;
         return `<span class="hist-dot${completed ? ' done' : ''}" data-day="${dk}" title="${DAY_NAMES[dk]}">${DAY_LETTER[dk]}</span>`;
       }).join('');
 
@@ -1461,15 +1568,17 @@
   Api.onUnauthorized = showLogin;
 
   async function loadAppData(){
-    const [weekDates, library] = await Promise.all([
+    const [weekDates, library, settings] = await Promise.all([
       Api.get('api/weeks.php'),
       Api.get('api/library.php'),
+      Api.get('api/settings.php').catch(()=> null), // si falla, se queda con los defaults de RULES
     ]);
 
     state.order = weekDates;
     EXERCISE_LIBRARY.length = 0;
     library.forEach(item => EXERCISE_LIBRARY.push(item));
     EXERCISE_LIBRARY.sort((a,b)=> a.name.localeCompare(b.name, 'es'));
+    if(settings) Object.assign(RULES, settings);
 
     const details = await Promise.all(
       state.order.map(key => Api.get(`api/weeks.php?date=${encodeURIComponent(key)}`))
@@ -1480,6 +1589,7 @@
 
     renderLibraryDatalist();
     renderLibraryView();
+    renderRulesPanel();
     renderAll();
   }
 

@@ -252,6 +252,18 @@
   .placeholder p{ font-size:12.5px; color:var(--text-dim); margin:0; }
   .placeholder span{ font-family:var(--font-display); font-size:16px; text-transform:uppercase; color:var(--text-dim); display:block; margin-bottom:4px; }
 
+  /* ---------- Reglas (Ajustes) ---------- */
+  .rules-panel{ margin-bottom:16px; }
+  .rules-list{ padding:14px 18px 4px; display:flex; flex-direction:column; gap:14px; }
+  .rule-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
+  .rule-label{ font-size:12px; color:var(--text-dim); line-height:1.4; flex:1; }
+  .rule-input{
+    width:56px; flex-shrink:0; background:var(--surface-2); border:1px solid var(--line); border-radius:9px;
+    padding:8px; color:var(--text); font-size:13px; font-family:var(--font-body); text-align:center;
+  }
+  .rule-input:focus{ outline:none; border-color:var(--accent-dim); }
+  .rules-save-btn{ margin:14px 18px 18px; width:calc(100% - 36px); }
+
   /* ---------- Librería de ejercicios (Ajustes) ---------- */
   .lib-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
   .lib-head{ padding:16px 18px 14px; border-bottom:1px solid var(--line); }
@@ -430,6 +442,19 @@
   .cal-legend{ display:flex; flex-wrap:wrap; gap:10px 14px; margin-top:16px; padding-top:12px; border-top:1px solid var(--line); }
   .cal-legend-item{ display:flex; align-items:center; gap:5px; font-size:10px; color:var(--text-faint); }
   .cal-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+  /* ---------- Calendario: heatmap anual (primera versión) ---------- */
+  .heatmap-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px 18px; margin-top:16px; }
+  .heatmap-panel .lib-sub{ margin-bottom:14px; }
+  .heatmap-panel .week-rail{ margin-bottom:12px; }
+  .heatmap-grid{
+    display:grid; grid-auto-flow:column; grid-template-rows:repeat(7, 11px); gap:3px;
+    overflow-x:auto; padding-bottom:4px; scrollbar-width:none;
+  }
+  .heatmap-grid::-webkit-scrollbar{ display:none; }
+  .heat-cell{ width:11px; height:11px; border-radius:2px; background:var(--surface-2); }
+  .heat-cell.out{ background:transparent; }
+  .heat-cell.done{ background:var(--ok); }
   .cal-dot.tier-red{ background:var(--danger); }
   .cal-dot.tier-yellow{ background:var(--pending); }
   .cal-dot.tier-green{ background:var(--ok); }

@@ -112,6 +112,13 @@
         <span class="cal-legend-item"><span class="cal-dot tier-green"></span>6+ ejercicios</span>
       </div>
     </div>
+
+    <div class="heatmap-panel">
+      <div class="lib-title">Actividad del año</div>
+      <p class="lib-sub">Días cumplidos, de un vistazo.</p>
+      <div class="week-rail" id="heatmap-year-rail"></div>
+      <div class="heatmap-grid" id="heatmap-grid"></div>
+    </div>
   </div>
 
   <!-- ================= VIEW: PERFIL ================= -->
@@ -141,6 +148,36 @@
 
   <!-- ================= VIEW: AJUSTES → Librería de ejercicios ================= -->
   <div class="view" id="view-ajustes">
+    <div class="lib-panel rules-panel">
+      <div class="lib-head">
+        <div class="lib-title">Reglas</div>
+        <p class="lib-sub">Controlan cómo se calculan la racha, qué cuenta como día cumplido y los períodos de Hitos. Los cambios aplican de inmediato a toda la app.</p>
+      </div>
+      <div class="rules-list" id="rules-list">
+        <label class="rule-row">
+          <span class="rule-label">Ejercicios mínimos por día para considerarlo cumplido</span>
+          <input type="number" class="rule-input" id="rule-min_done_per_day" min="1" max="15" step="1">
+        </label>
+        <label class="rule-row">
+          <span class="rule-label">Días de la semana mínimos para no romper la racha</span>
+          <input type="number" class="rule-input" id="rule-week_streak_min_days" min="1" max="6" step="1">
+        </label>
+        <label class="rule-row">
+          <span class="rule-label">Días/semana mínimos para contar como semana fuerte en Hitos</span>
+          <input type="number" class="rule-input" id="rule-milestone_strong_min" min="1" max="6" step="1">
+        </label>
+        <label class="rule-row">
+          <span class="rule-label">Días/semana máximos para contar como semana floja en Hitos</span>
+          <input type="number" class="rule-input" id="rule-milestone_weak_max" min="0" max="6" step="1">
+        </label>
+        <label class="rule-row">
+          <span class="rule-label">Semanas seguidas mínimas para mostrar un período en Hitos</span>
+          <input type="number" class="rule-input" id="rule-milestone_min_run_weeks" min="1" max="10" step="1">
+        </label>
+      </div>
+      <button type="button" class="perfil-btn rules-save-btn" id="rules-save-btn"><i class="icon fa-solid fa-floppy-disk"></i>Guardar reglas</button>
+    </div>
+
     <div class="lib-panel">
       <div class="lib-head">
         <div class="lib-title">Librería de ejercicios</div>
