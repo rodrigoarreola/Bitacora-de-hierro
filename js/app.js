@@ -142,6 +142,13 @@
   }
   function fmtShortDate(d){ return `${d.getDate()} ${MESES[d.getMonth()]}`; }
   function fmtLongDate(d){ return `${d.getDate()} ${MESES_LARGO[d.getMonth()].toLowerCase()} ${d.getFullYear()}`; }
+  // "Martes 13 de Marzo" — día de la semana + fecha completa, sin año
+  // (se usa para rangos de período en Hitos, donde el año ya es obvio
+  // por contexto o poco relevante frente al tramo de semanas en sí).
+  function fmtFullDate(d){
+    const key = WEEKDAY_TO_KEY[d.getDay()] || 'dom';
+    return `${DAY_NAMES[key]} ${String(d.getDate()).padStart(2,'0')} de ${MESES_LARGO[d.getMonth()]}`;
+  }
   function weekLabel(weekKey){
     const monday = fromISO(weekKey);
     const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
@@ -318,24 +325,31 @@
   const MILESTONE_WEAK_MAX = 1;   // días/semana para contar como "floja" semana
   const MILESTONE_MIN_RUN_WEEKS = 2; // no mostrar un tramo de una sola semana
 
-  function periodRangeLabel(startWk, endWk){
-    const start = fromISO(startWk);
-    const end = fromISO(endWk);
-    end.setDate(end.getDate() + 6); // domingo de la semana final
-    if(start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()){
-      return `${MESES_LARGO[start.getMonth()]} ${start.getFullYear()}`;
-    }
-    if(start.getFullYear() === end.getFullYear()){
-      return `${MESES_LARGO[start.getMonth()]}–${MESES_LARGO[end.getMonth()]} ${start.getFullYear()}`;
-    }
-    return `${MESES_LARGO[start.getMonth()]} ${start.getFullYear()} – ${MESES_LARGO[end.getMonth()]} ${end.getFullYear()}`;
+  // startDate/endDate son los días REALES de entrenamiento (primero y
+  // último) dentro del tramo, no el lunes/domingo calendario de la
+  // semana — ej. "Martes 13 de Marzo al Viernes 02 de Junio".
+  function periodRangeLabel(startDate, endDate){
+    return `${fmtFullDate(startDate)} al ${fmtFullDate(endDate)}`;
   }
 
-  function findRuns(weekStats, predicate){
+  function findRuns(weekStats, predicate, days){
     const runs = [];
     let cur = null;
     weekStats.forEach(w=>{
       if(predicate(w)){
+        // weekStats solo trae semanas que existen como fila en la BD —
+        // si falta una semana entera (nunca se creó, no que exista con 0
+        // ejercicios), queda ausente del array, no como un 0 de relleno.
+        // Sin este chequeo, dos semanas sueltas separadas por meses de
+        // huecos se verían como "N semanas seguidas" solo por quedar
+        // adyacentes en el array disperso.
+        let isAdjacent = false;
+        if(cur){
+          const expected = fromISO(cur.endWk);
+          expected.setDate(expected.getDate() + 7);
+          isAdjacent = toISO(expected) === w.wk;
+        }
+        if(cur && !isAdjacent){ runs.push(cur); cur = null; }
         if(!cur){ cur = { startWk: w.wk, endWk: w.wk, weeks: [w] }; }
         else { cur.endWk = w.wk; cur.weeks.push(w); }
       } else if(cur){ runs.push(cur); cur = null; }
@@ -344,6 +358,15 @@
     runs.forEach(r=>{
       r.totalDays = r.weeks.reduce((s,w)=> s + w.count, 0);
       r.avgPerWeek = r.totalDays / r.weeks.length;
+      // Rango real de entrenamiento dentro del tramo (no el lunes/domingo
+      // calendario) — si por algún motivo no hay ningún día cumplido en
+      // el rango (tramo "flojo" con puros ceros), cae de vuelta a los
+      // límites de semana como respaldo.
+      const rangeStart = fromISO(r.startWk);
+      const rangeEnd = fromISO(r.endWk); rangeEnd.setDate(rangeEnd.getDate() + 6);
+      const trainedInRange = days.filter(d => d.completed && d.date >= rangeStart && d.date <= rangeEnd);
+      r.startDate = trainedInRange.length ? trainedInRange[0].date : rangeStart;
+      r.endDate = trainedInRange.length ? trainedInRange[trainedInRange.length - 1].date : rangeEnd;
     });
     return runs;
   }
@@ -389,11 +412,11 @@
       .sort((a,b)=> a.localeCompare(b))
       .map(wk => ({ wk, count: byWeek.get(wk).filter(e=>e.completed).length }));
 
-    const topStrong = findRuns(weekStats, w => w.count >= MILESTONE_STRONG_MIN)
+    const topStrong = findRuns(weekStats, w => w.count >= MILESTONE_STRONG_MIN, days)
       .filter(r => r.weeks.length >= MILESTONE_MIN_RUN_WEEKS)
       .sort((a,b)=> b.weeks.length - a.weeks.length || b.avgPerWeek - a.avgPerWeek)
       .slice(0, 3);
-    const topWeak = findRuns(weekStats, w => w.count <= MILESTONE_WEAK_MAX)
+    const topWeak = findRuns(weekStats, w => w.count <= MILESTONE_WEAK_MAX, days)
       .filter(r => r.weeks.length >= MILESTONE_MIN_RUN_WEEKS)
       .sort((a,b)=> b.weeks.length - a.weeks.length)
       .slice(0, 3);
@@ -618,8 +641,8 @@
             <div class="pct">${done}/${total}</div>
           </div>
         </div>
-        ${migrateHtml}
         ${bodyHtml}
+        ${migrateHtml}
       </div>`;
   }
 
@@ -674,7 +697,7 @@
         <div class="milestone-row">
           <i class="icon milestone-ico ${rankColor} fa-solid ${rankIco}"></i>
           <div>
-            <div class="milestone-title">${i+1}. ${periodRangeLabel(r.startWk, r.endWk)}</div>
+            <div class="milestone-title">${i+1}. ${periodRangeLabel(r.startDate, r.endDate)}</div>
             <p class="milestone-desc">${r.weeks.length} semanas seguidas con ${r.avgPerWeek.toFixed(1)} días de entrenamiento en promedio.</p>
           </div>
         </div>`;
@@ -686,7 +709,7 @@
         <div class="milestone-row">
           <i class="icon milestone-ico danger fa-solid fa-triangle-exclamation"></i>
           <div>
-            <div class="milestone-title">${periodRangeLabel(r.startWk, r.endWk)}</div>
+            <div class="milestone-title">${periodRangeLabel(r.startDate, r.endDate)}</div>
             <p class="milestone-desc">${r.weeks.length} semanas con muy poca o nula actividad.</p>
           </div>
         </div>`).join('<div class="milestone-divider"></div>')
@@ -1051,6 +1074,12 @@
 
     titleEl.textContent = `${MESES_LARGO[calMonth.getMonth()]} ${calMonth.getFullYear()}`;
 
+    const todayBtn = document.getElementById('cal-today');
+    if(todayBtn){
+      const isCurrentMonth = calMonth.getFullYear() === today.getFullYear() && calMonth.getMonth() === today.getMonth();
+      todayBtn.disabled = isCurrentMonth;
+    }
+
     const firstOfMonth = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
     const cursor = mondayOfWeek(firstOfMonth);
 
@@ -1079,6 +1108,10 @@
     calMonth.setMonth(calMonth.getMonth() + 1);
     renderCalendar();
   });
+  document.getElementById('cal-today').addEventListener('click', ()=>{
+    calMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    renderCalendar();
+  });
 
   // Tocar un día del calendario navega a "Hoy" con esa semana/día
   // seleccionados, para verlo o editarlo — mismo patrón que Historial.
@@ -1094,6 +1127,24 @@
     migratePickerOpen = false;
     renderAll();
     switchToView('hoy');
+  });
+
+  // Swipe horizontal entre meses — mismo patrón que el swipe de días.
+  let calTouchStartX = null, calTouchStartY = null;
+  const calPanelEl = document.querySelector('.cal-panel');
+  calPanelEl.addEventListener('touchstart', (e)=>{
+    const t = e.touches[0];
+    calTouchStartX = t.clientX; calTouchStartY = t.clientY;
+  }, {passive:true});
+  calPanelEl.addEventListener('touchend', (e)=>{
+    if(calTouchStartX === null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - calTouchStartX;
+    const dy = t.clientY - calTouchStartY;
+    calTouchStartX = null;
+    if(Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    calMonth.setMonth(calMonth.getMonth() + (dx < 0 ? 1 : -1));
+    renderCalendar();
   });
 
   // ============================================================
@@ -1339,7 +1390,11 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bitacora-backup-${toISO(today)}.json`;
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    a.download = `bitacora-backup-${toISO(today)}-${hh}${mm}${ss}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

@@ -74,13 +74,15 @@
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   /* ---------- Day tabs (plate rack) ---------- */
-  /* 7 días, ancho fijo: los primeros 5 llenan el contenedor (520px máx,
-     14px de padding a cada lado) y sábado/domingo quedan revelados solo
-     al hacer scroll horizontal — mismo patrón que .week-rail. */
+  /* 7 días, ancho relativo al contenedor real (no un px fijo pensado para
+     el preview de escritorio de 520px) — calc() con el gap de 6px hace que
+     los primeros 5 siempre llenen el ancho disponible en cualquier celular,
+     y sábado/domingo queden revelados solo al hacer scroll horizontal —
+     mismo patrón que .week-rail. */
   .day-rack{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:16px; scrollbar-width:none; }
   .day-rack::-webkit-scrollbar{ display:none; }
   .day-tab{
-    flex:0 0 88px; background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    flex:0 0 calc((100% - 24px) / 5); background:var(--surface); border:1px solid var(--line); border-radius:12px;
     padding:9px 4px 8px; text-align:center; cursor:pointer; position:relative;
   }
   .day-tab .migrated-mark{
@@ -214,7 +216,7 @@
 
   .day-notes{ padding:12px 14px 16px; font-size:10.5px; color:var(--text-faint); line-height:1.7; border-top:1px solid var(--line); }
 
-  .migrate-row{ padding:10px 18px; border-bottom:1px solid var(--line); }
+  .migrate-row{ padding:10px 18px; border-top:1px solid var(--line); }
   .btn-migrate{
     display:inline-flex; align-items:center; gap:7px; background:none; border:1px solid var(--line);
     color:var(--text-dim); font-family:var(--font-body); font-size:11.5px; font-weight:600;
@@ -328,12 +330,12 @@
   .logout-btn{
     display:block; width:100%; background:var(--surface); border:1px solid var(--line); color:var(--text-dim);
     border-radius:12px; padding:11px; font-size:12px; font-weight:600; font-family:var(--font-body);
-    cursor:pointer; margin-bottom:14px;
+    cursor:pointer; margin-top:16px; margin-bottom:14px;
   }
   .logout-btn:hover{ color:var(--danger); }
 
   /* ---------- Perfil: datos ---------- */
-  .perfil-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px 18px; }
+  .perfil-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px 18px; margin-top:16px; }
   .perfil-panel .lib-sub{ margin-bottom:14px; }
   .perfil-btn{
     display:flex; align-items:center; gap:8px; width:100%; background:var(--surface-2); border:1px solid var(--line); color:var(--text);
@@ -389,7 +391,7 @@
 
   /* ---------- Calendario ---------- */
   .cal-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px; }
-  .cal-head{ display:flex; align-items:center; justify-content:space-between; padding:2px 4px 14px; }
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; padding:2px 4px 6px; }
   .cal-nav{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text-dim);
     width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;
@@ -397,6 +399,15 @@
   .cal-nav:hover{ color:var(--accent); }
   .cal-nav .icon{ font-size:12px; }
   .cal-title{ font-family:var(--font-display); font-size:16px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:var(--text); }
+  .cal-today-row{ display:flex; justify-content:center; padding-bottom:12px; }
+  .cal-today-btn{
+    display:inline-flex; align-items:center; gap:6px; background:none; border:1px solid var(--line);
+    color:var(--text-dim); font-family:var(--font-body); font-size:11px; font-weight:600;
+    border-radius:8px; padding:6px 11px; cursor:pointer;
+  }
+  .cal-today-btn .icon{ font-size:11px; }
+  .cal-today-btn:hover{ color:var(--accent); border-color:var(--accent); }
+  .cal-today-btn:disabled{ opacity:.4; cursor:default; pointer-events:none; }
   .cal-weekdays{
     display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:4px;
     font-size:9.5px; font-weight:700; color:var(--text-faint); text-transform:uppercase; text-align:center;
