@@ -39,6 +39,12 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.6.0', date: '2026-08-12', title: 'Reglas editables y heatmap anual', items: [
+      'Ajustes: sección "Reglas" — los mínimos de racha, día cumplido y Hitos ahora se editan desde la app y afectan el cálculo real al instante.',
+      'Calendario: card de heatmap anual (365 días, filtro por año) y botón "Volver a hoy" con swipe entre meses.',
+      'Hitos: los períodos muestran el rango real de entrenamiento ("Lunes 23 de Marzo al Viernes 05 de Junio") en vez de meses calendario.',
+      'Ajustes de espaciado, orden de "Migrar día" y el riel de días en móvil.',
+    ]},
     { version: '1.5.0', date: '2026-08-11', title: 'Hitos y constancia', items: [
       'Nueva sección en Perfil con tus períodos de mayor y menor constancia, y una lista de hitos: primera sesión, mejor racha, mejor mes, hueco más largo sin entrenar y año más productivo.',
     ]},
