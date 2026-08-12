@@ -65,11 +65,6 @@
 
     <div class="day-rack" id="day-rack"></div>
 
-    <div class="week-note-panel hidden" id="week-note-panel">
-      <label for="week-note-input" class="week-note-label">Nota de la semana</label>
-      <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
-    </div>
-
     <div class="summary-strip cols-4">
       <div class="sum-chip"><div class="k">Series hoy</div><div class="v accent" id="sum-series">0</div></div>
       <div class="sum-chip"><div class="k">Ejercicios</div><div class="v" id="sum-exercises">0/0</div></div>
@@ -79,11 +74,32 @@
 
     <div class="day-swipe-area" id="day-panel-host"></div>
 
+    <div class="week-note-panel hidden" id="week-note-panel">
+      <label for="week-note-input" class="week-note-label">Nota de la semana</label>
+      <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
+    </div>
+
+    <div class="converter-panel">
+      <div class="converter-label">Conversor kg / lbs</div>
+      <div class="converter-row">
+        <div class="converter-field">
+          <input type="text" id="conv-kg" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Kilogramos">
+          <span class="converter-unit">kg</span>
+        </div>
+        <i class="icon fa-solid fa-right-left converter-icon"></i>
+        <div class="converter-field">
+          <input type="text" id="conv-lbs" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Libras">
+          <span class="converter-unit">lbs</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ================= VIEW: HISTORIAL ================= -->
   <div class="view" id="view-historial">
     <div class="week-rail" id="hist-month-rail"></div>
+    <div class="hist-list" id="hist-list"></div>
     <div class="lib-panel balance-panel">
       <div class="lib-head">
         <div class="lib-title">Balance por grupo muscular</div>
@@ -91,7 +107,6 @@
       </div>
       <div class="balance-list" id="group-balance-host"></div>
     </div>
-    <div class="hist-list" id="hist-list"></div>
   </div>
 
   <!-- ================= VIEW: PROGRESO ================= -->
@@ -180,10 +195,6 @@
         <label class="rule-row">
           <span class="rule-label">Días/semana mínimos para contar como semana fuerte en Hitos</span>
           <input type="number" class="rule-input" id="rule-milestone_strong_min" min="1" max="6" step="1">
-        </label>
-        <label class="rule-row">
-          <span class="rule-label">Días/semana máximos para contar como semana floja en Hitos</span>
-          <input type="number" class="rule-input" id="rule-milestone_weak_max" min="0" max="6" step="1">
         </label>
         <label class="rule-row">
           <span class="rule-label">Semanas seguidas mínimas para mostrar un período en Hitos</span>

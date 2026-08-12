@@ -18,7 +18,6 @@ const RULES = [
     'min_done_per_day'       => ['default' => 3, 'min' => 1, 'max' => 15],
     'week_streak_min_days'   => ['default' => 5, 'min' => 1, 'max' => 6],
     'milestone_strong_min'   => ['default' => 3, 'min' => 1, 'max' => 6],
-    'milestone_weak_max'     => ['default' => 1, 'min' => 0, 'max' => 6],
     'milestone_min_run_weeks'=> ['default' => 2, 'min' => 1, 'max' => 10],
 ];
 

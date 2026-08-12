@@ -27,7 +27,6 @@
     min_done_per_day: 3,
     week_streak_min_days: 5,
     milestone_strong_min: 3,
-    milestone_weak_max: 1,
     milestone_min_run_weeks: 2,
   };
 
@@ -46,6 +45,23 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.18.0', date: '2026-08-12', title: 'Menor constancia por días reales', items: [
+      'Los períodos de "menor constancia" ahora se miden en días reales entre un entrenamiento y el siguiente, no en semanas — más precisos, sin fechas repetidas raras.',
+      '"Hueco más largo sin entrenar" ahora muestra el año.',
+      'Se quita la regla "Días/semana máximos para semana floja" de Ajustes — ya no se usa.',
+    ]},
+    { version: '1.17.0', date: '2026-08-12', title: 'Racha e Hitos: huecos reales', items: [
+      'Un mes entero sin ninguna semana creada ahora cuenta como "0 días cumplidos" en vez de quedar invisible — Hitos ya muestra los huecos reales de meses, no solo huecos chicos entre semanas que sí existían.',
+    ]},
+    { version: '1.16.0', date: '2026-08-12', title: 'Conversor kg / lbs', items: [
+      'Nuevo conversor en "Hoy", debajo de la nota de la semana — escribí en kg o en lbs y el otro campo se actualiza solo.',
+    ]},
+    { version: '1.15.0', date: '2026-08-12', title: 'Ajustes de UI y fix de Ajustes', items: [
+      'Heatmap anual de Calendario ahora es vertical (Lun–Dom en columnas, una fila por semana) y muestra todos los años con datos, no solo 2023–2026.',
+      'Hitos: el rango de fecha de cada período se separa en mes/año y día/fecha, en vez de una sola línea larga.',
+      'Nota de la semana pasa al final de "Hoy"; Balance por grupo muscular pasa al final de Historial.',
+      'Fix: el botón "Guardar reglas" en Ajustes ya no se salía del margen del panel.',
+    ]},
     { version: '1.14.0', date: '2026-08-12', title: 'Edición offline', items: [
       'Marcar/editar/borrar un ejercicio o la nota de una semana ya no se pierde si se corta la conexión — se guarda y sincroniza solo al reconectar.',
       'Alcance acotado: crear semana, agregar ejercicio, migrar día, copiar semana pasada, importar datos y la librería siguen necesitando conexión.',
@@ -230,6 +246,14 @@
     return d;
   }
   function fmtShortDate(d){ return `${d.getDate()} ${MESES[d.getMonth()]}`; }
+  // "4 ene – 24 sep 2024" — año una sola vez si ambas fechas caen en el
+  // mismo año; si el rango cruza un cambio de año, se muestra en las dos.
+  function fmtShortDateRange(startDate, endDate){
+    const startYear = startDate.getFullYear();
+    const endYear = endDate.getFullYear();
+    if(startYear === endYear) return `${fmtShortDate(startDate)} – ${fmtShortDate(endDate)} ${endYear}`;
+    return `${fmtShortDate(startDate)} ${startYear} – ${fmtShortDate(endDate)} ${endYear}`;
+  }
   function fmtLongDate(d){ return `${d.getDate()} ${MESES_LARGO[d.getMonth()].toLowerCase()} ${d.getFullYear()}`; }
   // "Martes 13 de Marzo" — día de la semana + fecha completa, sin año
   // (se usa para rangos de período en Hitos, donde el año ya es obvio
@@ -351,6 +375,30 @@
     return list;
   }
 
+  // Claves de semana (lunes ISO) desde la primera semana con datos hasta
+  // la semana actual, SIN SALTOS — una semana sin fila en la BD (mes
+  // entero sin ninguna semana creada, típico del histórico importado de
+  // Garmin) se recorre igual que una semana que sí existe pero con 0 días
+  // cumplidos, en vez de quedar ausente. Sin esto, computeStreakDetail()
+  // y computeMilestones() caminan solo las semanas que existen como fila
+  // y pueden "puentear" huecos de meses como si dos semanas activas
+  // separadas por ese hueco fueran consecutivas — un hueco real (nunca
+  // se creó la semana) tiene que cortar la racha y aparecer como período
+  // de menor constancia igual que lo muestra el heatmap anual, no quedar
+  // invisible.
+  function fullWeekRange(){
+    if(state.order.length === 0) return [];
+    const firstWk = [...state.order].sort((a,b)=> a.localeCompare(b))[0];
+    const lastWk = toISO(mondayOfWeek(today));
+    const keys = [];
+    const cursor = fromISO(firstWk);
+    while(toISO(cursor) <= lastWk){
+      keys.push(toISO(cursor));
+      cursor.setDate(cursor.getDate() + 7);
+    }
+    return keys;
+  }
+
   // La racha se cuenta en días (RULES.min_done_per_day+ ejercicios
   // marcados), pero el corte ya no es día por día — es semanal: una
   // semana (lun-sáb) necesita al menos RULES.week_streak_min_days días
@@ -374,11 +422,11 @@
       if(!byWeek.has(wk)) byWeek.set(wk, []);
       byWeek.get(wk).push(d);
     });
-    const weekKeys = [...byWeek.keys()].sort((a,b)=> a.localeCompare(b));
+    const weekKeys = fullWeekRange();
 
     let best = 0, run = 0, bestStart = null, bestEnd = null, runStart = null;
     weekKeys.forEach(wk=>{
-      const entries = byWeek.get(wk);
+      const entries = byWeek.get(wk) || [];
       const isCurrentWeek = wk === currentWeekKey;
       const qualifies = isCurrentWeek || entries.filter(e=>e.completed).length >= RULES.week_streak_min_days;
       if(qualifies){
@@ -414,9 +462,29 @@
 
   // startDate/endDate son los días REALES de entrenamiento (primero y
   // último) dentro del tramo, no el lunes/domingo calendario de la
-  // semana — ej. "Martes 13 de Marzo al Viernes 02 de Junio".
-  function periodRangeLabel(startDate, endDate){
-    return `${fmtFullDate(startDate)} al ${fmtFullDate(endDate)}`;
+  // semana. Partido en dos líneas para Hitos: mes(es)+año arriba
+  // ("Marzo a Junio 2026") y día+fecha abajo ("Lunes 23 al Viernes 05")
+  // — si el tramo cruza un cambio de año, se muestra el año en ambos
+  // extremos para no dejarlo ambiguo.
+  function periodMonthYearLabel(startDate, endDate){
+    const startMonth = MESES_LARGO[startDate.getMonth()];
+    const endMonth = MESES_LARGO[endDate.getMonth()];
+    const startYear = startDate.getFullYear();
+    const endYear = endDate.getFullYear();
+    if(startYear !== endYear) return `${startMonth} ${startYear} a ${endMonth} ${endYear}`;
+    if(startMonth === endMonth) return `${startMonth} ${startYear}`;
+    return `${startMonth} a ${endMonth} ${startYear}`;
+  }
+
+  // "Lunes 23, Mar al Viernes 05 Jun" — abreviatura de mes de 3 caracteres
+  // con mayúscula inicial (MESES_LARGO ya viene capitalizado, alcanza con
+  // recortar a 3 letras). Coma solo después de la primera fecha.
+  function periodDayLabel(startDate, endDate){
+    const startKey = WEEKDAY_TO_KEY[startDate.getDay()] || 'dom';
+    const endKey = WEEKDAY_TO_KEY[endDate.getDay()] || 'dom';
+    const startMon = MESES_LARGO[startDate.getMonth()].slice(0, 3);
+    const endMon = MESES_LARGO[endDate.getMonth()].slice(0, 3);
+    return `${DAY_NAMES[startKey]} ${String(startDate.getDate()).padStart(2,'0')} ${startMon} al ${DAY_NAMES[endKey]} ${String(endDate.getDate()).padStart(2,'0')} ${endMon}`;
   }
 
   function findRuns(weekStats, predicate, days){
@@ -486,7 +554,12 @@
     }
 
     // Constancia semanal: días cumplidos por semana (lun-sáb), excluyendo
-    // la semana en curso (todavía incompleta, no sirve para detectar tramos).
+    // la semana en curso (todavía incompleta, no sirve para detectar
+    // tramos). fullWeekRange() recorre TODAS las semanas calendario desde
+    // la primera con datos hasta hoy, sin saltos — una semana sin fila en
+    // la BD entra con count:0 en vez de quedar ausente, para que un hueco
+    // de meses (nunca se creó esa semana) se detecte como período de
+    // menor constancia igual que se ve en el heatmap anual.
     const byWeek = new Map();
     days.forEach(d=>{
       const wk = toISO(mondayOfWeek(d.date));
@@ -494,19 +567,32 @@
       byWeek.get(wk).push(d);
     });
     const currentWeekKey = toISO(mondayOfWeek(today));
-    const weekStats = [...byWeek.keys()]
+    const weekStats = fullWeekRange()
       .filter(wk => wk !== currentWeekKey)
-      .sort((a,b)=> a.localeCompare(b))
-      .map(wk => ({ wk, count: byWeek.get(wk).filter(e=>e.completed).length }));
+      .map(wk => ({ wk, count: (byWeek.get(wk) || []).filter(e=>e.completed).length }));
 
     const topStrong = findRuns(weekStats, w => w.count >= RULES.milestone_strong_min, days)
       .filter(r => r.weeks.length >= RULES.milestone_min_run_weeks)
       .sort((a,b)=> b.weeks.length - a.weeks.length || b.avgPerWeek - a.avgPerWeek)
       .slice(0, 3);
-    const topWeak = findRuns(weekStats, w => w.count <= RULES.milestone_weak_max, days)
-      .filter(r => r.weeks.length >= RULES.milestone_min_run_weeks)
-      .sort((a,b)=> b.weeks.length - a.weeks.length)
-      .slice(0, 3);
+
+    // Menor constancia: a diferencia de mayor constancia (que sí tiene
+    // sentido medir en semanas — semanas buenas seguidas), un hueco es más
+    // preciso medido en días reales entre un entrenamiento y el siguiente,
+    // sin pasar por la aproximación semanal — mismo cálculo que "hueco más
+    // largo sin entrenar" (maxGapDays de arriba), pero quedándose con los
+    // 3 huecos más grandes en vez de uno solo. Umbral mínimo reutiliza
+    // milestone_min_run_weeks en días (×7) para no listar huecos triviales
+    // de un par de días como si fueran un hito.
+    const minGapDays = RULES.milestone_min_run_weeks * 7;
+    const gaps = [];
+    for(let i = 1; i < trained.length; i++){
+      const gapDays = Math.round((trained[i].date - trained[i-1].date) / 86400000);
+      if(gapDays >= minGapDays){
+        gaps.push({ startDate: trained[i-1].date, endDate: trained[i].date, gapDays });
+      }
+    }
+    const topWeak = gaps.sort((a,b)=> b.gapDays - a.gapDays).slice(0, 3);
 
     return { firstDate, bestStreak, bestStart, bestEnd, bestMonthKey, bestMonthCount, bestYear, bestYearCount, maxGapDays, maxGapStart, maxGapEnd, topStrong, topWeak };
   }
@@ -813,7 +899,10 @@
         <div class="milestone-row">
           <i class="icon milestone-ico ${rankColor} fa-solid ${rankIco}"></i>
           <div>
-            <div class="milestone-title">${i+1}. ${periodRangeLabel(r.startDate, r.endDate)}</div>
+            <div class="milestone-title">
+              <div class="milestone-period">${i+1}. ${periodMonthYearLabel(r.startDate, r.endDate)}</div>
+              <div class="milestone-daterange">${periodDayLabel(r.startDate, r.endDate)}</div>
+            </div>
             <p class="milestone-desc">${r.weeks.length} semanas seguidas con ${r.avgPerWeek.toFixed(1)} días de entrenamiento en promedio.</p>
           </div>
         </div>`;
@@ -821,28 +910,31 @@
       : `<p class="milestone-empty">Todavía no se distingue un tramo sólido de varias semanas seguidas — sigue registrando para verlo aquí.</p>`;
 
     const weakHtml = m.topWeak.length
-      ? m.topWeak.map(r => `
+      ? m.topWeak.map(g => `
         <div class="milestone-row">
           <i class="icon milestone-ico danger fa-solid fa-triangle-exclamation"></i>
           <div>
-            <div class="milestone-title">${periodRangeLabel(r.startDate, r.endDate)}</div>
-            <p class="milestone-desc">${r.weeks.length} semanas con muy poca o nula actividad.</p>
+            <div class="milestone-title">
+              <div class="milestone-period">${periodMonthYearLabel(g.startDate, g.endDate)}</div>
+              <div class="milestone-daterange">${periodDayLabel(g.startDate, g.endDate)}</div>
+            </div>
+            <p class="milestone-desc">${g.gapDays} días sin entrenar.</p>
           </div>
         </div>`).join('<div class="milestone-divider"></div>')
-      : `<p class="milestone-empty">Sin tramos flojos de varias semanas todavía — bien ahí.</p>`;
+      : `<p class="milestone-empty">Sin huecos largos sin entrenar todavía — bien ahí.</p>`;
 
     const items = [
       `Primer entrenamiento registrado: <strong>${fmtLongDate(m.firstDate)}</strong>`,
     ];
     if(m.bestStreak > 0){
-      items.push(`Mejor racha: <strong>${diasLabel(m.bestStreak)} seguidos</strong> (${fmtShortDate(m.bestStart)} – ${fmtShortDate(m.bestEnd)})`);
+      items.push(`Mejor racha: <strong>${diasLabel(m.bestStreak)} seguidos</strong> (${fmtShortDateRange(m.bestStart, m.bestEnd)})`);
     }
     if(m.bestMonthKey){
       const [y, mo] = m.bestMonthKey.split('-');
       items.push(`Mes con más entrenamientos: <strong>${MESES_LARGO[parseInt(mo,10)-1]} ${y}</strong> (${m.bestMonthCount})`);
     }
     if(m.maxGapDays > 0){
-      items.push(`Hueco más largo sin entrenar: <strong>${m.maxGapDays} días</strong> (${fmtShortDate(m.maxGapStart)} – ${fmtShortDate(m.maxGapEnd)})`);
+      items.push(`Hueco más largo sin entrenar: <strong>${m.maxGapDays} días</strong> (${fmtShortDateRange(m.maxGapStart, m.maxGapEnd)})`);
     }
     if(m.bestYear){
       items.push(`Año más productivo: <strong>${m.bestYear}</strong> (${m.bestYearCount} días entrenados)`);
@@ -1147,6 +1239,26 @@
   });
 
   // ============================================================
+  // Conversor kg / lbs: dos inputs enlazados, sin persistir en ningún
+  // lado (es una calculadora suelta, no un dato de la app). Escribir en
+  // uno recalcula el otro; setear .value por JS no dispara 'input', así
+  // que no hay riesgo de loop entre los dos listeners.
+  // ============================================================
+  const KG_TO_LBS = 2.20462;
+  const round2 = n => Math.round(n * 100) / 100;
+  const convKgInput = document.getElementById('conv-kg');
+  const convLbsInput = document.getElementById('conv-lbs');
+
+  convKgInput.addEventListener('input', ()=>{
+    const kg = parseFloat(convKgInput.value);
+    convLbsInput.value = isNaN(kg) ? '' : round2(kg * KG_TO_LBS);
+  });
+  convLbsInput.addEventListener('input', ()=>{
+    const lbs = parseFloat(convLbsInput.value);
+    convKgInput.value = isNaN(lbs) ? '' : round2(lbs / KG_TO_LBS);
+  });
+
+  // ============================================================
   // Navegación: tabs inferiores
   // ============================================================
   function switchToView(name){
@@ -1323,7 +1435,17 @@
   // cumplidos (mismo criterio que la racha, vía buildChronoDays()) —
   // sin niveles rojo/amarillo, es una primera versión.
   // ============================================================
-  const HEATMAP_YEARS = [2026, 2025, 2024, 2023];
+  // Años disponibles: derivados de las semanas ya cargadas (state.order,
+  // que trae el historial completo desde el arranque) en vez de una lista
+  // fija — mismo criterio que ya usa Historial para su riel de meses. El
+  // año en curso siempre se agrega aunque todavía no tenga semanas, para
+  // que una cuenta nueva pueda ver su heatmap vacío del año actual.
+  function availableHeatmapYears(){
+    const years = new Set(state.order.map(k => parseInt(k.slice(0, 4), 10)));
+    years.add(today.getFullYear());
+    return [...years].sort((a, b) => b - a);
+  }
+
   let heatmapYear = today.getFullYear();
 
   function renderHeatmap(){
@@ -1331,8 +1453,9 @@
     const gridEl = document.getElementById('heatmap-grid');
     if(!railEl || !gridEl) return;
 
-    if(!HEATMAP_YEARS.includes(heatmapYear)) heatmapYear = HEATMAP_YEARS[0];
-    railEl.innerHTML = HEATMAP_YEARS.map(y => `
+    const years = availableHeatmapYears();
+    if(!years.includes(heatmapYear)) heatmapYear = years[0];
+    railEl.innerHTML = years.map(y => `
       <div class="week-pill${y === heatmapYear ? ' active' : ''}" data-year="${y}">${y}</div>
     `).join('');
 
