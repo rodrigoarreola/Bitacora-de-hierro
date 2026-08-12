@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.29.0] - 2026-08-12 — Más espacio entre "Ver progreso" y "Semana pasada"
+
+### Changed
+
+- `.ex-detail-head-left` pasa de `gap:10px` a `justify-content:space-between` — el botón "Ver progreso" y el label "Semana pasada:" quedaban muy pegados entre sí (a pedido del usuario viendo una captura); ahora se reparten el ancho disponible de las columnas 1-2 del grid en vez de agruparse al principio.
+
 ## [1.28.0] - 2026-08-12 — Label "Semana pasada" en dos líneas
 
 ### Changed

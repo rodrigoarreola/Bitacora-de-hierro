@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.29.0', date: '2026-08-12', title: 'Más espacio entre "Ver progreso" y "Semana pasada"', items: [
+      'El label "Semana pasada:" del detalle expandido deja de quedar pegado al botón "Ver progreso" — ahora se reparte el espacio disponible entre los dos.',
+    ]},
     { version: '1.28.0', date: '2026-08-12', title: 'Label "Semana pasada" en dos líneas', items: [
       'El label "Semana pasada:" del detalle expandido pasa a "Semana / pasada:" en dos líneas, para ocupar menos ancho junto al botón "Ver progreso".',
     ]},
