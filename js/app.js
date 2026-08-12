@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.26.0', date: '2026-08-12', title: 'Heatmap anual sin rojo', items: [
+      'El heatmap anual deja de pintar rojo — un día sin pintar ya se lee como "no cumplido", sin necesitar un color de más entre 365 celdas.',
+    ]},
     { version: '1.25.0', date: '2026-08-12', title: 'Detalle de un ejercicio: todo en una fila', items: [
       '"Ver progreso", "Semana pasada:" y los valores Kg/Rep/Ser vuelven a quedar en una sola fila (como pidió el usuario viendo una captura) en vez de apilados verticalmente.',
     ]},
@@ -1399,19 +1402,6 @@
     return 'tier-green';
   }
 
-  // Distinto de "tier === null": un día puede tener tier-red porque no se
-  // marcó nada (0 ejercicios *registrados*) o porque se registraron
-  // ejercicios y ninguno se marcó — computeDayTier() no distingue los dos
-  // casos porque en Calendario da igual (día obligatorio vacío = rojo
-  // también). El heatmap sí necesita distinguirlos (ver renderHeatmap()).
-  function dayHasExercises(date){
-    const dayKey = WEEKDAY_TO_KEY[date.getDay()];
-    if(!dayKey) return false;
-    const week = state.weeks[toISO(mondayOfWeek(date))];
-    if(!week) return false;
-    return week.days[dayKey].exercises.length > 0;
-  }
-
   function renderCalendar(){
     const titleEl = document.getElementById('cal-title');
     const gridEl = document.getElementById('cal-grid');
@@ -1534,10 +1524,11 @@
     while(cursor <= gridEnd){
       const inYear = cursor.getFullYear() === heatmapYear;
       let tier = inYear ? computeDayTier(cursor) : null;
-      // A diferencia de Calendario, el heatmap no pinta rojo un día sin
-      // ningún ejercicio registrado — "sin datos" y "sin cumplir" no son
-      // lo mismo acá, aunque computeDayTier() los junte en tier-red.
-      if(tier === 'tier-red' && !dayHasExercises(cursor)) tier = null;
+      // A diferencia de Calendario, el heatmap no pinta rojo — se reserva
+      // el color para los días cumplidos (verde/amarillo), un día sin
+      // pintar ya se lee como "no cumplido", sin necesidad de un rojo
+      // que en 365 celdas termina siendo más ruido que señal.
+      if(tier === 'tier-red') tier = null;
       html += `<div class="heat-cell${inYear ? '' : ' out'}${tier ? ' ' + tier : ''}" title="${inYear ? fmtFullDate(cursor) : ''}"></div>`;
       cursor.setDate(cursor.getDate() + 1);
     }

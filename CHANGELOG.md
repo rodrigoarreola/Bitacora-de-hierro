@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.26.0] - 2026-08-12 — Heatmap anual sin rojo
+
+### Changed
+
+- El heatmap anual deja de pintar `tier-red` — se saca el downgrade condicional de 1.24.0 (que solo lo sacaba para días sin datos) y pasa a ser incondicional: ningún día se pinta rojo ahí, a pedido explícito del usuario viendo una captura del heatmap real. `dayHasExercises()` (usada solo para ese downgrade condicional) queda sin uso y se elimina junto con `.heat-cell.tier-red` en CSS. Calendario (vista de mes) no se toca — sigue mostrando "Sin actividad" en rojo, que es donde ese estado sí se pidió mantener.
+
 ## [1.25.0] - 2026-08-12 — Detalle de un ejercicio: todo en una fila
 
 ### Changed
