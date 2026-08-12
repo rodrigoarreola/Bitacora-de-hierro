@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.20.0] - 2026-08-12 — Heatmap anual con niveles rojo/amarillo/verde
+
+### Changed
+
+- **Heatmap anual** (Calendario): pasa de pintar un único tono (verde en los días cumplidos, gris/transparente en el resto) a usar `computeDayTier()` — la misma función que ya pinta rojo/amarillo/verde en la vista de mes (0 ejercicios marcados / 1–5 / 6+) — en vez de derivar un booleano "completado" desde `buildChronoDays()`. Antes un día fallado y un día sin semana creada se veían exactamente igual (ambos sin pintar); ahora se distinguen: rojo si hubo semana pero 0 ejercicios marcados, sin pintar si directamente no había semana esa fecha. Mismos 3 tokens de color que ya usaba Calendario (`--danger`/`--pending`/`--ok`), sin agregar ninguno nuevo. Verificado que los colores del heatmap coinciden pixel a pixel con los de la vista de mes para el mismo criterio.
+
 ## [1.19.0] - 2026-08-12 — Auto-bump de caché del service worker
 
 ### Added

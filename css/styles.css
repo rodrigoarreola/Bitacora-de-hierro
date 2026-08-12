@@ -511,7 +511,9 @@
   }
   .heat-cell{ width:100%; aspect-ratio:1; border-radius:2px; background:var(--surface-2); }
   .heat-cell.out{ background:transparent; }
-  .heat-cell.done{ background:var(--ok); }
+  .heat-cell.tier-red{ background:var(--danger); }
+  .heat-cell.tier-yellow{ background:var(--pending); }
+  .heat-cell.tier-green{ background:var(--ok); }
   .cal-dot.tier-red{ background:var(--danger); }
   .cal-dot.tier-yellow{ background:var(--pending); }
   .cal-dot.tier-green{ background:var(--ok); }

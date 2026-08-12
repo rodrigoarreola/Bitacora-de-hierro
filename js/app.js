@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.20.0', date: '2026-08-12', title: 'Heatmap anual con niveles rojo/amarillo/verde', items: [
+      'El heatmap anual de Calendario ya no solo pinta verde: ahora usa el mismo criterio rojo/amarillo/verde que la vista de mes, así que se ven también los días fallados y los flojos, no solo los cumplidos.',
+    ]},
     { version: '1.19.0', date: '2026-08-12', title: 'Auto-bump de caché del service worker', items: [
       'Ya no hace falta acordarse de subir el número de caché de la PWA a mano en cada cambio — se recalcula solo a partir del contenido, así que un navegador con la app instalada siempre agarra la versión nueva.',
     ]},
@@ -1434,9 +1437,8 @@
   // ============================================================
   // Heatmap anual (Calendario): grid estilo GitHub de 365 días del
   // año elegido, filtrado con un riel de años (mismo patrón que
-  // .week-rail/.week-pill). De momento solo pinta verde los días
-  // cumplidos (mismo criterio que la racha, vía buildChronoDays()) —
-  // sin niveles rojo/amarillo, es una primera versión.
+  // .week-rail/.week-pill). Usa computeDayTier() por día, el mismo
+  // cálculo rojo/amarillo/verde que ya pinta la vista de mes.
   // ============================================================
   // Años disponibles: derivados de las semanas ya cargadas (state.order,
   // que trae el historial completo desde el arranque) en vez de una lista
@@ -1462,12 +1464,6 @@
       <div class="week-pill${y === heatmapYear ? ' active' : ''}" data-year="${y}">${y}</div>
     `).join('');
 
-    const completedDates = new Set(
-      buildChronoDays()
-        .filter(d => d.completed && d.date.getFullYear() === heatmapYear)
-        .map(d => toISO(d.date))
-    );
-
     const jan1 = new Date(heatmapYear, 0, 1);
     const dec31 = new Date(heatmapYear, 11, 31);
     const gridStart = mondayOfWeek(jan1);
@@ -1479,9 +1475,8 @@
     const cursor = new Date(gridStart);
     while(cursor <= gridEnd){
       const inYear = cursor.getFullYear() === heatmapYear;
-      const iso = toISO(cursor);
-      const done = inYear && completedDates.has(iso);
-      html += `<div class="heat-cell${inYear ? '' : ' out'}${done ? ' done' : ''}" title="${inYear ? fmtFullDate(cursor) : ''}"></div>`;
+      const tier = inYear ? computeDayTier(cursor) : null;
+      html += `<div class="heat-cell${inYear ? '' : ' out'}${tier ? ' ' + tier : ''}" title="${inYear ? fmtFullDate(cursor) : ''}"></div>`;
       cursor.setDate(cursor.getDate() + 1);
     }
     gridEl.innerHTML = html;
