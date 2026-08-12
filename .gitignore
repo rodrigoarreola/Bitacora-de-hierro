@@ -11,3 +11,7 @@ api/config.local.php
 
 # Respaldos exportados desde Perfil (contienen datos reales, no van al repo)
 bitacora-backup-*.json
+
+# Backups automáticos (api/db/backup_export.php) — datos reales, protegidos
+# también por api/db/backups/.htaccess, pero por las dudas no van al repo
+api/db/backups/*.json

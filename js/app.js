@@ -46,6 +46,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.13.0', date: '2026-08-12', title: 'Backup automático', items: [
+      'Script para respaldar todas tus semanas automáticamente por cron — configuración en el README, sección "Backup automático (cron)".',
+    ]},
     { version: '1.12.0', date: '2026-08-12', title: 'Progresión sugerida', items: [
       'Al expandir un ejercicio que la semana pasada se marcó como hecho, aparece un peso sugerido para esta semana.',
     ]},

@@ -49,7 +49,9 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 │   ├── settings.php               GET/PUT reglas editables (Ajustes) — mínimos de racha/Hitos
 │   └── db/
 │       ├── schema.sql             DDL completo + seed de day_templates
-│       └── create_user.php        Script CLI para crear el usuario único (nunca vía HTTP)
+│       ├── create_user.php        Script CLI para crear el usuario único (nunca vía HTTP)
+│       ├── backup_export.php      Script CLI: backup semanal a JSON (ver "Backup automático (cron)" en Despliegue)
+│       └── backups/               Backups generados por backup_export.php — .htaccess propio, gitignored
 ```
 
 ### Esquema de base de datos
@@ -125,6 +127,17 @@ Destino: `tu-dominio.com/bitacora`, vía FTP/SFTP. Como todas las rutas del proy
 6. **Verificar**: entrar a `https://tu-dominio.com/bitacora/`, confirmar que carga por HTTPS, que el login funciona, y que el manifest/service worker se registran (DevTools → Application → Manifest / Service Workers, o una auditoría Lighthouse → PWA).
 
 `.htaccess` no necesita ajustes para la subcarpeta: la regla de HTTPS usa `%{HTTP_HOST}%{REQUEST_URI}` (no una ruta fija) y el bloqueo de `config.local.php`/`*.sql` es por nombre de archivo.
+
+### Backup automático (cron)
+
+`api/db/backup_export.php` vuelca todas las semanas a un JSON (mismo formato que exportar desde Perfil) en `api/db/backups/`, protegida por su propio `.htaccess` (`Require all denied` — no es accesible por navegador; el script además se niega a correr fuera de CLI). Guarda solo los últimos 14 backups, borra el resto solo.
+
+No requiere acceso SSH — cPanel → **Cron Jobs** funciona por sí solo (es un panel distinto a Terminal/SSH, disponible en la mayoría de los planes de Hostgator):
+
+1. cPanel → Cron Jobs → Add New Cron Job.
+2. Frecuencia sugerida: semanal (ej. "Once Per Week" — domingos 3:00 AM).
+3. Comando: `php /home/<usuario_cpanel>/<ruta_a_bitacora>/api/db/backup_export.php` (ajustar la ruta real del hosting; se puede confirmar con `pwd` en Terminal si hay acceso, o preguntándole a soporte de Hostgator la ruta absoluta de la cuenta).
+4. Los backups quedan en el servidor — bajarlos requiere FTP, no hay una pantalla en la app para eso todavía.
 
 ### Pendiente de correr en producción
 
