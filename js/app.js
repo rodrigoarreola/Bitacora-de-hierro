@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.23.0', date: '2026-08-12', title: 'Protección contra fuerza bruta en login', items: [
+      '5 intentos fallidos seguidos bloquean el login 15 minutos — antes no había ningún límite.',
+    ]},
     { version: '1.22.0', date: '2026-08-12', title: 'Backups descargables desde Perfil', items: [
       'Nuevo panel en Perfil que lista los backups automáticos del servidor con fecha y tamaño, cada uno descargable con un click — antes había que bajarlos por FTP.',
     ]},

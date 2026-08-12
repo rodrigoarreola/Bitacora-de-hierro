@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.23.0] - 2026-08-12 — Protección contra fuerza bruta en login
+
+### Added
+
+- **Bloqueo tras intentos fallidos** en `api/login.php`: 5 intentos con contraseña incorrecta bloquean la cuenta 15 minutos (`LOGIN_MAX_ATTEMPTS`/`LOGIN_LOCKOUT_MINUTES`, constantes en el propio archivo). Nuevas columnas `users.failed_attempts`/`users.locked_until` (`ALTER TABLE`, ver README → "Pendiente de correr en producción"). Sin tracking de IP a propósito — hay una sola cuenta posible de todos modos (`api/config.php` ya documenta que la app prioriza simplicidad por ser de un solo usuario), así que un contador por cuenta cubre el riesgo real de la app estando expuesta públicamente. `is_locked` se calcula en la misma consulta con el `NOW()` de MySQL (`locked_until IS NOT NULL AND locked_until > NOW()`) en vez de comparar después contra un timestamp re-parseado por PHP — el mismo desfase de zona horaria PHP-vs-MySQL que ya causó un bug real en el last-write-wins de la edición offline (1.14.0) aplicaría igual acá si se comparara del lado de PHP. Login con usuario inexistente sigue respondiendo el mismo mensaje/status que contraseña incorrecta, sin tocar la base (no hay fila que actualizar), para no revelar si la cuenta existe. Usa status `429` en vez de `401` a propósito, para no disparar el flujo de "sesión expirada" que `js/api.js` ya engancha específicamente a 401.
+
+  **Bug real encontrado y corregido durante la verificación**: la condición del `UPDATE` comparaba `failed_attempts + 1 >= :max` dentro del mismo `CASE` que ya reasigna `failed_attempts = failed_attempts + 1` — pero MySQL evalúa las asignaciones de un `SET` de izquierda a derecha, así que para cuando el `CASE` lee `failed_attempts` ya ve el valor **nuevo** (post-incremento), no el viejo. Sumarle 1 de nuevo disparaba el bloqueo un intento antes de lo esperado (al 4to intento en vez del 5to) — encontrado corriendo el flujo real de 5 intentos fallidos seguidos contra la BD local y viendo que el bloqueo llegaba antes de tiempo. Corregido comparando `failed_attempts >= :max` directo, ya que esa referencia dentro del `CASE` ya es el valor post-incremento. Verificado de nuevo con el flujo completo (intentos 1-5 en 401, 6to en 429) y confirmado que un reset manual de `failed_attempts`/`locked_until` (mismo `UPDATE` que corre login.php en el branch de éxito) desbloquea la cuenta de inmediato. Estado de la cuenta real revertido a `failed_attempts=0, locked_until=NULL` al terminar.
+
 ## [1.22.0] - 2026-08-12 — Backups descargables desde Perfil
 
 ### Added

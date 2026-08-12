@@ -130,3 +130,12 @@ ALTER TABLE weeks ADD COLUMN note TEXT NULL AFTER monday_date;
 -- ============================================================
 ALTER TABLE exercises ADD COLUMN updated_at DATETIME NOT NULL
   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
+
+-- ============================================================
+-- users.failed_attempts / locked_until: protección contra fuerza bruta
+-- en login.php. Sin tracking de IP a propósito — hay una sola cuenta
+-- posible de todos modos, un contador por cuenta ya cubre el riesgo real.
+-- ============================================================
+ALTER TABLE users
+  ADD COLUMN failed_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  ADD COLUMN locked_until DATETIME NULL;
