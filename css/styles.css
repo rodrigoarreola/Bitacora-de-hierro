@@ -241,6 +241,7 @@
 
   /* ---------- Summary strip ---------- */
   .summary-strip{ display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:16px; }
+  .summary-strip.cols-4{ grid-template-columns:repeat(4, 1fr); }
   .sum-chip{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:11px 9px; }
   .sum-chip .k{ font-size:8.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; font-weight:600; }
   .sum-chip .v{ font-family:var(--font-mono); font-size:14.5px; font-weight:600; color:var(--text); margin-top:3px; }

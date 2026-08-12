@@ -39,6 +39,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.7.0', date: '2026-08-12', title: 'Volumen del día', items: [
+      'Nuevo chip "Volumen" en la tira de resumen de Hoy — kg x reps x series sumado de los ejercicios marcados como hechos.',
+    ]},
     { version: '1.6.0', date: '2026-08-12', title: 'Reglas editables y heatmap anual', items: [
       'Ajustes: sección "Reglas" — los mínimos de racha, día cumplido y Hitos ahora se editan desde la app y afectan el cálculo real al instante.',
       'Calendario: card de heatmap anual (365 días, filtro por año) y botón "Volver a hoy" con swipe entre meses.',
@@ -833,6 +836,7 @@
     if(!day){
       document.getElementById('sum-series').textContent = '0';
       document.getElementById('sum-exercises').textContent = '0/0';
+      document.getElementById('sum-volume').textContent = '0 kg';
       return;
     }
     const doneRows = day.exercises.filter(e=>e.done);
@@ -840,6 +844,22 @@
     doneRows.forEach(e=>{ const n = parseInt(e.series, 10); if(!isNaN(n)) seriesSum += n; });
     document.getElementById('sum-series').textContent = seriesSum;
     document.getElementById('sum-exercises').textContent = `${doneRows.length}/${day.exercises.length}`;
+    document.getElementById('sum-volume').textContent = `${Math.round(computeDayVolume(day)).toLocaleString('es-MX')} kg`;
+  }
+
+  // Volumen del día: kg x reps x series sumado de los ejercicios marcados
+  // como hechos. Descarta silenciosamente cualquier valor no numérico
+  // (mismo criterio que el resto de la app: "40(8)" o vacío no cuentan
+  // como cero, se ignoran).
+  function computeDayVolume(day){
+    let vol = 0;
+    day.exercises.forEach(e=>{
+      if(!e.done) return;
+      const kg = parseFloat(e.kg), reps = parseInt(e.reps, 10), series = parseInt(e.series, 10);
+      if(isNaN(kg) || isNaN(reps) || isNaN(series)) return;
+      vol += kg * reps * series;
+    });
+    return vol;
   }
 
   // ============================================================
