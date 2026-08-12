@@ -39,6 +39,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.8.0', date: '2026-08-12', title: 'Compartir como imagen', items: [
+      'Nuevo botón para compartir el día activo o una semana de Historial como imagen (PNG) — comparte directo desde el celular o la descarga.',
+    ]},
     { version: '1.7.0', date: '2026-08-12', title: 'Volumen del día', items: [
       'Nuevo chip "Volumen" en la tira de resumen de Hoy — kg x reps x series sumado de los ejercicios marcados como hechos.',
     ]},
@@ -691,12 +694,15 @@
             <div class="grp">${day.group}</div>
             <div class="day-of">${DAY_NAMES[state.activeDay]} · ${fmtShortDate(d)}</div>
           </div>
-          <div class="progress-ring ${ringTier}">
-            <svg width="40" height="40" viewBox="0 0 40 40">
-              <circle class="bgc" cx="20" cy="20" r="16"></circle>
-              <circle class="fgc" cx="20" cy="20" r="16" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"></circle>
-            </svg>
-            <div class="pct">${done}/${total}</div>
+          <div class="day-panel-head-actions">
+            <button class="share-btn" type="button" data-action="share-day" aria-label="Compartir día"><i class="icon fa-solid fa-share-nodes"></i></button>
+            <div class="progress-ring ${ringTier}">
+              <svg width="40" height="40" viewBox="0 0 40 40">
+                <circle class="bgc" cx="20" cy="20" r="16"></circle>
+                <circle class="fgc" cx="20" cy="20" r="16" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"></circle>
+              </svg>
+              <div class="pct">${done}/${total}</div>
+            </div>
           </div>
         </div>
         ${bodyHtml}
@@ -961,6 +967,10 @@
     }
     if(e.target.closest('[data-action="add-ex"]')){ addExercise(); return; }
     if(e.target.closest('[data-action="copy-week"]')){ copyPreviousWeek(); return; }
+    if(e.target.closest('[data-action="share-day"]')){
+      shareElementAsImage(document.querySelector('.day-panel'), `bitacora-${state.activeWeek}-${state.activeDay}.png`);
+      return;
+    }
     if(e.target.closest('[data-action="first-week"]')){ addWeekBtn.click(); return; }
     if(e.target.closest('[data-action="migrate-open"]')){ migratePickerOpen = true; renderDayPanel(); return; }
     if(e.target.closest('[data-action="migrate-cancel"]')){ migratePickerOpen = false; renderDayPanel(); return; }
@@ -1349,7 +1359,10 @@
         <div class="hist-card" data-week="${key}">
           <div class="hist-card-head">
             <span class="hist-card-label">${weekLabel(key)}</span>
-            <span class="hist-card-total">${totalDone}/${totalEx}</span>
+            <div class="hist-card-head-right">
+              <span class="hist-card-total">${totalDone}/${totalEx}</span>
+              <button class="share-btn" type="button" data-action="share-week" aria-label="Compartir semana"><i class="icon fa-solid fa-share-nodes"></i></button>
+            </div>
           </div>
           <div class="hist-card-days">${dayDots}</div>
         </div>`;
@@ -1357,6 +1370,12 @@
 
     listEl.querySelectorAll('.hist-card').forEach(card=>{
       card.addEventListener('click', (e)=>{
+        // El botón "compartir" vive dentro de la tarjeta — sin este guard,
+        // tocarlo también dispararía la navegación a "Hoy" de la tarjeta
+        // completa (su listener está más cerca del target en el bubbling
+        // que cualquier listener delegado más arriba, así que un
+        // stopPropagation() en un listener externo llega tarde).
+        if(e.target.closest('[data-action="share-week"]')) return;
         const dot = e.target.closest('.hist-dot');
         state.activeWeek = card.dataset.week;
         state.activeDay = dot ? dot.dataset.day : 'lun';
@@ -1366,6 +1385,16 @@
       });
     });
   }
+
+  // Delegado una sola vez sobre el contenedor fijo (no dentro de
+  // renderHistorial, que reconstruye el innerHTML en cada render — atarlo
+  // ahí acumularía un listener duplicado por cada render).
+  document.getElementById('hist-list').addEventListener('click', (e)=>{
+    const shareBtn = e.target.closest('[data-action="share-week"]');
+    if(!shareBtn) return;
+    const card = shareBtn.closest('.hist-card');
+    shareElementAsImage(card, `bitacora-semana-${card.dataset.week}.png`);
+  });
 
   // ============================================================
   // Progreso: carga (kg) de un ejercicio en el tiempo. Solo cuenta
@@ -1377,6 +1406,28 @@
 
   function cssVar(name){
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  // Compartir día/semana como imagen: captura el elemento con html2canvas
+  // (CDN) y usa Web Share API si el navegador la soporta (celular), o
+  // cae a una descarga directa (mismo patrón de <a download> que ya usa
+  // exportar datos en Perfil).
+  async function shareElementAsImage(el, filename){
+    if(typeof html2canvas === 'undefined'){ showToast('No se pudo generar la imagen.'); return; }
+    const canvas = await html2canvas(el, { backgroundColor: cssVar('--bg'), scale: 2 });
+    canvas.toBlob(async (blob)=>{
+      if(!blob){ showToast('No se pudo generar la imagen.'); return; }
+      const file = new File([blob], filename, { type: 'image/png' });
+      if(navigator.canShare && navigator.canShare({ files: [file] })){
+        try{ await navigator.share({ files: [file], title: 'Bitácora de Hierro' }); return; }
+        catch(err){ if(err.name === 'AbortError') return; }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
   }
 
   function collectExerciseHistory(name){

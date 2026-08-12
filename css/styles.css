@@ -115,6 +115,14 @@
   }
   .day-panel-head .grp{ font-family:var(--font-display); font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; color:var(--text); }
   .day-panel-head .day-of{ font-size:10.5px; color:var(--text-dim); margin-top:2px; }
+  .day-panel-head-actions{ display:flex; align-items:center; gap:8px; }
+  .share-btn{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--text-dim);
+    width:30px; height:30px; border-radius:8px; display:flex; align-items:center;
+    justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .share-btn:hover{ color:var(--accent); border-color:var(--accent); }
+  .share-btn .icon{ font-size:13px; }
   .progress-ring{ position:relative; width:40px; height:40px; flex-shrink:0; }
   .progress-ring svg{ transform:rotate(-90deg); }
   .progress-ring .bgc{ fill:none; stroke:var(--line); stroke-width:4; }
@@ -468,6 +476,7 @@
   }
   .hist-card:active{ background:var(--surface-2); }
   .hist-card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .hist-card-head-right{ display:flex; align-items:center; gap:8px; }
   .hist-card-label{
     font-family:var(--font-display); font-size:15px; font-weight:700;
     text-transform:uppercase; letter-spacing:.01em; color:var(--text);
