@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.30.0', date: '2026-08-12', title: 'Carga inicial en una sola petición', items: [
+      'La app arrancaba pidiendo cada semana en una petición HTTP aparte, todas al mismo tiempo — en cuentas con muchas semanas eso disparaba decenas de peticiones simultáneas. Ahora se traen todas juntas en un solo pedido.',
+    ]},
     { version: '1.29.0', date: '2026-08-12', title: 'Más espacio entre "Ver progreso" y "Semana pasada"', items: [
       'El label "Semana pasada:" del detalle expandido deja de quedar pegado al botón "Ver progreso" — ahora se reparte el espacio disponible entre los dos.',
     ]},
@@ -1996,22 +1999,25 @@
   Api.onUnauthorized = showLogin;
 
   async function loadAppData(){
-    const [weekDates, library, settings] = await Promise.all([
+    // api/weeks.php sin ?date trae TODAS las semanas en una sola petición
+    // (fetch_all_weeks_detail() del lado del servidor) — antes era una
+    // petición HTTP por semana en paralelo, que en cuentas con muchas
+    // semanas disparaba decenas de requests simultáneas y saturaba el
+    // hosting compartido justo después de loguearse (mezcla de 504 y 401
+    // encontrada en producción).
+    const [bulk, library, settings] = await Promise.all([
       Api.get('api/weeks.php'),
       Api.get('api/library.php'),
       Api.get('api/settings.php').catch(()=> null), // si falla, se queda con los defaults de RULES
     ]);
 
-    state.order = weekDates;
+    state.order = bulk.order;
     EXERCISE_LIBRARY.length = 0;
     library.forEach(item => EXERCISE_LIBRARY.push(item));
     EXERCISE_LIBRARY.sort((a,b)=> a.name.localeCompare(b.name, 'es'));
     if(settings) Object.assign(RULES, settings);
 
-    const details = await Promise.all(
-      state.order.map(key => Api.get(`api/weeks.php?date=${encodeURIComponent(key)}`))
-    );
-    state.order.forEach((key, i) => applyWeekDetail(key, details[i]));
+    state.order.forEach(key => applyWeekDetail(key, bulk.weeks[key]));
 
     state.activeWeek = state.order.includes(todayMondayKey) ? todayMondayKey : (state.order[0] ?? null);
 

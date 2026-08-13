@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.30.0] - 2026-08-12 — Carga inicial en una sola petición
+
+### Fixed
+
+- **Bug real encontrado en producción**: `loadAppData()` pedía cada semana con una petición HTTP separada (`Promise.all(state.order.map(key => Api.get(...)))`) — con las semanas suficientes de una cuenta real, eso disparaba decenas de peticiones simultáneas al loguearse. En el hosting compartido de producción eso agotó el cupo de procesos PHP y/o el lock del archivo de sesión, produciendo una mezcla de `504 Gateway Timeout` y `401 Unauthorized` (una sesión recién creada dejando de reconocerse en medio de la ráfaga) — el usuario podía loguearse pero no veía sus datos, y a veces la sesión se caía sola. No pasaba en local (73 semanas alcanzaban para notarlo recién en producción, con probablemente más semanas y menos cupo de procesos que en desarrollo).
+- **Nueva `fetch_all_weeks_detail()`** (`api/week_helpers.php`): arma el detalle de **todas** las semanas en 4 queries totales (semanas+notas, day_templates, todos los overrides, todos los ejercicios — agrupados en PHP por `week_id`) en vez de las 3 queries por semana que hacía `fetch_week_detail()` repetida N veces. `api/weeks.php` sin `?date` ahora devuelve `{ order: [...], weeks: { [monday_date]: detalle } }` (antes devolvía solo la lista de fechas) — el frontend pasa de N+1 peticiones a **una sola** para toda la carga inicial. `fetch_week_detail()` (para una semana puntual) no se tocó, se sigue usando en crear/copiar/actualizar-nota semana.
+
 ## [1.29.0] - 2026-08-12 — Más espacio entre "Ver progreso" y "Semana pasada"
 
 ### Changed

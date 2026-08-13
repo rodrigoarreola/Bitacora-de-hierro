@@ -70,3 +70,70 @@ function fetch_week_detail(PDO $pdo, int $weekId, string $mondayDate): array
 
     return ['monday_date' => $mondayDate, 'note' => $note ?: '', 'days' => $days];
 }
+
+/**
+ * Misma forma que fetch_week_detail(), para todas las semanas a la vez,
+ * en 4 queries totales en vez de 3 por semana. Reemplaza el patrón previo
+ * del frontend (una petición HTTP por semana en loadAppData(), vía
+ * Promise.all) que en cuentas con muchas semanas terminaba lanzando
+ * decenas de peticiones simultáneas — en hosting compartido eso agotaba
+ * el cupo de procesos PHP/el lock del archivo de sesión y producía una
+ * mezcla de 504 (timeout) y 401 (sesión no reconocida a tiempo) justo
+ * después de loguearse. Devuelve { order: [...fechas desc], weeks: {
+ * [monday_date]: detalle } }.
+ */
+function fetch_all_weeks_detail(PDO $pdo): array
+{
+    $weekRows = $pdo->query('SELECT id, monday_date, note FROM weeks ORDER BY monday_date DESC')->fetchAll();
+    if (!$weekRows) {
+        return ['order' => [], 'weeks' => []];
+    }
+
+    $templates = $pdo->query(
+        'SELECT day_key, group_name, notes FROM day_templates ORDER BY sort_order'
+    )->fetchAll();
+
+    $overridesByWeek = [];
+    $stmtOverrides = $pdo->query('SELECT week_id, day_key, group_name, notes, migrated_from FROM week_day_overrides');
+    foreach ($stmtOverrides as $row) {
+        $overridesByWeek[$row['week_id']][$row['day_key']] = $row;
+    }
+
+    $exercisesByWeek = [];
+    $stmtExercises = $pdo->query(
+        'SELECT id, week_id, day_key, name, kg, reps, series, note, done
+         FROM exercises ORDER BY week_id, day_key, sort_order, id'
+    );
+    foreach ($stmtExercises as $row) {
+        $row['id'] = (int) $row['id'];
+        $row['done'] = (bool) $row['done'];
+        $weekId = $row['week_id'];
+        $dayKey = $row['day_key'];
+        unset($row['week_id']);
+        $exercisesByWeek[$weekId][$dayKey][] = $row;
+    }
+
+    $order = [];
+    $weeks = [];
+    foreach ($weekRows as $w) {
+        $weekId = $w['id'];
+        $mondayDate = $w['monday_date'];
+        $order[] = $mondayDate;
+
+        $days = [];
+        foreach ($templates as $t) {
+            $dayKey = $t['day_key'];
+            $override = $overridesByWeek[$weekId][$dayKey] ?? null;
+            $days[$dayKey] = [
+                'group_name'    => $override ? $override['group_name'] : $t['group_name'],
+                'notes'         => $override && $override['notes'] !== null ? $override['notes'] : $t['notes'],
+                'migrated_from' => $override ? $override['migrated_from'] : null,
+                'exercises'     => $exercisesByWeek[$weekId][$dayKey] ?? [],
+            ];
+        }
+
+        $weeks[$mondayDate] = ['monday_date' => $mondayDate, 'note' => $w['note'] ?: '', 'days' => $days];
+    }
+
+    return ['order' => $order, 'weeks' => $weeks];
+}

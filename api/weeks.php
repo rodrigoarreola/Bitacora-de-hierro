@@ -12,8 +12,10 @@ $date = isset($_GET['date']) ? trim((string) $_GET['date']) : null;
 
 if ($method === 'GET') {
     if ($date === null) {
-        $rows = $pdo->query('SELECT monday_date FROM weeks ORDER BY monday_date DESC')->fetchAll();
-        respond_ok(array_map(fn($r) => $r['monday_date'], $rows));
+        // Todas las semanas de una — ver el comentario en
+        // fetch_all_weeks_detail() sobre por qué esto reemplazó a N
+        // peticiones individuales (una por semana) del lado del frontend.
+        respond_ok(fetch_all_weeks_detail($pdo));
     }
 
     $weekId = find_week_id($pdo, $date);
