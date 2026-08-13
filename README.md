@@ -153,35 +153,63 @@ No requiere acceso SSH — cPanel → **Cron Jobs** funciona por sí solo (es un
 
 ### Pendiente de correr en producción
 
-Estos cambios ya se hicieron en local pero todavía no en el servidor — correr una sola vez, vía phpMyAdmin → SQL, sobre la base de producción:
+Estos cambios ya se hicieron en local pero todavía no en el servidor — no hay certeza de cuáles ya se corrieron en producción en algún deploy anterior, así que el bloque de abajo es **idempotente**: cada `ALTER` se salta solo si la columna ya existe (chequeo contra `information_schema.COLUMNS` + SQL dinámico — funciona igual en MySQL y MariaDB, a diferencia de `ADD COLUMN IF NOT EXISTS`, que no está disponible en todas las versiones). Correr entero, de una sola vez, vía phpMyAdmin → SQL, sobre la base de producción:
 
 ```sql
-CREATE TABLE app_settings (
+-- app_settings: reglas editables desde Ajustes (api/settings.php).
+-- CREATE TABLE IF NOT EXISTS ya es idempotente por sí solo.
+CREATE TABLE IF NOT EXISTS app_settings (
   setting_key   VARCHAR(60)  NOT NULL PRIMARY KEY,
   setting_value VARCHAR(255) NOT NULL,
   updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- weeks.note: nota libre de la semana, editable desde "Hoy" (api/weeks.php).
+SET @exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'weeks' AND COLUMN_NAME = 'note'
+);
+SET @sql = IF(@exists = 0,
+  'ALTER TABLE weeks ADD COLUMN note TEXT NULL AFTER monday_date',
+  'SELECT "weeks.note ya existe, se omite"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- exercises.updated_at: last-write-wins de la edición offline (api/exercises.php).
+SET @exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exercises' AND COLUMN_NAME = 'updated_at'
+);
+SET @sql = IF(@exists = 0,
+  'ALTER TABLE exercises ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at',
+  'SELECT "exercises.updated_at ya existe, se omite"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.failed_attempts / users.locked_until: fuerza bruta en login (api/login.php).
+SET @exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'failed_attempts'
+);
+SET @sql = IF(@exists = 0,
+  'ALTER TABLE users ADD COLUMN failed_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0',
+  'SELECT "users.failed_attempts ya existe, se omite"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'locked_until'
+);
+SET @sql = IF(@exists = 0,
+  'ALTER TABLE users ADD COLUMN locked_until DATETIME NULL',
+  'SELECT "users.locked_until ya existe, se omite"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 ```
 
-(reglas editables desde Ajustes — necesaria antes de subir el `js/app.js`/`api/` de esta tanda, o `api/settings.php` va a fallar con "tabla no existe". Puede empezar vacía: sin filas, cada regla usa su valor por defecto, ver `api/settings.php`.)
-
-```sql
-ALTER TABLE weeks ADD COLUMN note TEXT NULL AFTER monday_date;
-```
-
-(nota libre por semana, editable desde "Hoy" — necesaria antes de subir el `js/app.js`/`api/` de esta tanda, o `api/weeks.php` va a fallar al intentar leer/escribir `note`. Nullable, no requiere backfill.)
-
-```sql
-ALTER TABLE exercises ADD COLUMN updated_at DATETIME NOT NULL
-  DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
-```
-
-(habilita last-write-wins para la edición offline — necesaria antes de subir el `js/`/`api/` de esta tanda, o `api/exercises.php` va a fallar al reproducir mutaciones encoladas con `client_time`. `DEFAULT CURRENT_TIMESTAMP` rellena automáticamente todas las filas existentes al correr el `ALTER`, no requiere backfill manual.)
-
-```sql
-ALTER TABLE users
-  ADD COLUMN failed_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
-  ADD COLUMN locked_until DATETIME NULL;
-```
-
-(protección contra fuerza bruta en login — necesaria antes de subir `api/login.php` de esta tanda, o el login va a fallar con "columna desconocida". `DEFAULT 0`/`NULL` dejan la única cuenta existente sin bloquear al correr el `ALTER`, no requiere backfill manual.)
+Cada bloque devuelve un mensaje (`SELECT "..."`) cuando se salta, así que se puede ver en el resultado de phpMyAdmin exactamente cuáles se aplicaron y cuáles ya estaban. `DEFAULT`/`NULL` en las columnas nuevas dejan las filas existentes sin backfill manual — mismo criterio que ya tenían las versiones no defensivas de estos `ALTER`.
