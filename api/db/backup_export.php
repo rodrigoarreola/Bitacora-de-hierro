@@ -24,20 +24,45 @@ if (!is_dir($backupDir)) {
     mkdir($backupDir, 0750, true);
 }
 
+const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+
 $weeks = $pdo->query('SELECT id, monday_date, note FROM weeks ORDER BY monday_date')->fetchAll();
 $payload = [];
 $exStmt = $pdo->prepare('SELECT day_key, name, kg, reps, series, note, done FROM exercises WHERE week_id = :w ORDER BY day_key, sort_order, id');
 $ovStmt = $pdo->prepare('SELECT day_key, group_name, notes, migrated_from FROM week_day_overrides WHERE week_id = :w');
+$sessStmt = $pdo->prepare('SELECT day_key, start_time, end_time, duration_min FROM week_day_sessions WHERE week_id = :w');
 
 foreach ($weeks as $w) {
     $weekId = (int) $w['id'];
-    $days = [];
+
+    $exByDay = [];
     $exStmt->execute(['w' => $weekId]);
     foreach ($exStmt->fetchAll() as $row) {
-        $days[$row['day_key']][] = [
+        $exByDay[$row['day_key']][] = [
             'name' => $row['name'], 'kg' => $row['kg'], 'reps' => $row['reps'],
             'series' => $row['series'], 'note' => $row['note'], 'done' => (bool) $row['done'],
         ];
+    }
+
+    $sessStmt->execute(['w' => $weekId]);
+    $sessByDay = [];
+    foreach ($sessStmt->fetchAll() as $s) {
+        $sessByDay[$s['day_key']] = $s;
+    }
+
+    // Cada día se exporta como {exercises, start_time?, end_time?,
+    // duration_min?} — los campos de horario solo se incluyen si hay dato,
+    // mismo criterio que ya usa "note"/"overrides" acá abajo.
+    $days = [];
+    foreach (DAY_KEYS as $dayKey) {
+        $day = ['exercises' => $exByDay[$dayKey] ?? []];
+        $sess = $sessByDay[$dayKey] ?? null;
+        if ($sess) {
+            if ($sess['start_time'] !== null) $day['start_time'] = $sess['start_time'];
+            if ($sess['end_time'] !== null) $day['end_time'] = $sess['end_time'];
+            if ($sess['duration_min'] !== null) $day['duration_min'] = (int) $sess['duration_min'];
+        }
+        $days[$dayKey] = $day;
     }
     $entry = ['monday_date' => $w['monday_date'], 'note' => $w['note'] ?? '', 'days' => (object) $days];
 

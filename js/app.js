@@ -45,6 +45,20 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.38.0', date: '2026-08-13', title: 'Reordenar ejercicios, exportar semana, zoom en Progreso y más', items: [
+      'Reordenar ejercicios arrastrando dentro de un día (handle dedicado, mouse y touch).',
+      'Nuevo botón "Compartir semana completa" junto al de compartir día, con los 7 días en una sola imagen.',
+      'Zoom y pan en el gráfico de Progreso (rueda, pellizco o arrastre) — doble click/tap para volver al zoom original.',
+      'El heatmap anual ahora tiene etiquetas de mes al costado y sus celdas son clickeables (te llevan directo a ese día).',
+      'Ir a un día desde Calendario o Historial ahora centra el riel de semanas en la semana correcta.',
+      '"Nueva semana" ya no deja crear más de una semana hacia el futuro.',
+      'Botón "Eliminar esta semana" al final de "Hoy", con doble confirmación antes de borrar.',
+    ]},
+    { version: '1.37.0', date: '2026-08-13', title: 'Hora de inicio, fin y duración por día', items: [
+      'Nueva card "Iniciar/Finalizar entrenamiento" debajo del panel del día: un botón guarda la hora actual al arrancar y al terminar, y calcula la duración solo.',
+      'Hora de inicio y fin también se pueden corregir a mano — útil para cargar un horario importado de Garmin.',
+      'Exportar/Importar datos ahora incluye estos horarios por día (compatible con backups viejos, que no los tenían).',
+    ]},
     { version: '1.36.0', date: '2026-08-13', title: 'Badge de racha a un costado, recap hasta hoy, reps solo sin comparar', items: [
       'El badge de racha se mueve al costado del número, en vez de arriba.',
       'El recap semanal ahora compara "hasta hoy" contra la semana pasada, no la semana completa contra una a medio andar.',
@@ -383,7 +397,12 @@
     const days = {};
     DAY_ORDER.forEach(dk=>{
       const d = detail.days[dk];
-      days[dk] = { group: d.group_name, notes: d.notes, migratedFrom: d.migrated_from, exercises: d.exercises };
+      days[dk] = {
+        group: d.group_name, notes: d.notes, migratedFrom: d.migrated_from, exercises: d.exercises,
+        startTime: d.start_time ? d.start_time.slice(0,5) : null,
+        endTime: d.end_time ? d.end_time.slice(0,5) : null,
+        durationMin: d.duration_min,
+      };
     });
     state.weeks[key] = { days, note: detail.note || '' };
   }
@@ -660,7 +679,48 @@
     }
     const topWeak = gaps.sort((a,b)=> b.gapDays - a.gapDays).slice(0, 3);
 
-    return { firstDate, bestStreak, bestStart, bestEnd, bestMonthKey, bestMonthCount, bestYear, bestYearCount, maxGapDays, maxGapStart, maxGapEnd, topStrong, topWeak };
+    return { firstDate, bestStreak, bestStart, bestEnd, bestMonthKey, bestMonthCount, bestYear, bestYearCount, maxGapDays, maxGapStart, maxGapEnd, topStrong, topWeak, timeStats: computeTimeStats() };
+  }
+
+  // Estadísticas de tiempo para Hitos y Constancia: recorre todos los días
+  // con duration_min registrado (botón "Iniciar/Finalizar entrenamiento" o
+  // backfill de Garmin), sin importar si ese día quedó "cumplido" — la
+  // duración de la sesión es un dato aparte de cuántos ejercicios se
+  // marcaron. Se degrada solo (return null) si todavía no hay ningún día
+  // con horario, para que renderMilestones() no muestre nada a medias.
+  function computeTimeStats(){
+    const entries = [];
+    state.order.forEach(wk=>{
+      const week = state.weeks[wk];
+      DAY_ORDER.forEach(dk=>{
+        const day = week.days[dk];
+        if(day.durationMin == null) return;
+        entries.push({ date: dayDate(wk, dk), durationMin: day.durationMin, startTime: day.startTime });
+      });
+    });
+    if(entries.length === 0) return null;
+
+    const totalMin = entries.reduce((s,e)=> s + e.durationMin, 0);
+    const avgMin = totalMin / entries.length;
+    const longest = entries.reduce((a,b)=> b.durationMin > a.durationMin ? b : a);
+    const shortest = entries.reduce((a,b)=> b.durationMin < a.durationMin ? b : a);
+
+    const hourCounts = new Map();
+    entries.forEach(e=>{
+      if(!e.startTime) return;
+      const hour = parseInt(e.startTime.split(':')[0], 10);
+      hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
+    });
+    let commonHour = null, commonHourCount = 0;
+    hourCounts.forEach((count, hour)=>{ if(count > commonHourCount){ commonHourCount = count; commonHour = hour; } });
+
+    return { sessionCount: entries.length, totalMin, avgMin, longest, shortest, commonHour, commonHourCount };
+  }
+
+  function fmtHourLabel(hour){
+    const suffix = hour < 12 ? 'a.m.' : 'p.m.';
+    const h12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${h12}:00 ${suffix}`;
   }
 
   // ============================================================
@@ -723,10 +783,32 @@
     if(el) el.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
   }
 
-  async function deleteWeek(key){
+  // Navega a "Hoy" con la semana/día de una fecha puntual ya seleccionados
+  // — usado por Calendario, Historial y el heatmap anual (mismo
+  // comportamiento en los 3: solo funciona si esa semana ya existe, y
+  // deja el riel de semanas centrado en la semana de destino en vez de
+  // donde haya quedado scrolleado antes).
+  function goToDate(date){
+    const wk = toISO(mondayOfWeek(date));
+    if(!state.weeks[wk]) return;
+    state.activeWeek = wk;
+    state.activeDay = DAY_ORDER[(date.getDay() + 6) % 7];
+    migratePickerOpen = false;
+    renderAll();
+    switchToView('hoy');
+    const el = document.querySelector(`.week-pill[data-week="${wk}"]`);
+    if(el) el.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
+  }
+
+  // doubleConfirm: el botón chico (X) del riel de semanas se queda con un
+  // solo confirm() — ya requiere abrir el riel y apuntarle a un ícono
+  // pequeño. El botón grande al final de "Hoy" es mucho más fácil de tocar
+  // sin querer, así que pide dos confirmaciones seguidas en vez de una.
+  async function deleteWeek(key, { doubleConfirm = false } = {}){
     if(pendingDelete) finalizePendingDelete(); // evita resucitar un ejercicio en una semana que está por desaparecer
     if(state.order.length <= 1){ showToast('Debe quedar al menos una semana.'); return; }
     if(!confirm('¿Eliminar esta semana? Se perderán sus registros.')) return;
+    if(doubleConfirm && !confirm('¿Seguro? Esta acción no se puede deshacer.')) return;
     try{ await Api.del(`api/weeks.php?date=${encodeURIComponent(key)}`); }
     catch(err){ showToast(err.message); return; }
     delete state.weeks[key];
@@ -823,6 +905,7 @@
         <input class="ex-val-input" data-field="series" value="${escapeHtml(ex.series)}" inputmode="numeric" placeholder="—">
         <button class="ex-del" type="button" data-action="delete" aria-label="Eliminar ejercicio"><i class="icon fa-solid fa-trash"></i></button>
         <button class="ex-chevron${expanded ? ' open' : ''}" type="button" data-action="chevron" aria-label="Ver semana pasada"><i class="icon fa-solid fa-chevron-down"></i></button>
+        <div class="ex-drag-handle" aria-label="Reordenar"><i class="icon fa-solid fa-grip-lines"></i></div>
       </div>${detailHtml}`;
   }
 
@@ -830,6 +913,7 @@
     const host = document.getElementById('day-panel-host');
 
     if(!state.activeWeek){
+      renderDaySession();
       host.innerHTML = `
         <div class="day-panel">
           <div class="day-empty">
@@ -863,7 +947,7 @@
         </div>`;
     } else {
       bodyHtml = `
-        <div class="col-heads"><span></span><span>Ejercicio</span><span>Kg</span><span>Rep</span><span>Ser</span><span></span><span></span></div>
+        <div class="col-heads"><span></span><span>Ejercicio</span><span>Kg</span><span>Rep</span><span>Ser</span><span></span><span></span><span></span></div>
         ${day.exercises.map(exerciseRowHtml).join('')}
         <div class="add-ex-row" data-action="add-ex"><i class="icon fa-solid fa-plus"></i>Agregar ejercicio</div>
         ${day.notes ? `<div class="day-notes">${day.notes}</div>` : ''}`;
@@ -908,6 +992,7 @@
           </div>
           <div class="day-panel-head-actions">
             <button class="share-btn" type="button" data-action="share-day" aria-label="Compartir día"><i class="icon fa-solid fa-share-nodes"></i></button>
+            <button class="share-btn" type="button" data-action="share-week-full" aria-label="Compartir semana completa"><i class="icon fa-solid fa-calendar-week"></i></button>
             <div class="progress-ring ${ringTier}">
               <svg width="40" height="40" viewBox="0 0 40 40">
                 <circle class="bgc" cx="20" cy="20" r="16"></circle>
@@ -920,7 +1005,88 @@
         ${bodyHtml}
         ${migrateHtml}
       </div>`;
+    renderDaySession();
   }
+
+  // Card de "Iniciar/Finalizar entrenamiento" del día activo — vive fuera
+  // del innerHTML de #day-panel-host (como #week-note-panel) para no perder
+  // el foco de los inputs de hora en cada re-render.
+  function fmtDurationLabel(min){
+    if(min == null) return '—';
+    const h = Math.floor(min / 60), m = min % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  function computeDurationMin(startHHMM, endHHMM){
+    if(!startHHMM || !endHHMM) return null;
+    const [sh, sm] = startHHMM.split(':').map(Number);
+    const [eh, em] = endHHMM.split(':').map(Number);
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if(diff < 0) diff += 24 * 60; // cruza medianoche
+    return diff;
+  }
+
+  function nowHHMM(){
+    const n = new Date();
+    return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function renderDaySession(){
+    const panel = document.getElementById('day-session-panel');
+    const week = currentWeek();
+    panel.classList.toggle('hidden', !week);
+    if(!week) return;
+
+    const day = currentDay();
+    const startEl = document.getElementById('day-session-start');
+    const endEl = document.getElementById('day-session-end');
+    const durEl = document.getElementById('day-session-duration');
+    const toggleBtn = document.getElementById('day-session-toggle');
+
+    if(document.activeElement !== startEl) startEl.value = day.startTime || '';
+    if(document.activeElement !== endEl) endEl.value = day.endTime || '';
+    durEl.textContent = fmtDurationLabel(day.durationMin);
+
+    const inProgress = !!day.startTime && !day.endTime;
+    toggleBtn.textContent = inProgress ? 'Finalizar entrenamiento' : 'Iniciar entrenamiento';
+    toggleBtn.classList.toggle('in-progress', inProgress);
+  }
+
+  async function saveDaySession(fields){
+    if(!state.activeWeek) return;
+    let detail;
+    try{
+      detail = await Api.put(`api/weeks.php?date=${encodeURIComponent(state.activeWeek)}`, { day_key: state.activeDay, ...fields });
+    }catch(err){ showToast(err.message); return; }
+    applyWeekDetail(state.activeWeek, detail);
+    renderDaySession();
+  }
+
+  document.getElementById('day-session-toggle').addEventListener('click', ()=>{
+    const day = currentDay();
+    const inProgress = !!day.startTime && !day.endTime;
+    if(inProgress){
+      const endTime = nowHHMM();
+      saveDaySession({ start_time: day.startTime, end_time: endTime, duration_min: computeDurationMin(day.startTime, endTime) });
+    } else {
+      saveDaySession({ start_time: nowHHMM(), end_time: null, duration_min: null });
+    }
+  });
+
+  function handleDaySessionTimeChange(){
+    const startEl = document.getElementById('day-session-start');
+    const endEl = document.getElementById('day-session-end');
+    const startTime = startEl.value || null;
+    const endTime = endEl.value || null;
+    saveDaySession({ start_time: startTime, end_time: endTime, duration_min: computeDurationMin(startTime, endTime) });
+  }
+  document.getElementById('day-session-start').addEventListener('focusout', handleDaySessionTimeChange);
+  document.getElementById('day-session-end').addEventListener('focusout', handleDaySessionTimeChange);
+
+  document.getElementById('delete-week-btn').addEventListener('click', ()=>{
+    if(!state.activeWeek) return;
+    deleteWeek(state.activeWeek, { doubleConfirm: true });
+  });
 
   async function migrateDay(toDay){
     if(!state.activeWeek) return;
@@ -1029,6 +1195,18 @@
     }
     if(m.bestYear){
       items.push(`Año más productivo: <strong>${m.bestYear}</strong> (${m.bestYearCount} días entrenados)`);
+    }
+    if(m.timeStats){
+      const ts = m.timeStats;
+      items.push(`Tiempo total entrenado: <strong>${fmtDurationLabel(ts.totalMin)}</strong> (${ts.sessionCount} sesiones con horario registrado)`);
+      items.push(`Duración promedio de sesión: <strong>${fmtDurationLabel(Math.round(ts.avgMin))}</strong>`);
+      items.push(`Sesión más larga: <strong>${fmtDurationLabel(ts.longest.durationMin)}</strong> (${fmtLongDate(ts.longest.date)})`);
+      if(ts.shortest.durationMin !== ts.longest.durationMin){
+        items.push(`Sesión más corta: <strong>${fmtDurationLabel(ts.shortest.durationMin)}</strong> (${fmtLongDate(ts.shortest.date)})`);
+      }
+      if(ts.commonHour !== null){
+        items.push(`Hora de inicio más frecuente: <strong>${fmtHourLabel(ts.commonHour)}</strong>`);
+      }
     }
 
     host.innerHTML = `
@@ -1322,6 +1500,10 @@
       shareElementAsImage(document.querySelector('.day-panel'), `bitacora-${state.activeWeek}-${state.activeDay}.png`);
       return;
     }
+    if(e.target.closest('[data-action="share-week-full"]')){
+      shareWeekAsImage(state.activeWeek);
+      return;
+    }
     if(e.target.closest('[data-action="first-week"]')){ addWeekBtn.click(); return; }
     if(e.target.closest('[data-action="migrate-open"]')){ migratePickerOpen = true; renderDayPanel(); return; }
     if(e.target.closest('[data-action="migrate-cancel"]')){ migratePickerOpen = false; renderDayPanel(); return; }
@@ -1392,6 +1574,85 @@
     renderDayPanel();
     updateSummaryStrip();
   });
+
+  // ============================================================
+  // Reordenar ejercicios arrastrando el handle (.ex-drag-handle), con
+  // Pointer Events (mouse+touch en un solo código). El resto de la fila
+  // (checkbox, nombre, inputs, borrar, chevron) no se ve afectado — solo
+  // el handle inicia el drag. Técnica de "placeholder": la fila arrastrada
+  // pasa a position:fixed (sigue al puntero libremente) y un div vacío del
+  // mismo alto (.ex-row-placeholder) ocupa su lugar en el flujo normal,
+  // moviéndose entre los demás .ex-row según qué punto medio cruza el
+  // puntero — al soltar, la fila real toma el lugar del placeholder y se
+  // persiste el nuevo orden.
+  // ============================================================
+  let dragState = null;
+
+  dayPanelHost.addEventListener('pointerdown', (e)=>{
+    const handle = e.target.closest('.ex-drag-handle');
+    if(!handle) return;
+    const row = handle.closest('.ex-row');
+    const list = row.parentElement;
+    const rect = row.getBoundingClientRect();
+
+    const placeholder = document.createElement('div');
+    placeholder.className = 'ex-row-placeholder';
+    placeholder.style.height = `${rect.height}px`;
+    row.after(placeholder);
+
+    row.style.position = 'fixed';
+    row.style.top = `${rect.top}px`;
+    row.style.left = `${rect.left}px`;
+    row.style.width = `${rect.width}px`;
+    row.classList.add('dragging');
+
+    dragState = { row, list, placeholder, pointerId: e.pointerId, startClientY: e.clientY, startTop: rect.top };
+    row.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  dayPanelHost.addEventListener('pointermove', (e)=>{
+    if(!dragState || e.pointerId !== dragState.pointerId) return;
+    const dy = e.clientY - dragState.startClientY;
+    dragState.row.style.top = `${dragState.startTop + dy}px`;
+
+    const siblings = [...dragState.list.querySelectorAll(':scope > .ex-row')].filter(el => el !== dragState.row);
+    let target = null;
+    for(const sib of siblings){
+      const r = sib.getBoundingClientRect();
+      const mid = r.top + r.height / 2;
+      if(e.clientY < mid){ target = sib; break; }
+    }
+    if(target) target.before(dragState.placeholder);
+    else dragState.list.appendChild(dragState.placeholder);
+  });
+
+  async function finishExerciseDrag(){
+    if(!dragState) return;
+    const { row, list, placeholder } = dragState;
+    placeholder.replaceWith(row);
+    row.style.position = '';
+    row.style.top = '';
+    row.style.left = '';
+    row.style.width = '';
+    row.classList.remove('dragging');
+    dragState = null;
+
+    const day = currentDay();
+    if(!day) return;
+    const newOrder = [...list.querySelectorAll(':scope > .ex-row')].map(r => parseInt(r.dataset.id, 10));
+    const oldOrder = day.exercises.map(e => e.id);
+    if(newOrder.length !== oldOrder.length || newOrder.every((id, i) => id === oldOrder[i])) return; // sin cambios
+
+    day.exercises.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
+
+    try{
+      await Api.post('api/exercises.php?action=reorder', { monday_date: state.activeWeek, day_key: state.activeDay, order: newOrder });
+    }catch(err){ showToast(err.message); }
+  }
+
+  dayPanelHost.addEventListener('pointerup', finishExerciseDrag);
+  dayPanelHost.addEventListener('pointercancel', finishExerciseDrag);
 
   // ============================================================
   // Librería: eventos de la vista Ajustes
@@ -1521,9 +1782,20 @@
   const dateInput = document.getElementById('new-week-date');
   const addWeekBtn = document.getElementById('add-week-btn');
 
+  // Tope de "1 semana en el futuro": el lunes siguiente al de la semana
+  // calendario actual. Se refleja en el date picker (max) y se valida de
+  // nuevo al cambiar, por si el navegador no soporta/ignora max en el
+  // picker nativo — mismo tope espejado en api/weeks.php (POST).
+  function maxNewWeekKey(){
+    const nextMonday = new Date(mondayOfWeek(today));
+    nextMonday.setDate(nextMonday.getDate() + 7);
+    return toISO(nextMonday);
+  }
+
   addWeekBtn.addEventListener('click', ()=>{
     const suggested = nearestMonday(new Date());
     dateInput.value = toISO(suggested);
+    dateInput.max = maxNewWeekKey();
     try{ dateInput.showPicker(); }catch(err){ dateInput.focus(); dateInput.click(); }
   });
   dateInput.addEventListener('click', (e)=> e.stopPropagation());
@@ -1537,6 +1809,10 @@
       showToast('Ajustado al lunes más cercano.');
     }
     const key = toISO(picked);
+    if(key > maxNewWeekKey()){
+      showToast('Solo se puede crear hasta una semana en el futuro.');
+      return;
+    }
     if(state.weeks[key]){
       selectWeek(key);
       showToast('Ya existe esa semana.');
@@ -1633,14 +1909,7 @@
   document.getElementById('cal-grid').addEventListener('click', (e)=>{
     const cell = e.target.closest('.cal-day');
     if(!cell || !cell.classList.contains('clickable')) return;
-    const date = fromISO(cell.dataset.date);
-    const wk = toISO(mondayOfWeek(date));
-    if(!state.weeks[wk]) return;
-    state.activeWeek = wk;
-    state.activeDay = DAY_ORDER[(date.getDay() + 6) % 7];
-    migratePickerOpen = false;
-    renderAll();
-    switchToView('hoy');
+    goToDate(fromISO(cell.dataset.date));
   });
 
   // Swipe horizontal entre meses — mismo patrón que el swipe de días.
@@ -1698,20 +1967,45 @@
     const endDow = (dec31.getDay() + 6) % 7; // 0=lun..6=dom
     gridEnd.setDate(gridEnd.getDate() + (6 - endDow));
 
-    let html = '';
+    // Etiquetas de mes verticales: una por cada bloque de filas (semanas)
+    // seguidas del mismo mes, ubicadas en la columna 1 del mismo grid (ver
+    // .heatmap-grid en CSS: "auto repeat(7,1fr)") — así los cells del
+    // punto 2 (auto-flow, sin columna explícita) caen solos en las
+    // columnas 2-8 fila por fila, sin tener que calcular su posición a
+    // mano. El mes de una fila se toma del primer día de esa fila que sí
+    // cae dentro de heatmapYear, para que la semana de borde entre
+    // diciembre/enero (que casi siempre tiene más días del año nuevo) se
+    // agrupe con el mes que realmente representa.
+    let cellsHtml = '';
+    const monthRuns = [];
     const cursor = new Date(gridStart);
+    let row = 0;
     while(cursor <= gridEnd){
-      const inYear = cursor.getFullYear() === heatmapYear;
-      let tier = inYear ? computeDayTier(cursor) : null;
-      // A diferencia de Calendario, el heatmap no pinta rojo — se reserva
-      // el color para los días cumplidos (verde/amarillo), un día sin
-      // pintar ya se lee como "no cumplido", sin necesidad de un rojo
-      // que en 365 celdas termina siendo más ruido que señal.
-      if(tier === 'tier-red') tier = null;
-      html += `<div class="heat-cell${inYear ? '' : ' out'}${tier ? ' ' + tier : ''}" title="${inYear ? fmtFullDate(cursor) : ''}"></div>`;
-      cursor.setDate(cursor.getDate() + 1);
+      let rowMonth = null;
+      for(let col = 0; col < 7; col++){
+        const inYear = cursor.getFullYear() === heatmapYear;
+        if(inYear && rowMonth === null) rowMonth = cursor.getMonth();
+        let tier = inYear ? computeDayTier(cursor) : null;
+        // A diferencia de Calendario, el heatmap no pinta rojo — se reserva
+        // el color para los días cumplidos (verde/amarillo), un día sin
+        // pintar ya se lee como "no cumplido", sin necesidad de un rojo
+        // que en 365 celdas termina siendo más ruido que señal.
+        if(tier === 'tier-red') tier = null;
+        const dateAttr = inYear ? ` data-date="${toISO(cursor)}"` : '';
+        cellsHtml += `<div class="heat-cell${inYear ? '' : ' out'}${tier ? ' ' + tier : ''}" title="${inYear ? fmtFullDate(cursor) : ''}"${dateAttr}></div>`;
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      const lastRun = monthRuns[monthRuns.length - 1];
+      if(lastRun && lastRun.month === rowMonth) lastRun.rowCount++;
+      else monthRuns.push({ month: rowMonth, startRow: row, rowCount: 1 });
+      row++;
     }
-    gridEl.innerHTML = html;
+
+    const labelsHtml = monthRuns.map(r => `
+      <div class="heat-month-label" style="grid-row:${r.startRow + 1} / span ${r.rowCount}">${MESES[r.month]}</div>
+    `).join('');
+
+    gridEl.innerHTML = labelsHtml + cellsHtml;
   }
 
   document.getElementById('heatmap-year-rail').addEventListener('click', (e)=>{
@@ -1719,6 +2013,16 @@
     if(!pill) return;
     heatmapYear = parseInt(pill.dataset.year, 10);
     renderHeatmap();
+  });
+
+  // Delegado una sola vez sobre el contenedor fijo (renderHeatmap()
+  // reconstruye el innerHTML en cada render) — solo las celdas dentro del
+  // año (con data-date) son clickeables; goToDate() ya se encarga de no
+  // hacer nada si esa fecha no cae en una semana creada.
+  document.getElementById('heatmap-grid').addEventListener('click', (e)=>{
+    const cell = e.target.closest('.heat-cell');
+    if(!cell || !cell.dataset.date) return;
+    goToDate(fromISO(cell.dataset.date));
   });
 
   // ============================================================
@@ -1859,11 +2163,8 @@
         // stopPropagation() en un listener externo llega tarde).
         if(e.target.closest('[data-action="share-week"]')) return;
         const dot = e.target.closest('.hist-dot');
-        state.activeWeek = card.dataset.week;
-        state.activeDay = dot ? dot.dataset.day : 'lun';
-        migratePickerOpen = false;
-        renderAll();
-        switchToView('hoy');
+        const dayKey = dot ? dot.dataset.day : 'lun';
+        goToDate(dayDate(card.dataset.week, dayKey));
       });
     });
   }
@@ -1913,6 +2214,66 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 'image/png');
+  }
+
+  // Fila estática para el export de semana completa: sin inputs ni
+  // botones (nada editable ni clickeable tiene sentido en una imagen),
+  // solo nombre/kg/rep/ser y el check de hecho — clases propias
+  // (.week-share-*) para no heredar el grid de 8 columnas de .ex-row.
+  function weekShareRowHtml(ex){
+    const hasName = !!(ex.name && ex.name.trim());
+    return `
+      <div class="week-share-row ${ex.done ? 'done' : 'pending'}">
+        <div class="ex-check"><i class="icon fa-solid ${ex.done ? 'fa-check' : 'fa-minus'}"></i></div>
+        <div class="week-share-name${hasName ? '' : ' empty'}">${hasName ? escapeHtml(ex.name) : 'Nombre del ejercicio'}</div>
+        <div class="week-share-val">${escapeHtml(ex.kg) || '—'}</div>
+        <div class="week-share-val">${escapeHtml(ex.reps) || '—'}</div>
+        <div class="week-share-val">${escapeHtml(ex.series) || '—'}</div>
+      </div>`;
+  }
+
+  function buildWeekShareContainer(weekKey){
+    const week = state.weeks[weekKey];
+    const container = document.createElement('div');
+    container.className = 'week-share-container';
+    const daysHtml = DAY_ORDER.filter(dk => dk !== 'dom').map(dk=>{
+      const day = week.days[dk];
+      if(day.exercises.length === 0) return '';
+      const d = dayDate(weekKey, dk);
+      return `
+        <div class="week-share-day">
+          <div class="week-share-day-head">
+            <span class="week-share-day-name">${DAY_NAMES[dk]} · ${fmtShortDate(d)}</span>
+            <span class="week-share-day-group">${escapeHtml(day.group)}</span>
+          </div>
+          <div class="week-share-col-heads"><span></span><span>Ejercicio</span><span>Kg</span><span>Rep</span><span>Ser</span></div>
+          ${day.exercises.map(weekShareRowHtml).join('')}
+        </div>`;
+    }).join('');
+    container.innerHTML = `
+      <div class="week-share-title">Bitácora de Hierro — ${weekLabel(weekKey)}</div>
+      ${daysHtml || '<p class="week-share-empty">Semana sin ejercicios todavía.</p>'}`;
+    return container;
+  }
+
+  // Semana completa como una sola imagen larga: arma un contenedor fuera
+  // de pantalla con los 7 días (reusa weekShareRowHtml, no exerciseRowHtml
+  // — una imagen no necesita inputs/botones editables) y lo captura con el
+  // mismo shareElementAsImage() que ya usan día e Historial, sin sumar una
+  // dependencia nueva (nada de jsPDF: una imagen larga cubre el pedido).
+  async function shareWeekAsImage(weekKey){
+    if(!weekKey || !state.weeks[weekKey]) return;
+    const container = buildWeekShareContainer(weekKey);
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '520px';
+    document.body.appendChild(container);
+    try{
+      await shareElementAsImage(container, `bitacora-semana-completa-${weekKey}.png`);
+    } finally {
+      document.body.removeChild(container);
+    }
   }
 
   // Mejor kg histórico registrado para un ejercicio (solo apariciones ya
@@ -2108,10 +2469,18 @@
               },
             },
           },
+          // Zoom/pan en el eje X (chartjs-plugin-zoom, CDN en index.html) —
+          // pensado para cuando hay muchos puntos seguidos y tocar uno
+          // puntual a simple vista es difícil. Doble tap/click resetea.
+          zoom: {
+            pan: { enabled: true, mode: 'x' },
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+          },
         },
         scales,
       },
     });
+    document.getElementById('prog-canvas').addEventListener('dblclick', ()=> progChart.resetZoom());
   }
 
   function renderProgDashboard(contentEl){
@@ -2214,9 +2583,18 @@
       const overrides = {};
       DAY_ORDER.forEach(dk=>{
         const day = week.days[dk];
-        days[dk] = day.exercises.map(e=>({
-          name: e.name, kg: e.kg, reps: e.reps, series: e.series, note: e.note, done: e.done,
-        }));
+        // Cada día se exporta como {exercises, start_time?, end_time?,
+        // duration_min?} — los campos de horario solo se incluyen si hay
+        // dato, mismo criterio que ya usa "note"/"overrides" acá abajo.
+        const dayPayload = {
+          exercises: day.exercises.map(e=>({
+            name: e.name, kg: e.kg, reps: e.reps, series: e.series, note: e.note, done: e.done,
+          })),
+        };
+        if(day.startTime) dayPayload.start_time = day.startTime;
+        if(day.endTime) dayPayload.end_time = day.endTime;
+        if(day.durationMin != null) dayPayload.duration_min = day.durationMin;
+        days[dk] = dayPayload;
         // Días con contenido migrado tienen su propio group/notes (no el
         // default de day_templates) — se exportan aparte para que un
         // reimport los restaure igual, en vez de perder la migración.

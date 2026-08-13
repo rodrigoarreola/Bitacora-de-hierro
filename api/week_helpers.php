@@ -34,13 +34,20 @@ function fetch_week_detail(PDO $pdo, int $weekId, string $mondayDate): array
         'SELECT dt.day_key,
                 COALESCE(wo.group_name, dt.group_name) AS group_name,
                 COALESCE(wo.notes, dt.notes) AS notes,
-                wo.migrated_from
+                wo.migrated_from,
+                ws.start_time, ws.end_time, ws.duration_min
          FROM day_templates dt
          LEFT JOIN week_day_overrides wo
-           ON wo.week_id = :week_id AND wo.day_key = dt.day_key
+           ON wo.week_id = :week_id_ov AND wo.day_key = dt.day_key
+         LEFT JOIN week_day_sessions ws
+           ON ws.week_id = :week_id_ws AND ws.day_key = dt.day_key
          ORDER BY dt.sort_order'
     );
-    $stmtTemplates->execute(['week_id' => $weekId]);
+    // PDO::ATTR_EMULATE_PREPARES está en false (config.php) — con
+    // prepares nativos no se puede repetir el mismo placeholder con
+    // nombre en dos JOIN distintos, por eso :week_id_ov / :week_id_ws
+    // en vez de reusar :week_id.
+    $stmtTemplates->execute(['week_id_ov' => $weekId, 'week_id_ws' => $weekId]);
     $templates = $stmtTemplates->fetchAll();
 
     $days = [];
@@ -49,6 +56,9 @@ function fetch_week_detail(PDO $pdo, int $weekId, string $mondayDate): array
             'group_name'    => $t['group_name'],
             'notes'         => $t['notes'],
             'migrated_from' => $t['migrated_from'],
+            'start_time'    => $t['start_time'],
+            'end_time'      => $t['end_time'],
+            'duration_min'  => $t['duration_min'] !== null ? (int) $t['duration_min'] : null,
             'exercises'     => [],
         ];
     }
@@ -99,6 +109,12 @@ function fetch_all_weeks_detail(PDO $pdo): array
         $overridesByWeek[$row['week_id']][$row['day_key']] = $row;
     }
 
+    $sessionsByWeek = [];
+    $stmtSessions = $pdo->query('SELECT week_id, day_key, start_time, end_time, duration_min FROM week_day_sessions');
+    foreach ($stmtSessions as $row) {
+        $sessionsByWeek[$row['week_id']][$row['day_key']] = $row;
+    }
+
     $exercisesByWeek = [];
     $stmtExercises = $pdo->query(
         'SELECT id, week_id, day_key, name, kg, reps, series, note, done
@@ -124,10 +140,14 @@ function fetch_all_weeks_detail(PDO $pdo): array
         foreach ($templates as $t) {
             $dayKey = $t['day_key'];
             $override = $overridesByWeek[$weekId][$dayKey] ?? null;
+            $session = $sessionsByWeek[$weekId][$dayKey] ?? null;
             $days[$dayKey] = [
                 'group_name'    => $override ? $override['group_name'] : $t['group_name'],
                 'notes'         => $override && $override['notes'] !== null ? $override['notes'] : $t['notes'],
                 'migrated_from' => $override ? $override['migrated_from'] : null,
+                'start_time'    => $session ? $session['start_time'] : null,
+                'end_time'      => $session ? $session['end_time'] : null,
+                'duration_min'  => $session && $session['duration_min'] !== null ? (int) $session['duration_min'] : null,
                 'exercises'     => $exercisesByWeek[$weekId][$dayKey] ?? [],
             ];
         }

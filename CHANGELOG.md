@@ -2,6 +2,30 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.38.0] - 2026-08-13 — Reordenar ejercicios, exportar semana, zoom en Progreso y más
+
+### Added
+
+- **Reordenar ejercicios arrastrando** (`.ex-drag-handle` en cada fila): Pointer Events (mouse+touch en un solo código), técnica de placeholder — la fila arrastrada pasa a `position:fixed` y sigue al puntero, un div vacío del mismo alto ocupa su lugar en el flujo y se mueve entre los demás según qué punto medio cruza el puntero. Al soltar, persiste vía `POST api/exercises.php?action=reorder` (`{monday_date, day_key, order:[ids...]}`), que valida que el set de IDs recibido coincida exactamente con los ejercicios de ese día antes de tocar `sort_order`.
+- **"Compartir semana completa"** (botón junto a "Compartir día"): arma un contenedor fuera de pantalla con los 7 días (nombre/kg/rep/ser, sin inputs ni botones — nada editable tiene sentido en una imagen) y lo captura con el mismo `shareElementAsImage()`/html2canvas que ya usan día e Historial. Sin librería nueva (nada de jsPDF): una imagen larga cubre el pedido.
+- **Zoom/pan en el gráfico de Progreso**: `chartjs-plugin-zoom` vía CDN (mismo criterio que Chart.js/html2canvas), rueda/pellizco/arrastre en el eje X, doble click o doble tap resetea. Plugin opt-in por gráfico — no afecta las sparklines del mini-dashboard.
+- **Heatmap anual**: celdas clickeables (mismo `goToDate()` que ahora comparten Calendario, Historial y el heatmap — también corrige que el riel de semanas quedara sin centrar la semana correcta al navegar desde esos dos) y etiquetas de mes verticales al costado (columna extra en el mismo grid, `grid-row: span N` agrupando filas seguidas del mismo mes).
+- **"Nueva semana" limitada a 1 semana en el futuro**: validado en el date picker (client) y en `api/weeks.php` `POST` (server, espejado por si se pega el POST directo).
+- **Botón "Eliminar esta semana"** al final de "Hoy", con doble confirmación (`deleteWeek(key, {doubleConfirm:true})`) — la X chica del riel de semanas se queda con su confirmación simple de siempre.
+
+## [1.37.0] - 2026-08-13 — Hora de inicio, fin y duración por día
+
+### Added
+
+- **Tabla `week_day_sessions`** (`api/db/schema.sql`): hora de inicio/fin y duración de un día puntual, una fila por semana+día, sin fila = sin horario registrado. `duration_min` es independiente de `end_time - start_time` a propósito — puede venir de un backfill de Garmin con su propio cálculo, o editarse a mano sin tocar las horas.
+- **Card "Iniciar/Finalizar entrenamiento"** (`#day-session-panel`, debajo del panel del día): un botón cuyo label se deriva del estado (`start_time` sin `end_time` → "Finalizar", cualquier otro caso → "Iniciar") guarda la hora actual en cada tap vía `api/weeks.php` `PUT` (mismo endpoint que ya usaba la nota semanal, extendido con `day_key`/`start_time`/`end_time`/`duration_min`). Los inputs de hora inicio/fin quedan editables a mano (autoguardan al perder foco, recalculando duración) para corregir o cargar un horario importado de Garmin; duración es de solo lectura, formateada "Xh Ym".
+- **`api/import.php`** acepta ahora dos formas por día: la lista plana de siempre (backups viejos) u un objeto `{exercises, start_time?, end_time?, duration_min?}` — se distinguen por la presencia de la clave `exercises`. `api/db/backup_export.php` y `buildExportPayload()` (`js/app.js`) ya exportan la forma nueva.
+
+### Pendiente
+
+- El bloque `CREATE TABLE IF NOT EXISTS week_day_sessions` queda en el README, sección "Pendiente de correr en producción", a la espera del próximo deploy manual vía phpMyAdmin.
+- `migrate_day.php` no mueve horarios al migrar un día a propósito — mover ejercicios a otro día no implica que se haya entrenado a esa hora.
+
 ## [1.36.0] - 2026-08-13 — Badge de racha a un costado, recap hasta hoy, reps solo sin comparar
 
 ### Changed

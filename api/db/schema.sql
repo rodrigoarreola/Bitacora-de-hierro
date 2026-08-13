@@ -139,3 +139,22 @@ ALTER TABLE exercises ADD COLUMN updated_at DATETIME NOT NULL
 ALTER TABLE users
   ADD COLUMN failed_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
   ADD COLUMN locked_until DATETIME NULL;
+
+-- ============================================================
+-- week_day_sessions: hora de inicio/fin y duración del entrenamiento
+-- de un día puntual (botón "Iniciar/Finalizar entrenamiento" en el
+-- frontend, o backfill desde Garmin). Sin fila = ese día no tiene
+-- horario registrado todavía. Los tres campos son independientes:
+-- duration_min no siempre es end_time - start_time (puede venir de
+-- Garmin con su propio cálculo, o editarse a mano sin tocar las horas).
+-- ============================================================
+CREATE TABLE week_day_sessions (
+  week_id      INT UNSIGNED NOT NULL,
+  day_key      ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
+  start_time   TIME NULL,
+  end_time     TIME NULL,
+  duration_min SMALLINT UNSIGNED NULL,
+  PRIMARY KEY (week_id, day_key),
+  CONSTRAINT fk_week_day_sessions_week
+    FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -14,10 +14,10 @@ const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 const REQUIRED_DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie'];
 
 /**
- * Importa una lista de semanas: [{monday_date, days:{lun..vie:[{name,kg,reps,series,note,done}]}, overrides?}].
+ * Importa una lista de semanas: [{monday_date, days:{lun..vie: <día>}, overrides?}].
  * Semana que ya existe (mismo monday_date) se reemplaza por completo
- * (se borran sus ejercicios y overrides actuales y se insertan los del
- * archivo). Semanas que no vienen en el archivo quedan intactas. Todo
+ * (se borran sus ejercicios, overrides y sesión actuales y se insertan los
+ * del archivo). Semanas que no vienen en el archivo quedan intactas. Todo
  * o nada: se valida la forma completa antes de escribir nada en la base.
  * "sab"/"dom" son opcionales (backups viejos no los tienen) — si
  * faltan, se importan como día vacío.
@@ -25,7 +25,37 @@ const REQUIRED_DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie'];
  * tienen): { [day_key]: {group_name, notes, migrated_from} } — solo
  * para días cuyo grupo/notas no son los del template por defecto,
  * porque recibieron contenido migrado de otro día esa semana.
+ *
+ * <día> acepta dos formas, para no romper backups viejos:
+ *   - Legacy: una lista plana de ejercicios [{name,kg,reps,series,note,done}].
+ *   - Actual: un objeto {exercises:[...], start_time?, end_time?, duration_min?}
+ *     — start_time/end_time/duration_min son opcionales, y si vienen se
+ *     guardan en week_day_sessions (ver api/db/schema.sql).
+ * Se distinguen por la presencia de la clave "exercises": json_decode(...,
+ * true) convierte tanto `[]` como `{}` en un array PHP vacío, pero un día
+ * nuevo siempre trae "exercises" (aunque sea []), así que no hay ambigüedad.
  */
+
+function day_exercises_list($dayValue): array
+{
+    return isset($dayValue['exercises']) ? $dayValue['exercises'] : $dayValue;
+}
+
+function day_session_fields($dayValue): ?array
+{
+    if (!isset($dayValue['exercises'])) {
+        return null; // forma legacy, sin campos de sesión
+    }
+    $startTime = !empty($dayValue['start_time']) ? (string) $dayValue['start_time'] : null;
+    $endTime = !empty($dayValue['end_time']) ? (string) $dayValue['end_time'] : null;
+    $durationMin = isset($dayValue['duration_min']) && $dayValue['duration_min'] !== null && $dayValue['duration_min'] !== ''
+        ? (int) $dayValue['duration_min']
+        : null;
+    if ($startTime === null && $endTime === null && $durationMin === null) {
+        return null;
+    }
+    return ['start_time' => $startTime, 'end_time' => $endTime, 'duration_min' => $durationMin];
+}
 
 $weeks = read_json_body();
 if (!is_array($weeks) || empty($weeks)) {
@@ -50,10 +80,14 @@ foreach ($weeks as $i => $w) {
         if (!isset($w['days'][$dayKey])) {
             continue;
         }
-        if (!is_array($w['days'][$dayKey])) {
-            respond_error("Semana {$mondayDate}: el día \"{$dayKey}\" debe ser una lista.", 422);
+        $dayValue = $w['days'][$dayKey];
+        if (!is_array($dayValue)) {
+            respond_error("Semana {$mondayDate}: el día \"{$dayKey}\" debe ser una lista o un objeto.", 422);
         }
-        foreach ($w['days'][$dayKey] as $e) {
+        if (isset($dayValue['exercises']) && !is_array($dayValue['exercises'])) {
+            respond_error("Semana {$mondayDate}, día {$dayKey}: \"exercises\" debe ser una lista.", 422);
+        }
+        foreach (day_exercises_list($dayValue) as $e) {
             if (!is_array($e) || !array_key_exists('name', $e)) {
                 respond_error("Semana {$mondayDate}, día {$dayKey}: ejercicio con formato inválido.", 422);
             }
@@ -80,9 +114,14 @@ $insertWeek = $pdo->prepare('INSERT INTO weeks (monday_date) VALUES (:d)');
 $updateWeekNote = $pdo->prepare('UPDATE weeks SET note = :n WHERE id = :id');
 $deleteExercises = $pdo->prepare('DELETE FROM exercises WHERE week_id = :w');
 $deleteOverrides = $pdo->prepare('DELETE FROM week_day_overrides WHERE week_id = :w');
+$deleteSessions = $pdo->prepare('DELETE FROM week_day_sessions WHERE week_id = :w');
 $insertOverride = $pdo->prepare(
     'INSERT INTO week_day_overrides (week_id, day_key, group_name, notes, migrated_from)
      VALUES (:week_id, :day_key, :group_name, :notes, :migrated_from)'
+);
+$insertSession = $pdo->prepare(
+    'INSERT INTO week_day_sessions (week_id, day_key, start_time, end_time, duration_min)
+     VALUES (:week_id, :day_key, :start_time, :end_time, :duration_min)'
 );
 $insertEx = $pdo->prepare(
     'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order)
@@ -108,6 +147,7 @@ try {
             $weekId = (int) $weekId;
             $deleteExercises->execute(['w' => $weekId]);
             $deleteOverrides->execute(['w' => $weekId]);
+            $deleteSessions->execute(['w' => $weekId]);
         }
 
         $updateWeekNote->execute(['n' => (string) ($w['note'] ?? ''), 'id' => $weekId]);
@@ -123,8 +163,20 @@ try {
         }
 
         foreach (DAY_KEYS as $dayKey) {
+            $dayValue = $w['days'][$dayKey] ?? [];
+            $sessionFields = day_session_fields($dayValue);
+            if ($sessionFields !== null) {
+                $insertSession->execute([
+                    'week_id'      => $weekId,
+                    'day_key'      => $dayKey,
+                    'start_time'   => $sessionFields['start_time'],
+                    'end_time'     => $sessionFields['end_time'],
+                    'duration_min' => $sessionFields['duration_min'],
+                ]);
+            }
+
             $sortOrder = 0;
-            foreach ($w['days'][$dayKey] ?? [] as $e) {
+            foreach (day_exercises_list($dayValue) as $e) {
                 $name = trim((string) ($e['name'] ?? ''));
                 $insertEx->execute([
                     'week_id'    => $weekId,

@@ -144,18 +144,29 @@
   .progress-ring .pct{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:10px; font-weight:600; color:var(--text); }
 
   .col-heads{
-    display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px;
+    display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px 18px;
     gap:5px; padding:8px 12px 6px; font-size:9px; color:var(--text-faint);
     text-transform:uppercase; letter-spacing:.05em; font-weight:600;
   }
   .col-heads span:nth-child(3), .col-heads span:nth-child(4), .col-heads span:nth-child(5){ text-align:center; }
 
   .ex-row{
-    display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px; gap:5px;
+    display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px 18px; gap:5px;
     align-items:center; padding:8px 12px; border-top:1px solid var(--line);
-    min-height:64px;
+    min-height:64px; background:var(--surface);
   }
   .ex-row.pending{ background:rgba(201,151,74,0.05); }
+  .ex-row.dragging{
+    z-index:20; box-shadow:0 8px 20px rgba(0,0,0,0.35); border-radius:10px;
+    border-top-color:transparent; opacity:0.96;
+  }
+  .ex-row-placeholder{ border-top:1px dashed var(--accent-dim); background:rgba(217,72,31,0.06); }
+  .ex-drag-handle{
+    display:flex; align-items:center; justify-content:center; align-self:start; margin-top:2px;
+    color:var(--text-faint); cursor:grab; touch-action:none; padding:3px;
+  }
+  .ex-drag-handle:active{ cursor:grabbing; }
+  .ex-drag-handle .icon{ font-size:12px; }
   .ex-check{
     width:20px; height:20px; border-radius:6px; border:1.5px solid var(--line);
     display:flex; align-items:center; justify-content:center; cursor:pointer; color:transparent;
@@ -281,6 +292,51 @@
   .week-note-input:focus{ outline:none; }
   .week-note-input::placeholder{ color:var(--text-faint); }
 
+  /* ---------- Export de semana completa (imagen, fuera de pantalla) ---------- */
+  .week-share-container{ background:var(--bg); padding:20px; font-family:var(--font-body); }
+  .week-share-title{
+    font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--text);
+    text-transform:uppercase; letter-spacing:.01em; margin-bottom:16px;
+  }
+  .week-share-empty{ color:var(--text-faint); font-size:12px; }
+  .week-share-day{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-bottom:12px; }
+  .week-share-day-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .week-share-day-name{ font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--text); text-transform:uppercase; }
+  .week-share-day-group{ font-size:10px; color:var(--text-faint); }
+  .week-share-col-heads{
+    display:grid; grid-template-columns:22px 1fr 40px 40px 40px; gap:5px; padding:4px 0;
+    font-size:9px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; font-weight:600;
+  }
+  .week-share-col-heads span:nth-child(3), .week-share-col-heads span:nth-child(4), .week-share-col-heads span:nth-child(5){ text-align:center; }
+  .week-share-row{
+    display:grid; grid-template-columns:22px 1fr 40px 40px 40px; gap:5px;
+    align-items:center; padding:6px 0; border-top:1px solid var(--line);
+  }
+  .week-share-name{ font-size:12px; font-weight:500; color:var(--text); }
+  .week-share-row.pending .week-share-name{ color:var(--text-dim); }
+  .week-share-name.empty{ color:var(--text-faint); }
+  .week-share-val{ font-family:var(--font-mono); font-size:12px; color:var(--text-dim); text-align:center; font-weight:500; }
+  .week-share-row.done .week-share-val{ color:var(--text); }
+
+  /* ---------- Sesión del día (Iniciar/Finalizar entrenamiento) ---------- */
+  .day-session-panel{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:16px; }
+  .day-session-row{ display:flex; align-items:stretch; gap:10px; flex-wrap:wrap; }
+  .day-session-toggle{
+    flex:1 1 140px; background:var(--ok); color:var(--accent-ink); border:none; border-radius:9px;
+    font-family:var(--font-body); font-size:12px; font-weight:700; padding:0 12px; cursor:pointer;
+  }
+  .day-session-toggle.in-progress{ background:var(--danger); }
+  .day-session-field{
+    flex:1 1 84px; min-width:0; display:flex; flex-direction:column; gap:4px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:9px; padding:6px 10px;
+  }
+  .day-session-field label{ font-size:9px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+  .day-session-field input[type="time"]{
+    background:transparent; border:none; color:var(--text); font-family:var(--font-mono); font-size:13px; font-weight:600; padding:0;
+  }
+  .day-session-field input[type="time"]:focus{ outline:none; }
+  .day-session-duration{ font-family:var(--font-mono); font-size:13px; font-weight:600; color:var(--text); }
+
   /* ---------- Conversor kg / lbs ---------- */
   .converter-panel{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-top:16px; }
   .converter-label{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; font-weight:600; margin-bottom:8px; }
@@ -297,6 +353,13 @@
   .converter-field input::placeholder{ color:var(--text-faint); }
   .converter-unit{ font-size:10.5px; color:var(--text-faint); font-weight:600; text-transform:uppercase; flex-shrink:0; }
   .converter-icon{ font-size:12px; color:var(--text-faint); flex-shrink:0; }
+
+  /* ---------- Eliminar semana (fin de "Hoy") ---------- */
+  .btn-delete-week{
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:16px;
+    background:none; border:1px solid var(--line); color:var(--danger); border-radius:12px;
+    font-family:var(--font-body); font-size:12px; font-weight:600; padding:12px; cursor:pointer;
+  }
 
   /* ---------- Summary strip ---------- */
   .summary-strip{ display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:16px; }
@@ -548,10 +611,16 @@
      la semana del 1 de enero — con grid-auto-flow:row (el default) ese
      mismo orden cae solo en filas de 7, sin tocar el JS. */
   .heatmap-grid{
-    display:grid; grid-auto-flow:row; grid-template-columns:repeat(7, 1fr); gap:3px;
-    max-width:40vw; margin-inline:auto;
+    display:grid; grid-auto-flow:row; grid-template-columns:auto repeat(7, 1fr); gap:3px;
+    max-width:44vw; margin-inline:auto;
+  }
+  .heat-month-label{
+    grid-column:1; display:flex; align-items:center; justify-content:center;
+    writing-mode:vertical-rl; transform:rotate(180deg); font-size:8.5px; font-weight:600;
+    color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; padding-right:2px;
   }
   .heat-cell{ width:100%; aspect-ratio:1; border-radius:2px; background:var(--surface-2); }
+  .heat-cell[data-date]{ cursor:pointer; }
   .heat-cell.out{ background:transparent; }
   .heat-cell.tier-yellow{ background:var(--pending); }
   .heat-cell.tier-green{ background:var(--ok); }

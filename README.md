@@ -62,7 +62,7 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 
 ### Esquema de base de datos
 
-Siete tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO; incluye `note`, texto libre para la nota de la semana completa), `day_templates` (grupo muscular y notas **por defecto** de cada uno de los 7 días — Lun–Dom —, sembrados desde la rutina base; sábado/domingo llevan un valor genérico ya que no tienen rutina fija), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre para permitir formatos no numéricos; `updated_at` se actualiza solo en cada cambio y es la base del last-write-wins de la edición offline), `exercise_library` (nombres para autocompletar), `week_day_overrides` (group_name/notes específicos de una semana puntual — solo existe una fila cuando ese día recibió contenido migrado de otro día vía "Migrar día"; sin fila, el día usa el valor por defecto de `day_templates`) y `app_settings` (reglas editables desde Ajustes — `setting_key`/`setting_value`; sin fila para una clave, se usa el default definido en `api/settings.php`).
+Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO; incluye `note`, texto libre para la nota de la semana completa), `day_templates` (grupo muscular y notas **por defecto** de cada uno de los 7 días — Lun–Dom —, sembrados desde la rutina base; sábado/domingo llevan un valor genérico ya que no tienen rutina fija), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre para permitir formatos no numéricos; `updated_at` se actualiza solo en cada cambio y es la base del last-write-wins de la edición offline), `exercise_library` (nombres para autocompletar), `week_day_overrides` (group_name/notes específicos de una semana puntual — solo existe una fila cuando ese día recibió contenido migrado de otro día vía "Migrar día"; sin fila, el día usa el valor por defecto de `day_templates`), `week_day_sessions` (hora de inicio/fin y duración de un día puntual — sin fila, ese día no tiene horario registrado) y `app_settings` (reglas editables desde Ajustes — `setting_key`/`setting_value`; sin fila para una clave, se usa el default definido en `api/settings.php`).
 
 ### Puesta en marcha del backend (una sola vez por entorno)
 
@@ -210,6 +210,20 @@ SET @sql = IF(@exists = 0,
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- week_day_sessions: hora de inicio/fin y duración por día (botón
+-- "Iniciar/Finalizar entrenamiento" en api/weeks.php).
+-- CREATE TABLE IF NOT EXISTS ya es idempotente por sí solo.
+CREATE TABLE IF NOT EXISTS week_day_sessions (
+  week_id      INT UNSIGNED NOT NULL,
+  day_key      ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
+  start_time   TIME NULL,
+  end_time     TIME NULL,
+  duration_min SMALLINT UNSIGNED NULL,
+  PRIMARY KEY (week_id, day_key),
+  CONSTRAINT fk_week_day_sessions_week
+    FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
 Cada bloque devuelve un mensaje (`SELECT "..."`) cuando se salta, así que se puede ver en el resultado de phpMyAdmin exactamente cuáles se aplicaron y cuáles ya estaban. `DEFAULT`/`NULL` en las columnas nuevas dejan las filas existentes sin backfill manual — mismo criterio que ya tenían las versiones no defensivas de estos `ALTER`.

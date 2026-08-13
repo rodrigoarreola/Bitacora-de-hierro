@@ -79,6 +79,24 @@
 
     <div class="day-swipe-area" id="day-panel-host"></div>
 
+    <div class="day-session-panel hidden" id="day-session-panel">
+      <div class="day-session-row">
+        <button class="day-session-toggle" type="button" id="day-session-toggle">Iniciar entrenamiento</button>
+        <div class="day-session-field">
+          <label for="day-session-start">Hora inicio</label>
+          <input type="time" id="day-session-start" aria-label="Hora de inicio">
+        </div>
+        <div class="day-session-field">
+          <label for="day-session-end">Hora fin</label>
+          <input type="time" id="day-session-end" aria-label="Hora de fin">
+        </div>
+        <div class="day-session-field">
+          <label for="day-session-duration">Duración</label>
+          <div class="day-session-duration" id="day-session-duration">—</div>
+        </div>
+      </div>
+    </div>
+
     <div class="week-note-panel hidden" id="week-note-panel">
       <label for="week-note-input" class="week-note-label">Nota de la semana</label>
       <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
@@ -98,6 +116,8 @@
         </div>
       </div>
     </div>
+
+    <button class="btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
 
   </div>
 
@@ -255,6 +275,7 @@
   <!-- /#app-shell -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="js/offline-queue.js" defer></script>
 <script src="js/api.js" defer></script>
