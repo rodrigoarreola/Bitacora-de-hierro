@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.36.0] - 2026-08-13 — Badge de racha a un costado, recap hasta hoy, reps solo sin comparar
+
+### Changed
+
+- **Badge de racha**: pasa de arriba del número a un costado izquierdo, verticalmente centrado junto a "N días" + "racha actual" (`.streak` de columna a fila) — a pedido del usuario viendo una captura, quedaba muy separado del texto apilado arriba.
+- **Recap semanal** (`renderWeeklyRecap()`): cuando la semana activa es la semana en curso, la comparación contra la semana pasada se recorta al mismo día de la semana que hoy (ej. si hoy es miércoles, ambas semanas se miden lun-mié) en vez de comparar una semana a medio andar contra una ya cerrada completa — eso hacía que la semana actual siempre se viera "peor" aunque fuera solo cuestión de tiempo. Domingo recorta a sábado (semana ya cerrada, el gimnasio no abre ese día). Una semana pasada ya terminada se sigue comparando completa (lun-sáb), porque ahí no hay nada a medio registrar. El título de la card indica el corte cuando aplica (ej. "Esta semana vs. la pasada (hasta Miércoles)").
+- **Línea de reps en Progreso**: ya no se agrega cuando hay un segundo ejercicio en comparación — mostrar reps de un ejercicio junto al kg de otro no tenía lectura clara. El toggle de reps se deshabilita visualmente mientras haya una comparación activa.
+
+### Pendiente
+
+- **Comparar 2 ejercicios con peso y repeticiones**: hoy la línea de reps y el modo comparar son mutuamente excluyentes (ver arriba) — falta diseñar cómo mostrar ambas métricas de dos ejercicios a la vez sin saturar el gráfico (¿reps de los dos en el mismo eje `y1`? ¿solo del primario? ¿un toggle por ejercicio?).
+
 ## [1.35.0] - 2026-08-12 — Progreso: comparar ejercicios, línea de reps, mini-dashboard
 
 ### Added

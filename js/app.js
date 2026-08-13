@@ -45,6 +45,11 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.36.0', date: '2026-08-13', title: 'Badge de racha a un costado, recap hasta hoy, reps solo sin comparar', items: [
+      'El badge de racha se mueve al costado del número, en vez de arriba.',
+      'El recap semanal ahora compara "hasta hoy" contra la semana pasada, no la semana completa contra una a medio andar.',
+      'La línea de reps en Progreso ya no aparece al comparar dos ejercicios.',
+    ]},
     { version: '1.35.0', date: '2026-08-12', title: 'Progreso: comparar ejercicios, línea de reps, mini-dashboard', items: [
       'Nuevo buscador "Comparar con…" en Progreso para ver dos ejercicios superpuestos en el mismo gráfico.',
       'Toggle para agregar una línea de repeticiones (azul) al gráfico de un ejercicio.',
@@ -1098,17 +1103,18 @@
     return vol;
   }
 
-  function computeWeekVolume(week){
+  function computeWeekVolume(week, days){
     let vol = 0;
-    DAY_ORDER.filter(dk => dk !== 'dom').forEach(dk => { vol += computeDayVolume(week.days[dk]); });
+    days.forEach(dk => { vol += computeDayVolume(week.days[dk]); });
     return vol;
   }
 
   // Adherencia: días con contenido esa semana que llegaron al mínimo de
   // ejercicios marcados (mismo criterio de "día cumplido" que el resto de
-  // la app), sobre el total de días con contenido.
-  function computeWeekAdherence(week){
-    const relevantDays = DAY_ORDER.filter(dk => dk !== 'dom').filter(dk => week.days[dk].exercises.length > 0);
+  // la app), sobre el total de días con contenido — evaluados solo en
+  // `days` (ver recorte por día de la semana en renderWeeklyRecap()).
+  function computeWeekAdherence(week, days){
+    const relevantDays = days.filter(dk => week.days[dk].exercises.length > 0);
     const doneDays = relevantDays.filter(dk => week.days[dk].exercises.filter(e=>e.done).length >= RULES.min_done_per_day);
     return { done: doneDays.length, total: relevantDays.length };
   }
@@ -1129,14 +1135,28 @@
 
     if(!isAdjacent){ host.classList.add('hidden'); host.innerHTML = ''; return; }
 
-    const curVol = computeWeekVolume(curWeek), prevVol = computeWeekVolume(prevWeek);
+    // Si la semana activa es la semana en curso, comparar solo hasta hoy
+    // (ej. si hoy es miércoles, ambas semanas se miden lun-mié) — sin esto,
+    // una semana a mitad de andar siempre se ve "peor" que una ya cerrada.
+    // Una semana pasada y ya terminada se compara completa (lun-sáb),
+    // porque ahí no hay nada a medio registrar todavía.
+    const allDays = DAY_ORDER.filter(dk => dk !== 'dom');
+    const isCurrentWeek = curKey === toISO(mondayOfWeek(today));
+    let days = allDays;
+    if(isCurrentWeek){
+      const todayDow = today.getDay(); // 0=domingo..6=sábado
+      const cutoffKey = todayDow === 0 ? 'sab' : WEEKDAY_TO_KEY[todayDow]; // domingo: el gimnasio ya cerró toda la semana
+      days = allDays.slice(0, allDays.indexOf(cutoffKey) + 1);
+    }
+
+    const curVol = computeWeekVolume(curWeek, days), prevVol = computeWeekVolume(prevWeek, days);
     const volDelta = prevVol > 0 ? ((curVol - prevVol) / prevVol) * 100 : null;
-    const curAdh = computeWeekAdherence(curWeek), prevAdh = computeWeekAdherence(prevWeek);
+    const curAdh = computeWeekAdherence(curWeek, days), prevAdh = computeWeekAdherence(prevWeek, days);
     const deltaColor = (volDelta ?? 0) >= 0 ? 'var(--ok)' : 'var(--danger)';
 
     host.classList.remove('hidden');
     host.innerHTML = `
-      <div class="recap-title">Esta semana vs. la pasada</div>
+      <div class="recap-title">Esta semana vs. la pasada${days.length < allDays.length ? ` (hasta ${DAY_NAMES[days[days.length-1]]})` : ''}</div>
       <div class="recap-row">
         <div class="recap-item">
           <div class="k">Volumen</div>
@@ -1975,8 +1995,12 @@
     const repsBtn = document.getElementById('prog-reps-toggle');
     if(!row) return;
     row.classList.toggle('hidden', !progExercise);
-    repsBtn.classList.toggle('active', progShowReps);
-    repsBtn.setAttribute('aria-pressed', String(progShowReps));
+    // La línea de reps solo tiene sentido con un ejercicio a la vista —
+    // comparar dos con reps a la vez queda pendiente (ver CHANGELOG.md).
+    repsBtn.disabled = !!progExercise2;
+    repsBtn.classList.toggle('active', progShowReps && !progExercise2);
+    repsBtn.setAttribute('aria-pressed', String(progShowReps && !progExercise2));
+    repsBtn.title = progExercise2 ? 'No disponible al comparar dos ejercicios' : 'Mostrar repeticiones';
   }
 
   function renderProgDetail(contentEl){
@@ -2032,7 +2056,7 @@
       _alignedPoints: alignPoints(points1, unifiedIso),
     }];
 
-    if(progShowReps){
+    if(progShowReps && !progExercise2){
       datasets.push({
         label: 'Repeticiones',
         data: alignField(points1, unifiedIso, 'reps'),
@@ -2058,7 +2082,7 @@
       x: { grid: { color: line }, ticks: { color: textFaint, font: { size: 9 } } },
       y: { grid: { color: line }, ticks: { color: textDim, font: { size: 10 } } },
     };
-    if(progShowReps){
+    if(progShowReps && !progExercise2){
       scales.y1 = { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: info, font: { size: 9 } } };
     }
 
