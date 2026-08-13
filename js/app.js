@@ -45,6 +45,23 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.35.0', date: '2026-08-12', title: 'Progreso: comparar ejercicios, línea de reps, mini-dashboard', items: [
+      'Nuevo buscador "Comparar con…" en Progreso para ver dos ejercicios superpuestos en el mismo gráfico.',
+      'Toggle para agregar una línea de repeticiones (azul) al gráfico de un ejercicio.',
+      'Cuando no hay ningún ejercicio buscado, ahora se ve un mini-dashboard con la tendencia de todos los ejercicios de tu librería que tienen historial.',
+    ]},
+    { version: '1.34.0', date: '2026-08-12', title: 'Recap semanal en "Hoy"', items: [
+      'Nueva card que compara el volumen y la adherencia de esta semana contra la semana pasada.',
+    ]},
+    { version: '1.33.0', date: '2026-08-12', title: 'Buscar por ejercicio en Historial', items: [
+      'Nuevo buscador en Historial para filtrar las semanas por nombre de ejercicio, combinable con el filtro de mes.',
+    ]},
+    { version: '1.32.0', date: '2026-08-12', title: 'Badges de racha (7/30/100 días)', items: [
+      'Nuevos íconos de bronce/plata/oro junto a la racha actual del header al llegar a 7, 30 y 100 días.',
+    ]},
+    { version: '1.31.0', date: '2026-08-12', title: 'Deshacer al borrar un ejercicio', items: [
+      'Borrar un ejercicio ya no pide confirmación — se borra al toque y aparece un botón "Deshacer" por 5 segundos antes de confirmarlo de verdad.',
+    ]},
     { version: '1.30.0', date: '2026-08-12', title: 'Carga inicial en una sola petición', items: [
       'La app arrancaba pidiendo cada semana en una petición HTTP aparte, todas al mismo tiempo — en cuentas con muchas semanas eso disparaba decenas de peticiones simultáneas. Ahora se traen todas juntas en un solo pedido.',
     ]},
@@ -328,6 +345,8 @@
 
   const expandedIds = new Set();
   let migratePickerOpen = false;
+  let pendingDelete = null; // { day, exercise, index, timer } | null — borrado con undo, ver deleteExercise()
+  const UNDO_DELETE_MS = 5000;
 
   function currentWeek(){ return state.activeWeek ? state.weeks[state.activeWeek] : null; }
   function currentDay(){ const w = currentWeek(); return w ? w.days[state.activeDay] : null; }
@@ -351,6 +370,11 @@
   // exercises tal cual; se traduce group_name→group una sola vez acá para
   // que el resto del render siga usando el mismo shape que siempre tuvo.
   function applyWeekDetail(key, detail){
+    // Reemplaza state.weeks[key] por completo — si había un borrado
+    // pendiente de undo colgando de un objeto de día de ESTA semana, hay
+    // que asentarlo antes de que ese objeto quede huérfano (ver
+    // deleteExercise()/finalizePendingDelete()).
+    if(pendingDelete) finalizePendingDelete();
     const days = {};
     DAY_ORDER.forEach(dk=>{
       const d = detail.days[dk];
@@ -695,6 +719,7 @@
   }
 
   async function deleteWeek(key){
+    if(pendingDelete) finalizePendingDelete(); // evita resucitar un ejercicio en una semana que está por desaparecer
     if(state.order.length <= 1){ showToast('Debe quedar al menos una semana.'); return; }
     if(!confirm('¿Eliminar esta semana? Se perderán sus registros.')) return;
     try{ await Api.del(`api/weeks.php?date=${encodeURIComponent(key)}`); }
@@ -908,12 +933,28 @@
       : `Día migrado a ${DAY_NAMES[toDay]}.`);
   }
 
+  // Badges apilados: a los 100 días se ven bronce+plata+oro juntos (no
+  // solo el más alto) — mismo criterio de "un ícono por rango" que ya usa
+  // el medallero de Hitos, pero acumulativo en vez de exclusivo.
+  function renderStreakBadges(current){
+    const host = document.getElementById('streak-badges');
+    if(!host) return;
+    const tiers = [];
+    if(current >= 7)   tiers.push({ icon: 'fa-medal',  cls: 'bronze', label: 'Racha de 7+ días' });
+    if(current >= 30)  tiers.push({ icon: 'fa-medal',  cls: 'silver', label: 'Racha de 30+ días' });
+    if(current >= 100) tiers.push({ icon: 'fa-trophy', cls: 'gold',   label: 'Racha de 100+ días' });
+    host.innerHTML = tiers.map(t =>
+      `<i class="icon streak-badge-ico milestone-ico ${t.cls} fa-solid ${t.icon}" title="${t.label}" aria-label="${t.label}"></i>`
+    ).join('');
+  }
+
   function updateStreakBadge(){
     const { current, best } = computeStreaks();
 
     const badge = document.getElementById('streak-badge');
     badge.textContent = diasLabel(current);
     badge.classList.toggle('complete', current > 0);
+    renderStreakBadges(current);
 
     document.getElementById('sum-best-streak').textContent = diasLabel(best);
 
@@ -1026,6 +1067,7 @@
   renderChangelog();
 
   function updateSummaryStrip(){
+    renderWeeklyRecap();
     const day = currentDay();
     if(!day){
       document.getElementById('sum-series').textContent = '0';
@@ -1056,6 +1098,58 @@
     return vol;
   }
 
+  function computeWeekVolume(week){
+    let vol = 0;
+    DAY_ORDER.filter(dk => dk !== 'dom').forEach(dk => { vol += computeDayVolume(week.days[dk]); });
+    return vol;
+  }
+
+  // Adherencia: días con contenido esa semana que llegaron al mínimo de
+  // ejercicios marcados (mismo criterio de "día cumplido" que el resto de
+  // la app), sobre el total de días con contenido.
+  function computeWeekAdherence(week){
+    const relevantDays = DAY_ORDER.filter(dk => dk !== 'dom').filter(dk => week.days[dk].exercises.length > 0);
+    const doneDays = relevantDays.filter(dk => week.days[dk].exercises.filter(e=>e.done).length >= RULES.min_done_per_day);
+    return { done: doneDays.length, total: relevantDays.length };
+  }
+
+  function renderWeeklyRecap(){
+    const host = document.getElementById('weekly-recap-host');
+    if(!host) return;
+
+    const curKey = state.activeWeek;
+    const curWeek = curKey ? state.weeks[curKey] : null;
+    const prevKey = curKey ? getPrevWeekKey(curKey) : null;
+    const prevWeek = prevKey ? state.weeks[prevKey] : null;
+
+    // Solo cuenta como "semana pasada" real si el lunes anterior cae
+    // EXACTAMENTE 7 días antes — getPrevWeekKey() da la entrada adyacente
+    // en state.order, que puede saltar un hueco (mes entero sin semanas).
+    const isAdjacent = !!(curWeek && prevWeek && (fromISO(curKey) - fromISO(prevKey)) === 7 * 86400000);
+
+    if(!isAdjacent){ host.classList.add('hidden'); host.innerHTML = ''; return; }
+
+    const curVol = computeWeekVolume(curWeek), prevVol = computeWeekVolume(prevWeek);
+    const volDelta = prevVol > 0 ? ((curVol - prevVol) / prevVol) * 100 : null;
+    const curAdh = computeWeekAdherence(curWeek), prevAdh = computeWeekAdherence(prevWeek);
+    const deltaColor = (volDelta ?? 0) >= 0 ? 'var(--ok)' : 'var(--danger)';
+
+    host.classList.remove('hidden');
+    host.innerHTML = `
+      <div class="recap-title">Esta semana vs. la pasada</div>
+      <div class="recap-row">
+        <div class="recap-item">
+          <div class="k">Volumen</div>
+          <div class="v">${Math.round(curVol).toLocaleString('es-MX')} kg${volDelta === null ? '' :
+            ` <span class="recap-delta" style="color:${deltaColor}">${volDelta >= 0 ? '+' : ''}${volDelta.toFixed(0)}%</span>`}</div>
+        </div>
+        <div class="recap-item">
+          <div class="k">Adherencia</div>
+          <div class="v">${curAdh.done}/${curAdh.total} <span class="recap-vs">(antes ${prevAdh.done}/${prevAdh.total})</span></div>
+        </div>
+      </div>`;
+  }
+
   // ============================================================
   // Acciones sobre ejercicios
   // ============================================================
@@ -1084,18 +1178,52 @@
     updateSummaryStrip();
   }
 
-  async function deleteExercise(id){
-    const ex = findExercise(id);
-    if(!ex) return;
-    if(!confirm(`¿Eliminar "${ex.name || 'este ejercicio'}"?`)) return;
-    try{ await Api.del(`api/exercises.php?id=${encodeURIComponent(id)}`); }
-    catch(err){ showToast(err.message); return; }
+  // Confirma en el servidor un borrado que ya se aplicó de forma optimista
+  // en la UI — se llama sola al vencer la ventana de undo, o de inmediato
+  // si una mutación estructural (deleteWeek/applyWeekDetail) necesita
+  // asentar el estado antes de reemplazar/eliminar la semana entera.
+  function finalizePendingDelete(){
+    if(!pendingDelete) return;
+    const { exercise } = pendingDelete;
+    clearTimeout(pendingDelete.timer);
+    pendingDelete = null;
+    Api.del(`api/exercises.php?id=${encodeURIComponent(exercise.id)}`).catch(err=>{ showToast(err.message); });
+  }
+
+  function undoPendingDelete(){
+    if(!pendingDelete) return;
+    clearTimeout(pendingDelete.timer);
+    const { day, exercise, index } = pendingDelete;
+    day.exercises.splice(index, 0, exercise);
+    pendingDelete = null;
+    renderDayPanel();
+    updateStreakBadge();
+    updateSummaryStrip();
+  }
+
+  function deleteExercise(id){
     const day = currentDay();
-    day.exercises = day.exercises.filter(e=>String(e.id) !== String(id));
+    if(!day) return;
+    const index = day.exercises.findIndex(e=>String(e.id) === String(id));
+    if(index === -1) return;
+
+    // Un solo cupo de undo a la vez: si ya había un borrado pendiente, se
+    // confirma de inmediato en vez de encolarlo o perderlo silenciosamente.
+    if(pendingDelete) finalizePendingDelete();
+
+    const [exercise] = day.exercises.splice(index, 1);
     expandedIds.delete(String(id));
     renderDayPanel();
     updateStreakBadge();
     updateSummaryStrip();
+
+    pendingDelete = { day, exercise, index, timer: setTimeout(finalizePendingDelete, UNDO_DELETE_MS) };
+
+    showToast(`"${exercise.name || 'Ejercicio'}" eliminado.`, {
+      actionLabel: 'Deshacer',
+      onAction: undoPendingDelete,
+      duration: UNDO_DELETE_MS,
+    });
   }
 
   async function addExercise(){
@@ -1321,7 +1449,9 @@
   // gráfico mientras todavía está oculto lo dejaría deforme.
   function goToProgress(name){
     progExercise = name;
+    progExercise2 = null; // comparación no tiene sentido al saltar a un ejercicio nuevo desde otra vista
     document.getElementById('prog-search').value = name;
+    document.getElementById('prog-search-2').value = '';
     switchToView('progreso');
     renderProgreso();
   }
@@ -1337,11 +1467,32 @@
   // Toast
   // ============================================================
   const toastEl = document.getElementById('toast');
-  function showToast(msg){
-    toastEl.textContent = msg;
+  const toastMsgEl = document.getElementById('toast-msg');
+  const toastActionEl = document.getElementById('toast-action');
+
+  // opts: { actionLabel, onAction, duration } — todos opcionales, para no
+  // romper los ~15 call sites existentes que llaman showToast(msg) solo.
+  function showToast(msg, opts){
+    opts = opts || {};
+    toastMsgEl.textContent = msg;
+
+    if(opts.actionLabel && typeof opts.onAction === 'function'){
+      toastActionEl.textContent = opts.actionLabel;
+      toastActionEl.classList.remove('hidden');
+      toastActionEl.onclick = (e)=>{ e.stopPropagation(); hideToast(); opts.onAction(); };
+    } else {
+      toastActionEl.classList.add('hidden');
+      toastActionEl.onclick = null;
+    }
+
     toastEl.classList.add('show');
     clearTimeout(showToast._t);
-    showToast._t = setTimeout(()=>toastEl.classList.remove('show'), 2400);
+    showToast._t = setTimeout(hideToast, opts.duration || 2400);
+  }
+
+  function hideToast(){
+    toastEl.classList.remove('show');
+    clearTimeout(showToast._t);
   }
 
   // ============================================================
@@ -1555,6 +1706,7 @@
   // (mismo look que el riel de semanas de "Hoy": .week-rail/.week-pill).
   // ============================================================
   let historialMonth = null; // 'YYYY-MM', o null = todas
+  let historialSearch = ''; // texto de #hist-search, combinado en AND con historialMonth
 
   // Meses que toca una semana — [mes-mas-reciente, mes-mas-antiguo] cuando
   // cruza el corte de mes (ej. 27 abr - 3 may -> ['2026-05','2026-04']),
@@ -1633,11 +1785,21 @@
       railEl.appendChild(pill);
     });
 
-    const keys = state.order.filter(key => !historialMonth || weekMonths(key).includes(historialMonth));
+    const searchQ = historialSearch.trim().toLowerCase();
+    const keys = state.order.filter(key=>{
+      if(historialMonth && !weekMonths(key).includes(historialMonth)) return false;
+      if(searchQ){
+        const week = state.weeks[key];
+        const hasMatch = DAY_ORDER.some(dk => week.days[dk].exercises.some(e => e.name && e.name.toLowerCase().includes(searchQ)));
+        if(!hasMatch) return false;
+      }
+      return true;
+    });
     renderGroupBalance(keys);
 
     if(keys.length === 0){
-      listEl.innerHTML = `<p class="hist-empty">No hay semanas en este mes.</p>`;
+      const msg = searchQ ? 'No hay semanas con ese ejercicio en este período.' : 'No hay semanas en este mes.';
+      listEl.innerHTML = `<p class="hist-empty">${msg}</p>`;
       return;
     }
 
@@ -1702,7 +1864,10 @@
   // ("estaba en la rutina" no es lo mismo que "se hizo").
   // ============================================================
   let progExercise = null;
+  let progExercise2 = null;   // segundo ejercicio a comparar, o null
+  let progShowReps = false;   // toggle de línea de reps — pegajoso entre búsquedas
   let progChart = null;
+  let progSparkCharts = [];   // instancias del mini-dashboard de sparklines
 
   function cssVar(name){
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -1765,22 +1930,58 @@
     return points;
   }
 
+  // Eje X compartido para comparar dos ejercicios que no se entrenaron
+  // los mismos días: todas las fechas de ambos históricos, ordenadas por
+  // ISO (YYYY-MM-DD ordena igual como string que como fecha). Cada
+  // dataset se alinea contra ese eje con null en los huecos; spanGaps
+  // conecta la línea igual, saltando el hueco.
+  function buildUnifiedIsoDates(...pointsArrays){
+    const set = new Set();
+    pointsArrays.forEach(points => points.forEach(p => set.add(toISO(p.date))));
+    return [...set].sort();
+  }
+  function alignField(points, unifiedIso, field){
+    const byIso = new Map(points.map(p => [toISO(p.date), p]));
+    return unifiedIso.map(iso=>{
+      const p = byIso.get(iso);
+      if(!p) return null;
+      const v = field === 'kg' ? p.kg : parseFloat(p.reps);
+      return isNaN(v) ? null : v;
+    });
+  }
+  function alignPoints(points, unifiedIso){
+    const byIso = new Map(points.map(p => [toISO(p.date), p]));
+    return unifiedIso.map(iso => byIso.get(iso) || null);
+  }
+
   function renderProgreso(){
     const contentEl = document.getElementById('prog-content');
     if(!contentEl) return;
 
-    if(!progExercise){
-      contentEl.innerHTML = `
-        <div class="placeholder">
-          <i class="icon fa-solid fa-chart-line"></i>
-          <span>Progreso</span>
-          <p>Busca un ejercicio arriba para ver su progreso.</p>
-        </div>`;
-      return;
-    }
+    // Se destruyen siempre todas las instancias de Chart.js antes de
+    // decidir qué modo dibujar — evita fugas de canvases al alternar
+    // entre el gráfico de detalle y el grid de sparklines.
+    if(progChart){ progChart.destroy(); progChart = null; }
+    if(progSparkCharts.length){ progSparkCharts.forEach(c=>c.destroy()); progSparkCharts = []; }
 
-    const points = collectExerciseHistory(progExercise);
-    if(points.length === 0){
+    syncProgToolbar();
+
+    if(!progExercise){ renderProgDashboard(contentEl); return; }
+    renderProgDetail(contentEl);
+  }
+
+  function syncProgToolbar(){
+    const row = document.getElementById('prog-compare-row');
+    const repsBtn = document.getElementById('prog-reps-toggle');
+    if(!row) return;
+    row.classList.toggle('hidden', !progExercise);
+    repsBtn.classList.toggle('active', progShowReps);
+    repsBtn.setAttribute('aria-pressed', String(progShowReps));
+  }
+
+  function renderProgDetail(contentEl){
+    const points1 = collectExerciseHistory(progExercise);
+    if(points1.length === 0){
       contentEl.innerHTML = `
         <div class="placeholder">
           <i class="icon fa-solid fa-chart-line"></i>
@@ -1789,11 +1990,14 @@
         </div>`;
       return;
     }
+    const points2 = progExercise2 ? collectExerciseHistory(progExercise2) : [];
 
-    const kgs = points.map(p=>p.kg);
-    const last = kgs[kgs.length - 1];
-    const best = Math.max(...kgs);
-    const delta = last - kgs[0];
+    // Los 3 chips (Último/Mejor/Cambio) siguen basados solo en el
+    // ejercicio primario — comparar no cambia esa semántica.
+    const kgs1 = points1.map(p=>p.kg);
+    const last = kgs1[kgs1.length - 1];
+    const best = Math.max(...kgs1);
+    const delta = last - kgs1[0];
     const deltaSign = delta >= 0 ? '+' : '';
     const deltaColor = delta >= 0 ? 'var(--ok)' : 'var(--danger)';
 
@@ -1804,53 +2008,151 @@
         <div class="sum-chip"><div class="k">Cambio</div><div class="v" style="color:${deltaColor}">${deltaSign}${delta.toFixed(1)} kg</div></div>
       </div>
       <div class="prog-chart-card">
-        <div class="prog-ex-name">${escapeHtml(progExercise)}</div>
+        <div class="prog-ex-name">${escapeHtml(progExercise)}${progExercise2 ? `<span class="prog-ex-vs">vs</span>${escapeHtml(progExercise2)}` : ''}</div>
         <div class="prog-canvas-wrap"><canvas id="prog-canvas"></canvas></div>
       </div>`;
 
-    if(progChart){ progChart.destroy(); progChart = null; }
+    const unifiedIso = buildUnifiedIsoDates(points1, points2);
+    const labels = unifiedIso.map(iso => fmtShortDate(fromISO(iso)));
 
     const accent = cssVar('--accent');
+    const info = cssVar('--info');
+    const ok = cssVar('--ok');
     const line = cssVar('--line');
     const textDim = cssVar('--text-dim');
     const textFaint = cssVar('--text-faint');
+    const surface = cssVar('--surface');
 
+    const datasets = [{
+      label: progExercise,
+      data: alignField(points1, unifiedIso, 'kg'),
+      borderColor: accent, backgroundColor: accent + '33', fill: !progExercise2, tension: 0.25,
+      pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: surface, pointBorderColor: accent, pointBorderWidth: 2,
+      spanGaps: true, yAxisID: 'y',
+      _alignedPoints: alignPoints(points1, unifiedIso),
+    }];
+
+    if(progShowReps){
+      datasets.push({
+        label: 'Repeticiones',
+        data: alignField(points1, unifiedIso, 'reps'),
+        borderColor: info, backgroundColor: 'transparent', fill: false, tension: 0.25,
+        pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: surface, pointBorderColor: info, pointBorderWidth: 2,
+        borderDash: [4, 3], spanGaps: true, yAxisID: 'y1',
+        _alignedPoints: alignPoints(points1, unifiedIso),
+      });
+    }
+
+    if(progExercise2 && points2.length){
+      datasets.push({
+        label: progExercise2,
+        data: alignField(points2, unifiedIso, 'kg'),
+        borderColor: ok, backgroundColor: 'transparent', fill: false, tension: 0.25,
+        pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: surface, pointBorderColor: ok, pointBorderWidth: 2,
+        spanGaps: true, yAxisID: 'y',
+        _alignedPoints: alignPoints(points2, unifiedIso),
+      });
+    }
+
+    const scales = {
+      x: { grid: { color: line }, ticks: { color: textFaint, font: { size: 9 } } },
+      y: { grid: { color: line }, ticks: { color: textDim, font: { size: 10 } } },
+    };
+    if(progShowReps){
+      scales.y1 = { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: info, font: { size: 9 } } };
+    }
+
+    const multi = datasets.length > 1;
     progChart = new Chart(document.getElementById('prog-canvas'), {
       type: 'line',
-      data: {
-        labels: points.map(p => fmtShortDate(p.date)),
-        datasets: [{
-          data: kgs,
-          borderColor: accent,
-          backgroundColor: accent + '33',
-          fill: true,
-          tension: 0.25,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: cssVar('--surface'),
-          pointBorderColor: accent,
-          pointBorderWidth: 2,
-        }],
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: { display: false },
+          legend: { display: multi, labels: { color: textDim, font: { size: 10 }, boxWidth: 10 } },
           tooltip: {
+            filter: (item) => item.parsed.y !== null,
             callbacks: {
               label: (ctx)=>{
-                const p = points[ctx.dataIndex];
-                return `${p.kg} kg × ${p.reps || '—'} reps × ${p.series || '—'} series`;
+                const p = ctx.dataset._alignedPoints[ctx.dataIndex];
+                if(!p) return null;
+                if(ctx.dataset.label === 'Repeticiones') return `Reps: ${p.reps || '—'}`;
+                const prefix = multi ? `${ctx.dataset.label}: ` : '';
+                return `${prefix}${p.kg} kg × ${p.reps || '—'} reps × ${p.series || '—'} series`;
               },
             },
           },
         },
-        scales: {
-          x: { grid: { color: line }, ticks: { color: textFaint, font: { size: 9 } } },
-          y: { grid: { color: line }, ticks: { color: textDim, font: { size: 10 } } },
-        },
+        scales,
       },
+    });
+  }
+
+  function renderProgDashboard(contentEl){
+    // Candidatos: ejercicios de la librería con al menos un registro
+    // histórico marcado como hecho (mismo criterio que collectExerciseHistory).
+    const candidates = EXERCISE_LIBRARY
+      .map(e => ({ name: e.name, points: collectExerciseHistory(e.name) }))
+      .filter(c => c.points.length > 0)
+      .sort((a, b) => b.points[b.points.length - 1].date - a.points[a.points.length - 1].date);
+
+    if(candidates.length === 0){
+      contentEl.innerHTML = `
+        <div class="placeholder">
+          <i class="icon fa-solid fa-chart-line"></i>
+          <span>Progreso</span>
+          <p>Busca un ejercicio arriba para ver su progreso.</p>
+        </div>`;
+      return;
+    }
+
+    contentEl.innerHTML = `
+      <p class="prog-dash-hint">Elegí un ejercicio para ver su detalle, o mirá de un vistazo cómo va cada uno.</p>
+      <div class="prog-dash-grid" id="prog-dash-grid">
+        ${candidates.map((c, i) => {
+          const kgs = c.points.map(p => p.kg);
+          const last = kgs[kgs.length - 1];
+          const delta = kgs.length > 1 ? last - kgs[0] : 0;
+          const trendIco = delta > 0 ? 'fa-arrow-trend-up' : delta < 0 ? 'fa-arrow-trend-down' : 'fa-minus';
+          const trendClass = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+          return `
+          <div class="prog-spark-card" data-idx="${i}">
+            <div class="prog-spark-head">
+              <span class="prog-spark-name">${escapeHtml(c.name)}</span>
+              <i class="icon prog-spark-trend ${trendClass} fa-solid ${trendIco}"></i>
+            </div>
+            <div class="prog-spark-canvas-wrap"><canvas class="prog-spark-canvas"></canvas></div>
+            <div class="prog-spark-last">${last} kg</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+
+    const accent = cssVar('--accent');
+    contentEl.querySelectorAll('.prog-spark-card').forEach(card=>{
+      const c = candidates[parseInt(card.dataset.idx, 10)];
+      const chart = new Chart(card.querySelector('.prog-spark-canvas'), {
+        type: 'line',
+        data: {
+          labels: c.points.map(p => fmtShortDate(p.date)),
+          datasets: [{
+            data: c.points.map(p => p.kg), borderColor: accent, borderWidth: 1.5,
+            pointRadius: 0, tension: 0.25, fill: false,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } },
+        },
+      });
+      progSparkCharts.push(chart);
+      card.addEventListener('click', ()=>{
+        progExercise = c.name;
+        document.getElementById('prog-search').value = c.name;
+        renderProgreso();
+      });
     });
   }
 
@@ -1858,6 +2160,23 @@
     const val = e.target.value.trim();
     const match = EXERCISE_LIBRARY.find(x => x.name.toLowerCase() === val.toLowerCase());
     if(match){ progExercise = match.name; renderProgreso(); }
+  });
+
+  document.getElementById('prog-search-2').addEventListener('input', (e)=>{
+    const val = e.target.value.trim();
+    if(val === ''){ progExercise2 = null; renderProgreso(); return; }
+    const match = EXERCISE_LIBRARY.find(x => x.name.toLowerCase() === val.toLowerCase());
+    if(match){ progExercise2 = match.name; renderProgreso(); }
+  });
+
+  document.getElementById('prog-reps-toggle').addEventListener('click', ()=>{
+    progShowReps = !progShowReps;
+    renderProgreso();
+  });
+
+  document.getElementById('hist-search').addEventListener('input', (e)=>{
+    historialSearch = e.target.value;
+    renderHistorial();
   });
 
   // ============================================================

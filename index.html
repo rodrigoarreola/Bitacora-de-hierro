@@ -47,6 +47,7 @@
       </div>
     </div>
     <div class="streak">
+      <div class="streak-badges" id="streak-badges"></div>
       <div class="n" id="streak-badge">0 días</div>
       <div class="l">racha actual</div>
     </div>
@@ -71,6 +72,8 @@
       <div class="sum-chip"><div class="k">Mejor racha</div><div class="v" id="sum-best-streak">0 días</div></div>
       <div class="sum-chip"><div class="k">Volumen</div><div class="v" id="sum-volume">0 kg</div></div>
     </div>
+
+    <div class="recap-card hidden" id="weekly-recap-host"></div>
 
     <div class="day-swipe-area" id="day-panel-host"></div>
 
@@ -98,6 +101,7 @@
 
   <!-- ================= VIEW: HISTORIAL ================= -->
   <div class="view" id="view-historial">
+    <input type="text" id="hist-search" class="prog-search" placeholder="Buscar ejercicio…" list="exercise-library-list" autocomplete="off">
     <div class="week-rail" id="hist-month-rail"></div>
     <div class="hist-list" id="hist-list"></div>
     <div class="lib-panel balance-panel">
@@ -112,6 +116,12 @@
   <!-- ================= VIEW: PROGRESO ================= -->
   <div class="view" id="view-progreso">
     <input type="text" id="prog-search" class="prog-search" placeholder="Buscar ejercicio…" list="exercise-library-list" autocomplete="off">
+    <div class="prog-compare-row hidden" id="prog-compare-row">
+      <input type="text" id="prog-search-2" class="prog-search prog-search-2" placeholder="Comparar con… (opcional)" list="exercise-library-list" autocomplete="off">
+      <button type="button" class="prog-reps-toggle" id="prog-reps-toggle" aria-pressed="false" aria-label="Mostrar repeticiones">
+        <i class="icon fa-solid fa-repeat"></i>
+      </button>
+    </div>
     <div id="prog-content">
       <div class="placeholder">
         <i class="icon fa-solid fa-chart-line"></i>
@@ -234,7 +244,10 @@
     <button data-view="ajustes"><i class="icon fa-solid fa-sliders"></i>Ajustes</button>
   </nav>
 
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast">
+    <span class="toast-msg" id="toast-msg"></span>
+    <button type="button" class="toast-action hidden" id="toast-action"></button>
+  </div>
 
   </div>
   <!-- /#app-shell -->

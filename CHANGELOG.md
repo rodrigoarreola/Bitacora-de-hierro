@@ -2,6 +2,45 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.35.0] - 2026-08-12 — Progreso: comparar ejercicios, línea de reps, mini-dashboard
+
+### Added
+
+- **Comparar dos ejercicios a la vez** en Progreso: segundo buscador opcional ("Comparar con…") que superpone una segunda línea (verde, `--ok`) sobre el mismo gráfico. Dos ejercicios rara vez se entrenaron los mismos días, así que el eje X se arma con la unión de fechas de ambos históricos (`buildUnifiedIsoDates()`, ordenada por ISO — `YYYY-MM-DD` ordena igual como string que como fecha) y cada dataset se alinea contra ese eje con `null` en los huecos (`alignField()`/`alignPoints()`); `spanGaps:true` conecta la línea saltando esos huecos en vez de cortarla. La leyenda de Chart.js, oculta hasta ahora por haber una sola serie, se activa sola cuando hay más de un dataset.
+- **Línea de repeticiones** (azul, nuevo token `--info`) en el mismo gráfico, activable con un toggle nuevo junto al buscador — vive en un eje derecho propio (`y1`, sin grid propia para no ensuciar el gráfico) ya que las reps y los kg no comparten escala. El toggle es pegajoso entre búsquedas (se mantiene activado al cambiar de ejercicio) a pedido del usuario; se resetea junto con la comparación solo al saltar a Progreso desde el botón "Ver progreso" de otro ejercicio (`goToProgress()`).
+- **Mini-dashboard**: cuando no hay ningún ejercicio buscado, en vez del placeholder vacío de siempre se muestra un grid de sparklines (una por ejercicio de la librería que tiene al menos un registro marcado como hecho — intersección librería∩historial, no unión), ordenadas por entrenado-más-reciente-primero, con un ícono de tendencia (sube/baja/plano) y el último kg registrado. Tocar una tarjeta carga ese ejercicio en el detalle de siempre.
+
+`renderProgreso()` pasa de una única función a un dispatcher (`renderProgDetail()` / `renderProgDashboard()`) que primero destruye **todas** las instancias de Chart.js vivas — la única de detalle (`progChart`) y las N del mini-dashboard (`progSparkCharts`, un arreglo nuevo) — antes de decidir qué modo dibujar, para no filtrar canvases al alternar entre ambos. Con un solo ejercicio y sin reps activadas, el tooltip sale con el texto idéntico al de antes (sin prefijo de nombre) — la lógica de comparación/reps es aditiva, no cambia el caso por defecto.
+
+## [1.34.0] - 2026-08-12 — Recap semanal en "Hoy"
+
+### Added
+
+- **Recap semanal**: card nueva debajo de la tira de resumen de "Hoy" que compara volumen (kg×reps×series, `computeWeekVolume()` — suma `computeDayVolume()` de lun a sáb sin tocar esa función) y adherencia (días cumplidos sobre días con contenido, `computeWeekAdherence()`) de la semana activa contra la semana calendario inmediatamente anterior. Solo se muestra cuando esa semana anterior existe y es realmente adyacente — el lunes cae exactamente 7 días antes, no solo la entrada previa en `state.order` (que puede saltar un hueco de meses sin ninguna semana creada, típico del histórico importado de Garmin) — si no, la card se oculta en vez de comparar contra una semana que no es realmente "la pasada".
+
+## [1.33.0] - 2026-08-12 — Buscar por ejercicio en Historial
+
+### Added
+
+- **Buscador de ejercicio** en Historial (reutiliza la clase `.prog-search`, mismo look que el de Progreso): filtra las tarjetas de semana por nombre, combinado en AND con el filtro de mes ya existente. El panel de balance por grupo muscular hereda el filtro combinado automáticamente, sin tocarlo, porque ya consumía el mismo arreglo `keys` que ahora sale filtrado también por búsqueda. Mensaje de "sin resultados" diferenciado según si el vacío es por el mes elegido o por la búsqueda.
+
+## [1.32.0] - 2026-08-12 — Badges de racha (7/30/100 días)
+
+### Added
+
+- **Badges de racha** junto al número de racha actual del header: bronce a partir de 7 días, plata desde 30, oro desde 100 — reutiliza los mismos íconos/colores (`fa-medal`/`fa-trophy`, `.milestone-ico.gold/.silver/.bronze`) que ya usa el medallero de "Tus periodos de mayor constancia" en Hitos. A pedido del usuario, se muestran **todos** los tiers alcanzados a la vez (ej. a los 120 días se ven bronce+plata+oro juntos), no solo el más alto — distinto del medallero de Hitos, que sí es exclusivo por ranking. `computeStreakDetail()`/`computeStreaks()` no se tocan; `renderStreakBadges()` es puramente de presentación sobre el `current` ya calculado.
+
+## [1.31.0] - 2026-08-12 — Snackbar "Deshacer" al borrar un ejercicio
+
+### Added
+
+- **Deshacer borrado de ejercicio**: `deleteExercise()` deja de mostrar un `confirm()` bloqueante — el ejercicio desaparece de la UI de inmediato y la llamada real al servidor se difiere 5 segundos, ventana durante la cual un toast con botón "Deshacer" permite restaurarlo en su posición original sin haber tocado la base todavía. Si se deja pasar el tiempo sin tocar nada, se confirma solo contra el mismo `Api.del(...)` de siempre — la cola offline (`js/offline-queue.js`) lo sigue cubriendo igual si no hay red en ese momento. Alcance acotado a `deleteExercise` — `deleteWeek` y el borrado de la librería de ejercicios se quedan con `confirm()`, por ser borrados de mayor impacto.
+- `showToast(msg, opts)` gana un segundo parámetro opcional (`actionLabel`/`onAction`/`duration`), retrocompatible con los ~15 sitios existentes que la llaman con un string plano.
+
+### Changed
+
+- Solo se permite **un borrado pendiente de undo a la vez**: si se borra un segundo ejercicio mientras el primero todavía espera su ventana de 5s, ese primero se confirma de inmediato en vez de encolarse o perderse en silencio. `deleteWeek()` y `applyWeekDetail()` (esta última compartida por "Migrar día", crear semana e importar — reemplaza `state.weeks[key]` por completo) asientan cualquier undo pendiente antes de reemplazar/eliminar el objeto de semana del que ese borrado podría depender, para no resucitar un ejercicio en un día ya reemplazado o huérfano.
+
 ## [1.30.0] - 2026-08-12 — Carga inicial en una sola petición
 
 ### Fixed
