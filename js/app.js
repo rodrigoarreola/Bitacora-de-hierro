@@ -45,6 +45,10 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.39.0', date: '2026-08-13', title: 'Heatmap: etiquetas de mes alineadas al corte real', items: [
+      'Las etiquetas de mes del heatmap anual ahora tienen borde y esquinas redondeadas, igual que las celdas de días.',
+      'La fila donde cambia el mes ya no queda entera de un lado — se reparte 50/50 entre el mes que termina y el que empieza, sin dejar un hueco sin bordear entre los dos.',
+    ]},
     { version: '1.38.0', date: '2026-08-13', title: 'Reordenar ejercicios, exportar semana, zoom en Progreso y más', items: [
       'Reordenar ejercicios arrastrando dentro de un día (handle dedicado, mouse y touch).',
       'Nuevo botón "Compartir semana completa" junto al de compartir día, con los 7 días en una sola imagen.',
@@ -1967,24 +1971,35 @@
     const endDow = (dec31.getDay() + 6) % 7; // 0=lun..6=dom
     gridEnd.setDate(gridEnd.getDate() + (6 - endDow));
 
-    // Etiquetas de mes verticales: una por cada bloque de filas (semanas)
-    // seguidas del mismo mes, ubicadas en la columna 1 del mismo grid (ver
-    // .heatmap-grid en CSS: "auto repeat(7,1fr)") — así los cells del
-    // punto 2 (auto-flow, sin columna explícita) caen solos en las
-    // columnas 2-8 fila por fila, sin tener que calcular su posición a
-    // mano. El mes de una fila se toma del primer día de esa fila que sí
-    // cae dentro de heatmapYear, para que la semana de borde entre
-    // diciembre/enero (que casi siempre tiene más días del año nuevo) se
-    // agrupe con el mes que realmente representa.
+    // Etiquetas de mes verticales, en la columna 1 del mismo grid (ver
+    // .heatmap-grid en CSS). El grid usa 3 fine-rows por semana real: mitad
+    // de arriba, mitad de abajo, y un separador fijo de 3px (el gap entre
+    // semanas distintas se hace con ese separador, no con la propiedad
+    // "gap" — si el gap fuera uniforme también se metería DENTRO de la
+    // fila de transición, entre las dos mitades de meses vecinos, dejando
+    // un hueco sin bordear ahí). Cada celda ocupa las 2 fine-rows de su
+    // semana (mitad arriba + mitad abajo), saltándose el separador. El mes
+    // arranca/termina en la línea del medio de su fila de transición con
+    // el vecino — esa misma línea es a la vez el fin de un mes y el
+    // arranque del siguiente, así que los bordes coinciden exacto.
     let cellsHtml = '';
-    const monthRuns = [];
+    // seamRow[mes] = primera fila (semana) donde aparece ese mes — la fila
+    // de transición con el mes anterior: el mes anterior la muestra en su
+    // mitad de arriba, este mes en su mitad de abajo.
+    const seamRow = new Array(12).fill(null);
+    let firstRow = null, lastRow = null;
     const cursor = new Date(gridStart);
-    let row = 0;
+    let rowIdx = 0;
     while(cursor <= gridEnd){
-      let rowMonth = null;
+      const fineRowStart = rowIdx * 3 + 1;
       for(let col = 0; col < 7; col++){
         const inYear = cursor.getFullYear() === heatmapYear;
-        if(inYear && rowMonth === null) rowMonth = cursor.getMonth();
+        if(inYear){
+          if(firstRow === null) firstRow = rowIdx;
+          lastRow = rowIdx;
+          const m = cursor.getMonth();
+          if(seamRow[m] === null) seamRow[m] = rowIdx;
+        }
         let tier = inYear ? computeDayTier(cursor) : null;
         // A diferencia de Calendario, el heatmap no pinta rojo — se reserva
         // el color para los días cumplidos (verde/amarillo), un día sin
@@ -1992,20 +2007,33 @@
         // que en 365 celdas termina siendo más ruido que señal.
         if(tier === 'tier-red') tier = null;
         const dateAttr = inYear ? ` data-date="${toISO(cursor)}"` : '';
-        cellsHtml += `<div class="heat-cell${inYear ? '' : ' out'}${tier ? ' ' + tier : ''}" title="${inYear ? fmtFullDate(cursor) : ''}"${dateAttr}></div>`;
+        const style = `grid-row:${fineRowStart} / span 2; grid-column:${col + 2}`;
+        cellsHtml += `<div class="heat-cell${inYear ? '' : ' out'}${tier ? ' ' + tier : ''}" style="${style}" title="${inYear ? fmtFullDate(cursor) : ''}"${dateAttr}></div>`;
         cursor.setDate(cursor.getDate() + 1);
       }
-      const lastRun = monthRuns[monthRuns.length - 1];
-      if(lastRun && lastRun.month === rowMonth) lastRun.rowCount++;
-      else monthRuns.push({ month: rowMonth, startRow: row, rowCount: 1 });
-      row++;
+      rowIdx++;
     }
 
-    const labelsHtml = monthRuns.map(r => `
-      <div class="heat-month-label" style="grid-row:${r.startRow + 1} / span ${r.rowCount}">${MESES[r.month]}</div>
-    `).join('');
+    const monthsPresent = [];
+    for(let m = 0; m < 12; m++){ if(seamRow[m] !== null) monthsPresent.push(m); }
 
-    gridEl.innerHTML = labelsHtml + cellsHtml;
+    const labelParts = monthsPresent.map((m, i)=>{
+      const isFirst = i === 0;
+      const isLast = i === monthsPresent.length - 1;
+      // Enero (isFirst) arranca en el borde de arriba de su primera fila
+      // — no hay mes anterior con quien compartirla. Cualquier otro mes
+      // arranca a la mitad de su fila de transición (seamRow[m]), cediendo
+      // la mitad de arriba de esa misma fila al mes anterior.
+      const startLine = isFirst ? (firstRow * 3 + 1) : (seamRow[m] * 3 + 2);
+      // Diciembre (isLast) termina en el borde de abajo de su última fila
+      // (antes de su separador). Cualquier otro mes termina a la mitad de
+      // la fila de transición del SIGUIENTE mes — esa misma línea es el
+      // startLine del que sigue, así que los dos bordes coinciden exacto.
+      const endLine = isLast ? (lastRow * 3 + 3) : (seamRow[monthsPresent[i + 1]] * 3 + 2);
+      return `<div class="heat-month-label" style="grid-row:${startLine} / ${endLine}">${MESES[m]}</div>`;
+    });
+
+    gridEl.innerHTML = labelParts.join('') + cellsHtml;
   }
 
   document.getElementById('heatmap-year-rail').addEventListener('click', (e)=>{

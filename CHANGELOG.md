@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.39.0] - 2026-08-13 — Heatmap: etiquetas de mes alineadas al corte real
+
+### Changed
+
+- **Etiquetas de mes del heatmap anual** (`renderHeatmap()`, `js/app.js`): borde de 1px y `border-radius:2px` — mismo lenguaje visual que `.heat-cell`. Pasó por tres iteraciones antes de esta versión final: (1) una fila combinada mostrando los dos meses en una sola caja — rechazada, "no crear una nueva combinando dos meses"; (2) cada fila asignada por mayoría de días a un solo mes, sin partir — dejaba un hueco de una fila entera sin bordear entre un mes y el siguiente (ninguno de los dos la reclamaba); (3) intento de recorte con `position:absolute` + `getBoundingClientRect()` — frágil de verdad, no cosmético: se rompía si `renderHeatmap()` corría con la vista todavía oculta (`display:none` devuelve rects en 0) y además corromper la medición de un label al pasar a absoluto a los anteriores en el mismo loop.
+- **Solución final, sin medir nada en JS**: el grid usa 3 "fine-rows" por semana real (mitad de arriba / mitad de abajo / separador fijo de 3px) en vez de una fila + gap uniforme. Cada `.heat-cell` ocupa sus 2 mitades (`grid-row: N / span 2`), saltándose el separador. Cada mes arranca/termina en la línea del medio de su fila de transición con el vecino (`seamRow[mes]` en `renderHeatmap()`) — esa misma línea es a la vez el fin de un mes y el arranque del siguiente, así que los bordes coinciden exacto y el separador de 3px queda reservado solo para semanas realmente distintas, nunca entre las dos mitades de una fila compartida.
+
 ## [1.38.0] - 2026-08-13 — Reordenar ejercicios, exportar semana, zoom en Progreso y más
 
 ### Added
