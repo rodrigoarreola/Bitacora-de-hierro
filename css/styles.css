@@ -40,8 +40,8 @@
   .streak .n{ font-family:var(--font-mono); font-size:19px; font-weight:600; color:var(--text-faint); line-height:1; transition:color .2s ease; }
   .streak .n.complete{ color:var(--ok); }
   .streak .l{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
-  .streak-badges{ display:flex; align-items:center; justify-content:center; gap:2px; }
-  .streak-badges .streak-badge-ico{ font-size:32px; line-height:1; }
+  .streak-badges{ display:flex; align-items:center; justify-content:center; gap:2px; padding-right:4px; }
+  .streak-badges .streak-badge-ico{ font-size:28px; line-height:1; }
 
   /* ---------- Week rail ---------- */
   .week-rail{ display:flex; gap:7px; overflow-x:auto; padding-bottom:4px; margin-bottom:16px; scrollbar-width:none; align-items:center; }
