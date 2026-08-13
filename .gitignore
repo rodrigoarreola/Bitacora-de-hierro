@@ -15,3 +15,6 @@ bitacora-backup-*.json
 # Backups automáticos (api/db/backup_export.php) — datos reales, protegidos
 # también por api/db/backups/.htaccess, pero por las dudas no van al repo
 api/db/backups/*.json
+
+# Zips de despliegue armados para subir por FTP — artefacto local, no código
+/producción/
