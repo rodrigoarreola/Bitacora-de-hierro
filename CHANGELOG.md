@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.42.0] - 2026-08-14 — Resumen semanal: card sólida ("patrón Strava") en vez de fondo transparente
+
+### Changed
+
+- **`.dashboard-share` pasa a ser una card sólida y redondeada** (`background:var(--bg)`, `border:1px solid var(--line)`, `border-radius:22px`) en vez de fondo transparente. Motivo: probado en real compartiendo a redes sociales, el fondo transparente solo se ve bien sobre una superficie oscura y uniforme (un chat) — sobre una foto real, todo lo que no fuera una card interna (título "BITÁCORA", "Registro de entrenamiento", labels de los day-tabs, el borde de "+ Nueva semana") no tenía fondo propio y quedaba prácticamente ilegible.
+- **Se probó `box-shadow` primero** (card flotando con sombra difusa, un wrap exterior transparente con padding para que la sombra tuviera espacio) pero se descartó: comprobado leyendo el PNG resultante píxel a píxel, html2canvas 1.4.1 no renderiza `box-shadow` en absoluto — el corte entre la card y el resto queda en alpha 0 sin ningún degradé, no hay sombra que mostrar. Un borde de 1px sí se renderiza bien (mismo mecanismo que ya usan `.sum-chip`/`.recap-card`), así que reemplaza a la sombra como señal de "esto es una card flotante".
+- `copyElementAsImage()` sigue con `backgroundColor: null` en `html2canvas`, pero ahora solo para que las esquinas redondeadas de la card queden transparentes (si no, html2canvas rellena todo el rectángulo del elemento y las esquinas se ven cuadradas) — ya no para dejar transparente todo el fondo.
+
 ## [1.41.0] - 2026-08-14 — Compartir semana: resumen del dashboard, copiado al portapapeles
 
 ### Changed

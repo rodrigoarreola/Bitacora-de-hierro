@@ -45,6 +45,9 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.42.0', date: '2026-08-14', title: 'Resumen semanal: card sólida en vez de fondo transparente', items: [
+      'El PNG que se copia al portapapeles ("Copiar resumen de la semana") ahora es una sola card sólida y redondeada, no un fondo transparente — se veía mal sobre una foto real al compartir en redes, porque el título y los labels sueltos quedaban sin nada detrás.',
+    ]},
     { version: '1.41.0', date: '2026-08-14', title: 'Compartir semana: resumen del dashboard, copiado al portapapeles', items: [
       'El botón de calendario junto a "Compartir día" ahora captura el mismo bloque que se ve arriba de "Hoy" (racha, riel de semanas, riel de días, resumen y comparación semanal) en vez de una tabla larga con los 7 días.',
       'La imagen sale en PNG con fondo transparente — solo las cards (pills, tabs, chips, la card de comparación) llevan color sólido.',
@@ -2426,9 +2429,9 @@
   // vez de reconstruir HTML a mano para que el export nunca se desalinee
   // de lo que la app ya renderiza.
   function buildDashboardShareContainer(){
-    const container = document.createElement('div');
-    container.className = 'dashboard-share';
-    container.appendChild(cloneForShare(document.querySelector('header.app-head')));
+    const card = document.createElement('div');
+    card.className = 'dashboard-share';
+    card.appendChild(cloneForShare(document.querySelector('header.app-head')));
     const weekRailClone = cloneRailForShare(document.getElementById('week-rail'));
     // El <input type="date"> de "+ Nueva semana" es invisible en la app real
     // gracias a #new-week-date{opacity:0} (selector por id) — como
@@ -2436,23 +2439,23 @@
     // aplica al clon y el input aparecería como una caja blanca suelta. No
     // tiene sentido en una imagen estática de todos modos, así que se saca.
     weekRailClone.querySelector('input[type="date"]')?.remove();
-    container.appendChild(weekRailClone);
-    container.appendChild(cloneRailForShare(document.getElementById('day-rack')));
-    container.appendChild(cloneForShare(document.querySelector('.summary-strip')));
+    card.appendChild(weekRailClone);
+    card.appendChild(cloneRailForShare(document.getElementById('day-rack')));
+    card.appendChild(cloneForShare(document.querySelector('.summary-strip')));
     const recapHost = document.getElementById('weekly-recap-host');
     if(recapHost && !recapHost.classList.contains('hidden') && recapHost.innerHTML.trim()){
-      container.appendChild(cloneForShare(recapHost));
+      card.appendChild(cloneForShare(recapHost));
     }
-    return container;
+    return card;
   }
 
   // Genera el PNG con html2canvas y lo copia al portapapeles (Clipboard
-  // API). `backgroundColor: null` deja transparente todo lo que no sea
-  // una card — esas ya traen su propio fondo sólido de la hoja de
-  // estilos (.week-pill, .day-tab, .sum-chip, .recap-card), así que no
-  // hace falta pintar nada a mano. Si el navegador no soporta copiar
-  // imágenes (o el usuario niega el permiso), cae a una descarga directa
-  // (mismo patrón de <a download> que ya usa exportar datos en Perfil).
+  // API). `backgroundColor: null` deja transparentes las esquinas
+  // redondeadas de .dashboard-share (si no, html2canvas rellena todo el
+  // rectángulo del elemento y las esquinas se ven cuadradas). Si el
+  // navegador no soporta copiar imágenes (o el usuario niega el permiso),
+  // cae a una descarga directa (mismo patrón de <a download> que ya usa
+  // exportar datos en Perfil).
   async function copyElementAsImage(el, filename){
     if(typeof html2canvas === 'undefined'){ showToast('No se pudo generar la imagen.'); return; }
     const canvas = await html2canvas(el, { backgroundColor: null, scale: 2 });

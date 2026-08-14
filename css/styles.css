@@ -293,14 +293,22 @@
   .week-note-input::placeholder{ color:var(--text-faint); }
 
   /* ---------- Export de resumen semanal (imagen, fuera de pantalla) ---------- */
-  /* Sin fondo propio a propósito: solo las cards clonadas adentro
-     (.week-pill, .day-tab, .sum-chip, .recap-card) traen su color sólido
-     de la hoja de estilos general — el resto queda transparente en el
-     PNG. Los nodos clonados conservan sus clases originales, así que
-     todo su estilo ya viene de las reglas de arriba (header, week-rail,
-     day-rack, summary-strip, recap-card); acá solo el ancho/padding del
-     contenedor, que normalmente pone <body>. */
-  .dashboard-share{ width:520px; padding:16px 14px; box-sizing:border-box; font-family:var(--font-body); }
+  /* "Patrón Strava": una sola card sólida y redondeada en vez de fondo
+     transparente. Pensada para pegarse sobre CUALQUIER fondo al compartir
+     en redes (una foto, no solo un chat oscuro y uniforme) — transparente
+     puro dejaba el título, los labels sueltos y el borde de "+ Nueva
+     semana" ilegibles sobre una foto real, porque esos elementos no
+     tienen su propio fondo (solo lo tienen las cards internas: .week-pill,
+     .day-tab, .sum-chip, .recap-card). Sin box-shadow a propósito: se
+     probó (blur+offset) y html2canvas 1.4.1 no lo renderiza — el corte
+     entre la card y el resto queda sin ningún degradé, alpha 0 de una
+     (comprobado leyendo el PNG resultante). Un borde de 1px sí se
+     renderiza bien (ya lo usan .sum-chip/.recap-card), así que hace ese
+     trabajo en su lugar. */
+  .dashboard-share{
+    width:520px; padding:16px 14px; box-sizing:border-box; font-family:var(--font-body);
+    background:var(--bg); border:1px solid var(--line); border-radius:22px;
+  }
 
   /* ---------- Sesión del día (Iniciar/Finalizar entrenamiento) ---------- */
   .day-session-panel{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:16px; }
