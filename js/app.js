@@ -45,6 +45,12 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.45.0', date: '2026-08-14', title: 'Timer del día como íconos, y changelog colapsado en Perfil', items: [
+      'La card "Iniciar/Finalizar entrenamiento" ahora es un ícono de play/stop en rojo, en vez de un botón de texto — entra en la misma fila que Hora inicio/Hora fin/Duración incluso en un celular angosto.',
+      'Si el día cargado en "Hoy" es literalmente hoy, esa card se mueve arriba, entre el riel de días y las 4 cards de resumen — cualquier otro día la deja donde siempre vivió.',
+      'Changelog en Perfil colapsado por defecto: ahora solo se ve "Changelog / Versión actual: X.X.X", y se despliega la lista completa al tocarlo.',
+      'Corregido: la fecha de cada versión del changelog quedaba descolgada cuando el título ocupaba 2 líneas — ahora versión/fecha/chevron siempre van en su propia fila, con el título suelto debajo.',
+    ]},
     { version: '1.44.0', date: '2026-08-14', title: 'Resumen semanal: card al 50%, días en blanco y rieles a todo el ancho', items: [
       'La card del resumen semanal sube de 30% a 50% de opacidad — a 30% se notaba demasiado el fondo.',
       'Nombre del día y grupo muscular en las cards de Lun-Dom ahora van en blanco (se perdían con el verde de fondo cuando el día estaba completado).',
@@ -1211,6 +1217,21 @@
     return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
   }
 
+  // Mueve la card de sesión entre el riel de días y la tira de resumen
+  // cuando el día cargado es HOY de verdad (fecha real, no solo el día de
+  // la semana activo) — pensado para tenerla a mano arriba mientras se
+  // entrena; cualquier otro día (pasado o futuro) la deja donde siempre
+  // vivió, justo antes de la nota de la semana.
+  function placeDaySessionPanel(panel, isToday){
+    if(isToday){
+      const summaryStrip = document.querySelector('.summary-strip');
+      summaryStrip.parentNode.insertBefore(panel, summaryStrip);
+    } else {
+      const weekNotePanel = document.getElementById('week-note-panel');
+      weekNotePanel.parentNode.insertBefore(panel, weekNotePanel);
+    }
+  }
+
   function renderDaySession(){
     const panel = document.getElementById('day-session-panel');
     const week = currentWeek();
@@ -1218,6 +1239,9 @@
     if(!week) return;
 
     const day = currentDay();
+    const d = dayDate(state.activeWeek, state.activeDay);
+    placeDaySessionPanel(panel, toISO(d) === toISO(new Date()));
+
     const startEl = document.getElementById('day-session-start');
     const endEl = document.getElementById('day-session-end');
     const durEl = document.getElementById('day-session-duration');
@@ -1228,7 +1252,8 @@
     durEl.textContent = fmtDurationLabel(day.durationMin);
 
     const inProgress = !!day.startTime && !day.endTime;
-    toggleBtn.textContent = inProgress ? 'Finalizar entrenamiento' : 'Iniciar entrenamiento';
+    toggleBtn.querySelector('.icon').className = `icon fa-solid ${inProgress ? 'fa-stop' : 'fa-play'}`;
+    toggleBtn.setAttribute('aria-label', inProgress ? 'Finalizar entrenamiento' : 'Iniciar entrenamiento');
     toggleBtn.classList.toggle('in-progress', inProgress);
   }
 
@@ -1404,12 +1429,12 @@
     listEl.innerHTML = APP_VERSIONS.map((v, i) => `
       <details class="changelog-entry"${i === 0 ? ' open' : ''}>
         <summary>
-          <div class="changelog-entry-heading">
+          <div class="changelog-entry-top">
             <span class="changelog-entry-version">v${v.version}</span>
-            <span class="changelog-entry-title">${escapeHtml(v.title)}</span>
+            <span class="changelog-entry-date">${fmtShortDate(fromISO(v.date))}</span>
+            <i class="icon chev fa-solid fa-chevron-down"></i>
           </div>
-          <span class="changelog-entry-date">${fmtShortDate(fromISO(v.date))}</span>
-          <i class="icon chev fa-solid fa-chevron-down"></i>
+          <span class="changelog-entry-title">${escapeHtml(v.title)}</span>
         </summary>
         <div class="changelog-entry-body">
           <ul>${v.items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>

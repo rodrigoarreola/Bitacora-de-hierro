@@ -81,7 +81,7 @@
 
     <div class="day-session-panel hidden" id="day-session-panel">
       <div class="day-session-row">
-        <button class="day-session-toggle" type="button" id="day-session-toggle">Iniciar entrenamiento</button>
+        <button class="day-session-toggle" type="button" id="day-session-toggle" aria-label="Iniciar entrenamiento"><i class="icon fa-solid fa-play"></i></button>
         <div class="day-session-field">
           <label for="day-session-start">Hora inicio</label>
           <input type="time" id="day-session-start" aria-label="Hora de inicio">
@@ -213,11 +213,16 @@
 
     <button type="button" class="logout-btn" id="logout-btn">Cerrar sesión</button>
 
-    <div class="changelog-panel">
-      <div class="lib-title">Changelog</div>
-      <p class="changelog-version">Versión actual: <strong id="changelog-current-version">—</strong></p>
+    <details class="changelog-panel">
+      <summary class="changelog-panel-summary">
+        <div class="changelog-panel-heading">
+          <div class="lib-title">Changelog</div>
+          <p class="changelog-version">Versión actual: <strong id="changelog-current-version">—</strong></p>
+        </div>
+        <i class="icon chev fa-solid fa-chevron-down"></i>
+      </summary>
       <div id="changelog-list"></div>
-    </div>
+    </details>
   </div>
 
   <!-- ================= VIEW: AJUSTES → Librería de ejercicios ================= -->

@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.45.0] - 2026-08-14 — Timer del día como íconos, y changelog colapsado en Perfil
+
+### Changed
+
+- **Card "Iniciar/Finalizar entrenamiento" (`#day-session-panel`, "Hoy")**: el botón de texto ("Iniciar entrenamiento"/"Finalizar entrenamiento", fondo verde/rojo) se reemplaza por un botón cuadrado de 40px con ícono `fa-play`/`fa-stop` en rojo (`var(--danger)`), con un tinte de fondo rojo sutil (`rgba(226,87,76,0.12)`) mientras el entrenamiento está en curso. `.day-session-row` pasa de `flex-wrap:wrap` (el botón de texto, `flex:1 1 140px`, forzaba 2 filas casi siempre) a una sola fila sin wrap — el ícono angosto (`flex:0 0 auto`) más los 3 campos a `flex:1 1 0`/`min-width:0` entran los 4 elementos incluso en un celular de 375px de ancho.
+- **Reubicación condicional según la fecha real**: nueva `placeDaySessionPanel(panel, isToday)` en `renderDaySession()` — compara `dayDate(state.activeWeek, state.activeDay)` contra `new Date()` (no el día de la semana activo, la fecha real) vía `toISO()`. Si coincide, mueve la card con `insertBefore` a justo antes de `.summary-strip` (entre el riel de días y la tira de 4 cards); si no, la deja donde siempre vivió, justo antes de `#week-note-panel`. Se recalcula en cada render, así que cambiar de día en "Hoy" mueve la card en vivo. Verificado forzando el día activo a hoy y a otro día, en ambos sentidos.
+
+### Fixed
+
+- **Changelog en Perfil sin colapsar de entrada**: `.changelog-panel` (un `<div>` fijo) pasa a `<details>` — antes se veían las ~30 versiones apiladas apenas se entraba a Perfil; ahora solo "Changelog / Versión actual: X.X.X" + chevron, y la lista completa (cada versión sigue siendo su propio `<details>` plegable) aparece recién al tocarlo.
+- **Fecha de cada entrada del changelog descolgada con títulos largos**: `.changelog-entry summary` era una sola fila (`justify-content:space-between`) con la fecha y el chevron centrados verticalmente contra un bloque de versión+título apilados — con un título de 2 líneas, la fecha quedaba flotando a la mitad en vez de alineada arriba. Reestructurado a dos filas: `.changelog-entry-top` (versión + fecha + chevron, siempre una sola línea) arriba, `.changelog-entry-title` suelto debajo — así nada se desalinea sea cual sea el largo del título. Verificado capturando las ~30 entradas reales del changelog.
+
 ## [1.44.0] - 2026-08-14 — Resumen semanal: card al 50%, días en blanco y rieles a todo el ancho
 
 ### Changed
