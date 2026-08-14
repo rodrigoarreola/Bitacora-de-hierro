@@ -45,6 +45,11 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.44.0', date: '2026-08-14', title: 'Resumen semanal: card al 50%, días en blanco y rieles a todo el ancho', items: [
+      'La card del resumen semanal sube de 30% a 50% de opacidad — a 30% se notaba demasiado el fondo.',
+      'Nombre del día y grupo muscular en las cards de Lun-Dom ahora van en blanco (se perdían con el verde de fondo cuando el día estaba completado).',
+      'Corregido: en celulares más angostos que la imagen exportada, el riel de semanas y el de días quedaban encogidos con un hueco vacío a la derecha en vez de ocupar todo el ancho de la card.',
+    ]},
     { version: '1.43.0', date: '2026-08-14', title: 'Resumen semanal: card al 30%, texto legible y rieles sin cortes', items: [
       'La card del resumen semanal pasa de sólida a 30% de opacidad — se sigue notando un poco el fondo detrás.',
       'Título, subtítulo y el label "racha actual" ahora van en blanco; el número de racha siempre en verde. Los días completados llevan su verde también al 30%.',
@@ -2443,43 +2448,79 @@
     return { live, clone };
   }
 
+  // Ancho de contenido de .dashboard-share: 520px de card menos su
+  // padding horizontal (14px a cada lado) — ver esa regla en
+  // css/styles.css. Si esos valores cambian ahí, hay que actualizar este
+  // número también.
+  const SHARE_CONTENT_WIDTH = 520 - 14 * 2;
+
   // Igual que cloneForShare, pero para un riel horizontal (.week-rail,
-  // .day-rack). Antes recortaba visualmente con overflow+scrollLeft, lo
-  // que dejaba el último ítem cortado a la mitad (ej. un pill de semana
-  // partido al medio) — en vez de eso, se queda solo con los ítems que ya
-  // están COMPLETOS dentro de lo que se ve hoy en el riel real (mismo
-  // scrollLeft/ancho que ya tiene en pantalla) y descarta el resto, tanto
-  // los que quedaron antes del scroll como el que se corta al final.
-  // `stretch:true` además pisa el flex-basis fijo que trae `.day-tab` de
-  // la hoja de estilos (pensado siempre para 5 tabs) para que los que
-  // sobrevivan repartan el 100% del ancho entre ellos, sea cual sea la
-  // cantidad — así no queda espacio muerto si terminan siendo menos de 5,
-  // ni tabs angostos de más si por scroll llegan a ser 6 o 7. `.day-rack`
-  // no tiene wrapper `display:contents`, así que ahí alcanza con los
-  // hijos directos del clon ya recortado.
+  // .day-rack). Antes recortaba con overflow+scrollLeft dejando el último
+  // ítem cortado a la mitad, y fijaba el ancho del clon al `clientWidth`
+  // EN VIVO del riel real — si el celular de origen es más angosto que la
+  // card exportada (520px, fija), el clon quedaba encogido a ese ancho
+  // angosto adentro de una card más ancha, dejando un hueco vacío a la
+  // derecha (bug real, encontrado con capturas reales del usuario). Los
+  // dos casos se resuelven distinto porque los ítems de cada riel se
+  // comportan distinto:
   function cloneRailForShare(el, { stretch = false } = {}){
     const clone = cloneForShare(el);
     const { live: liveItems, clone: cloneItems } = pairedFlexItems(el, clone);
-    // getBoundingClientRect(), no offsetLeft: ninguno de los dos riels
-    // tiene position:relative/absolute, así que el offsetParent real de
-    // sus hijos es algún ancestro más arriba — offsetLeft quedaba medido
-    // contra ESE ancestro, no contra el riel, con el mismo sesgo fijo
-    // para todos los ítems (encontrado en vivo: día "vie" perdido por 14px
-    // de más justo por esto). getBoundingClientRect() da coordenadas de
-    // viewport reales para ambos, así que la comparación es directa sin
-    // tener que reconstruir a mano el sistema de referencia del scroll.
-    const containerRect = el.getBoundingClientRect();
     const eps = 2; // tolerancia por redondeo subpixel
-    liveItems.forEach((liveItem, i)=>{
-      const r = liveItem.getBoundingClientRect();
-      const fullyVisible = r.left >= containerRect.left - eps && r.right <= containerRect.right + eps;
-      if(!fullyVisible) cloneItems[i].remove();
-    });
-    clone.style.width = el.clientWidth + 'px';
-    clone.style.overflow = 'hidden';
+
     if(stretch){
+      // .day-rack: los tabs son porcentuales (`flex:0 0 calc((100% -
+      // 24px)/5)` en css/styles.css), su ancho en vivo escala con el
+      // contenedor y no sirve para calcular cuántos entran en un
+      // contenedor de otro ancho — pero como escalan, siempre entran
+      // exactamente los mismos "de los 7" sea cual sea el ancho (Lun-Vie
+      // por defecto, Sáb/Dom solo si el riel real está scrolleado hasta
+      // ahí). Por eso el conjunto se decide igual que antes —
+      // getBoundingClientRect() contra el propio riel, no offsetLeft:
+      // ninguno de los dos riels tiene position:relative/absolute, así
+      // que el offsetParent real de sus hijos es algún ancestro más
+      // arriba, y offsetLeft quedaba medido contra ESE ancestro (bug
+      // real: se perdía el día "vie" por 14px de sesgo fijo) — y lo que
+      // cambia es que el clon se ensancha al 100% del ancho real de la
+      // card (no al `clientWidth` angosto del celular de origen) y esos
+      // tabs reparten ESE ancho entre ellos.
+      const containerRect = el.getBoundingClientRect();
+      liveItems.forEach((liveItem, i)=>{
+        const r = liveItem.getBoundingClientRect();
+        const fullyVisible = r.left >= containerRect.left - eps && r.right <= containerRect.right + eps;
+        if(!fullyVisible) cloneItems[i].remove();
+      });
+      clone.style.width = '100%';
+      clone.style.overflow = 'hidden';
       Array.from(clone.children).forEach(item => { item.style.flex = '1 1 0'; });
+      return clone;
     }
+
+    // .week-rail: los pills tienen ancho propio por su texto
+    // (`flex-shrink:0`, no escalan con el contenedor), así que si el
+    // celular de origen es más angosto que la card exportada entraban
+    // menos pills de los que en realidad caben en la imagen final. En vez
+    // de recortar contra el ancho angosto del celular, se arranca en el
+    // mismo pill donde el riel real ya está scrolleado (mismo criterio de
+    // "qué se ve hoy") y se van sumando anchos reales (con su gap) hasta
+    // llenar SHARE_CONTENT_WIDTH — así entran más semanas si el export
+    // tiene más lugar que el celular de origen.
+    const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+    const containerLeft = el.getBoundingClientRect().left;
+    let startIndex = liveItems.findIndex(item => item.getBoundingClientRect().right > containerLeft + eps);
+    if(startIndex === -1) startIndex = 0;
+    let used = 0;
+    let endIndex = startIndex;
+    for(let i = startIndex; i < liveItems.length; i++){
+      const w = liveItems[i].getBoundingClientRect().width;
+      const next = used + (i > startIndex ? gap : 0) + w;
+      if(next > SHARE_CONTENT_WIDTH + eps) break;
+      used = next;
+      endIndex = i + 1;
+    }
+    cloneItems.forEach((item, i) => { if(i < startIndex || i >= endIndex) item.remove(); });
+    clone.style.width = '100%';
+    clone.style.overflow = 'hidden';
     return clone;
   }
 

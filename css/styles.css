@@ -299,28 +299,33 @@
      puro dejaba el título, los labels sueltos y el borde de "+ Nueva
      semana" ilegibles sobre una foto real, porque esos elementos no
      tienen su propio fondo (solo lo tienen las cards internas: .week-pill,
-     .day-tab, .sum-chip, .recap-card). Fondo al 30% de opacidad (no
+     .day-tab, .sum-chip, .recap-card). Fondo a 50% de opacidad (no
      sólido del todo) para que se note un poco la foto de fondo en vez de
-     taparla por completo — probado primero sólido al 100%, mejor a
-     medias. Sin box-shadow a propósito: se probó (blur+offset) y
-     html2canvas 1.4.1 no lo renderiza — el corte entre la card y el resto
-     queda sin ningún degradé, alpha 0 de una (comprobado leyendo el PNG
-     resultante). Un borde de 1px sí se renderiza bien (ya lo usan
-     .sum-chip/.recap-card), así que hace ese trabajo en su lugar. */
+     taparla por completo — probado primero al 30%, subido a 50% porque
+     30% dejaba pasar demasiado la foto de fondo. Sin box-shadow a
+     propósito: se probó (blur+offset) y html2canvas 1.4.1 no lo
+     renderiza — el corte entre la card y el resto queda sin ningún
+     degradé, alpha 0 de una (comprobado leyendo el PNG resultante). Un
+     borde de 1px sí se renderiza bien (ya lo usan .sum-chip/.recap-card),
+     así que hace ese trabajo en su lugar. */
   .dashboard-share{
     width:520px; padding:16px 14px; box-sizing:border-box; font-family:var(--font-body);
-    background:rgba(20,23,27,0.3); /* --bg (#14171B) al 30% */
+    background:rgba(20,23,27,0.5); /* --bg (#14171B) al 50% */
     border:1px solid var(--line); border-radius:22px;
   }
-  /* Con la card a 30% en vez de sólida, los elementos que no tienen su
-     propia card de fondo (título, subtítulo, label "racha actual") se
-     apoyaban en tonos apagados pensados para leerse sobre --bg sólido —
-     sobre la card semitransparente perdían contraste. Se fuerzan acá,
-     solo dentro del export (la app en vivo no cambia). El número de
-     racha va siempre en verde, tenga o no la clase .complete. */
+  /* Con la card semitransparente en vez de sólida, los elementos que no
+     tienen su propia card de fondo (título, subtítulo, label "racha
+     actual", nombre/grupo de cada day-tab) se apoyaban en tonos apagados
+     pensados para leerse sobre --bg sólido — sobre la card semitransparente
+     perdían contraste, sobre todo los day-tab .completed (fondo verde a
+     10-30%, encima el texto gris quedaba casi invisible). Se fuerzan acá,
+     solo dentro del export (la app en vivo no cambia). El número de racha
+     va siempre en verde, tenga o no la clase .complete. */
   .dashboard-share h1,
   .dashboard-share .sub,
-  .dashboard-share .streak .l{ color:#fff; }
+  .dashboard-share .streak .l,
+  .dashboard-share .day-tab .dname,
+  .dashboard-share .day-tab .muted-tag{ color:#fff; }
   .dashboard-share .streak .n{ color:var(--ok); }
   .dashboard-share .day-tab.completed{ background:rgba(95,191,119,0.3); }
 

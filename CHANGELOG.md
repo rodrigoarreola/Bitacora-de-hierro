@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.44.0] - 2026-08-14 — Resumen semanal: card al 50%, días en blanco y rieles a todo el ancho
+
+### Changed
+
+- **Opacidad de `.dashboard-share` sube de 30% a 50%** (`rgba(20,23,27,0.5)`) — probado en real, 30% dejaba pasar demasiado el fondo.
+- **Texto de `.day-tab` forzado a blanco dentro del export** (`.dashboard-share .day-tab .dname`, `.dashboard-share .day-tab .muted-tag`): nombre del día y grupo muscular usaban los tonos apagados de la app en vivo (`--text-dim`/`--text-faint`), que sobre el fondo verde semitransparente de un día completado quedaban casi ilegibles.
+
+### Fixed
+
+- **`cloneRailForShare()` fijaba el ancho del clon al `clientWidth` EN VIVO del riel real** (`el.clientWidth + 'px'`) en vez del ancho de la card exportada (520px, fijo) — en un celular más angosto que esa card (la mayoría), el riel clonado quedaba encogido a ese ancho angosto adentro de una card más ancha, dejando un hueco vacío a la derecha en vez de llegar hasta el borde (reportado con capturas reales tomadas desde el celular). Nueva constante `SHARE_CONTENT_WIDTH` (520 − padding horizontal de `.dashboard-share`) como referencia del ancho real disponible.
+- **Día (`.day-rack`, `stretch:true`)**: el conjunto de tabs a mostrar se sigue decidiendo igual que antes (los que ya se ven en el riel real, vía `getBoundingClientRect()`) — sin cambios ahí, porque `.day-tab` es porcentual (`calc((100% - 24px)/5)`) y ese ancho en vivo no sirve para saber cuántos entrarían en un contenedor de otro tamaño. Lo que cambia es que el clon ahora se ensancha a `width:100%` (el ancho real de la card) en vez del `clientWidth` angosto del celular, así que esos mismos tabs reparten el ancho correcto.
+- **Semana (`.week-rail`)**: acá sí cambia la selección — los pills tienen ancho propio por su texto (`flex-shrink:0`, no escalan con el contenedor), así que se recalculó cuántos entran sumando sus anchos reales (con gap) contra `SHARE_CONTENT_WIDTH` en vez de contra el `clientWidth` angosto del celular de origen — entran más semanas si el export tiene más lugar que la pantalla real.
+
 ## [1.43.0] - 2026-08-14 — Resumen semanal: card al 30%, texto legible y rieles sin cortes
 
 ### Changed

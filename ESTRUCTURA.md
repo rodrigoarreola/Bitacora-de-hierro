@@ -4,7 +4,7 @@ Mapa de referencia rápida: qué hace cada archivo y dónde vive cada
 funcionalidad, para poder pedir cambios puntuales sin que tenga que
 explorar el repo primero (ver tips de prompting al final).
 
-**Los números de línea son aproximados** (versión actual: `1.43.0`) —
+**Los números de línea son aproximados** (versión actual: `1.44.0`) —
 cambian con cada edición. Sirven para ubicarse rápido, no como
 referencia exacta; si hace falta precisión, decime el nombre de la
 función y listo, la busco por nombre en un Grep.
@@ -35,11 +35,11 @@ usuario, auth por sesión PHP.
 ├── scripts/
 │   └── bump-sw-cache.php        Recalcula CACHE_NAME de sw.js según hash del app shell
 ├── css/
-│   └── styles.css               Todos los estilos (730 líneas, sin preprocesador)
+│   └── styles.css               Todos los estilos (735 líneas, sin preprocesador)
 ├── js/
 │   ├── api.js                   Cliente fetch + cola offline (86 líneas)
 │   ├── offline-queue.js         Wrapper de IndexedDB para la cola offline (79 líneas)
-│   └── app.js                   Toda la UI y el estado (3102 líneas, un solo IIFE)
+│   └── app.js                   Toda la UI y el estado (3149 líneas, un solo IIFE)
 └── api/
     ├── config.php                Conexión PDO + arranque de sesión
     ├── config.local.php.example  Plantilla de credenciales de BD
@@ -85,21 +85,21 @@ CSS en `:root`). Bloques marcados con comentarios `/* ---------- Nombre
 | Day tabs | 87 | Riel de días (Lun–Dom) |
 | Day panel | 116 | Panel del día: filas de ejercicio, drag handle, migrar día, progress ring |
 | Nota de la semana | 285 | Textarea de nota semanal |
-| Export de resumen semanal | 295 | "Patrón Strava": card redondeada al 30% de opacidad (`background:rgba(...)`/`border`/`border-radius`) para "Copiar resumen de la semana", + overrides de contraste (`.dashboard-share h1/.sub/.streak .l/.streak .n`, `.dashboard-share .day-tab.completed`) — ver nota en el propio bloque sobre por qué se descartó `box-shadow` (html2canvas no lo renderiza) |
-| Sesión del día | 327 | Card "Iniciar/Finalizar entrenamiento" + hora inicio/fin/duración |
-| Conversor kg / lbs | 346 | Dos inputs enlazados |
-| Eliminar semana | 363 | Botón al final de "Hoy", doble confirmación |
-| Summary strip | 370 | Tira de 4 chips (series/ejercicios/racha/volumen) |
-| Reglas (Ajustes) | 391 | Panel de reglas editables |
-| Librería de ejercicios | 409 | Panel de librería (Ajustes) |
-| Bottom nav | 439 | Nav inferior fija |
-| Banner de edición offline | 455 | Banner "sin conexión" |
-| Login / Logout | 466, 491 | Pantalla de login, botón de logout |
-| Perfil: datos / backups / hitos / horarios / changelog | 499, 510, 523, 547, 569 | Exportar/importar, backups automáticos, Hitos y constancia, Horarios de entrenamiento (filtros + chips + chart + barras de hora), Changelog |
-| Calendario / heatmap anual | 590, 632 | Grid mensual y heatmap de 365 días (celdas clickeables; etiquetas de mes con borde/radio en columna fija de 16px) |
-| Balance por grupo muscular | 665 | Barras en Historial |
-| Historial | 675 | Tarjetas por semana |
-| Progreso | 698 | Buscador + gráfica Chart.js (con zoom/pan) |
+| Export de resumen semanal | 295 | "Patrón Strava": card redondeada al 50% de opacidad (`background:rgba(...)`/`border`/`border-radius`) para "Copiar resumen de la semana", + overrides de contraste (`.dashboard-share h1/.sub/.streak .l/.streak .n`, `.dashboard-share .day-tab .dname/.muted-tag`, `.dashboard-share .day-tab.completed`) — ver nota en el propio bloque sobre por qué se descartó `box-shadow` (html2canvas no lo renderiza) |
+| Sesión del día | 332 | Card "Iniciar/Finalizar entrenamiento" + hora inicio/fin/duración |
+| Conversor kg / lbs | 351 | Dos inputs enlazados |
+| Eliminar semana | 368 | Botón al final de "Hoy", doble confirmación |
+| Summary strip | 375 | Tira de 4 chips (series/ejercicios/racha/volumen) |
+| Reglas (Ajustes) | 396 | Panel de reglas editables |
+| Librería de ejercicios | 414 | Panel de librería (Ajustes) |
+| Bottom nav | 444 | Nav inferior fija |
+| Banner de edición offline | 460 | Banner "sin conexión" |
+| Login / Logout | 471, 496 | Pantalla de login, botón de logout |
+| Perfil: datos / backups / hitos / horarios / changelog | 504, 515, 528, 552, 574 | Exportar/importar, backups automáticos, Hitos y constancia, Horarios de entrenamiento (filtros + chips + chart + barras de hora), Changelog |
+| Calendario / heatmap anual | 595, 637 | Grid mensual y heatmap de 365 días (celdas clickeables; etiquetas de mes con borde/radio en columna fija de 16px) |
+| Balance por grupo muscular | 670 | Barras en Historial |
+| Historial | 680 | Tarjetas por semana |
+| Progreso | 703 | Buscador + gráfica Chart.js (con zoom/pan) |
 
 ### `js/api.js`
 Cliente fetch mínimo: `Api.get/post/put/del(path, body, opts)`. Maneja
@@ -125,44 +125,44 @@ bloque en el archivo real):
 **Configuración y reglas**
 - `DAY_ORDER` (línea 5) — orden fijo de días (`lun`..`dom`).
 - `RULES` (26) — reglas editables desde Ajustes (mín. día cumplido, racha, Hitos, semana en curso), respaldadas por `api/settings.php`.
-- `APP_VERSIONS` / `CURRENT_VERSION` (47/220) — changelog de cara al usuario (Perfil), `CURRENT_VERSION = APP_VERSIONS[0].version`.
-- `EXERCISE_LIBRARY` (226) — caché de la librería de ejercicios.
+- `APP_VERSIONS` / `CURRENT_VERSION` (47/225) — changelog de cara al usuario (Perfil), `CURRENT_VERSION = APP_VERSIONS[0].version`.
+- `EXERCISE_LIBRARY` (231) — caché de la librería de ejercicios.
 
-**Librería de ejercicios** (Ajustes): `addToLibrary`, `removeFromLibrary`, `renderLibraryDatalist`, `renderLibraryView` (228-262 aprox.).
+**Librería de ejercicios** (Ajustes): `addToLibrary`, `removeFromLibrary`, `renderLibraryDatalist`, `renderLibraryView` (233-267 aprox.).
 
-**Reglas** (Ajustes): `renderRulesPanel` (281), `saveRules` (288 aprox.).
+**Reglas** (Ajustes): `renderRulesPanel` (286), `saveRules` (293 aprox.).
 
-**Helpers de fecha**: `toISO`/`fromISO` (320-321), `mondayOfWeek` (323), `nearestMonday` (331), `dayDate` (341), `fmtShortDate`/`fmtShortDateRange`/`fmtLongDate`/`fmtFullDate` (346-359 aprox.), `weekLabel` (363), `diasLabel` (371), `escapeHtml` (373).
+**Helpers de fecha**: `toISO`/`fromISO` (325-326), `mondayOfWeek` (328), `nearestMonday` (336), `dayDate` (346), `fmtShortDate`/`fmtShortDateRange`/`fmtLongDate`/`fmtFullDate` (351-364 aprox.), `weekLabel` (368), `diasLabel` (376), `escapeHtml` (378).
 
-**Estado** (`state.weeks`/`state.order`/`state.activeWeek`/`state.activeDay`): `currentWeek`/`currentDay`/`findExercise` (395-397 aprox.), `getPrevWeekKey` (398), `findExerciseInPrevWeek` (404 aprox.), `applyWeekDetail` (416 — acá se traduce `start_time`/`end_time`/`duration_min` de la API a `startTime`/`endTime`/`durationMin` del estado), `comparisonHtml` (435).
+**Estado** (`state.weeks`/`state.order`/`state.activeWeek`/`state.activeDay`): `currentWeek`/`currentDay`/`findExercise` (400-402 aprox.), `getPrevWeekKey` (403), `findExerciseInPrevWeek` (409 aprox.), `applyWeekDetail` (421 — acá se traduce `start_time`/`end_time`/`duration_min` de la API a `startTime`/`endTime`/`durationMin` del estado), `comparisonHtml` (440).
 
-**Racha**: `buildChronoDays` (467), `fullWeekRange` (499), `computeStreakDetail` (525), `computeStreaks` (559).
+**Racha**: `buildChronoDays` (472), `fullWeekRange` (504), `computeStreakDetail` (530), `computeStreaks` (564).
 
-**Hitos** (Perfil): `periodMonthYearLabel`/`periodDayLabel` (579-592 aprox.), `findRuns` (600), `computeMilestones` (639 — ya no incluye estadísticas de tiempo, se separaron a su propio panel).
+**Hitos** (Perfil): `periodMonthYearLabel`/`periodDayLabel` (584-597 aprox.), `findRuns` (605), `computeMilestones` (644 — ya no incluye estadísticas de tiempo, se separaron a su propio panel).
 
-**Horarios de entrenamiento** (Perfil, panel nuevo debajo de Hitos, sin botón propio en el `bottom-nav`): `collectTimeEntries` (715 — junta todas las sesiones con `duration_min` registrado, sin filtrar), `computeTimeStats` (730 — recibe el set ya filtrado por año/mes y devuelve total/promedio/más larga/más corta/hora frecuente/`hourBuckets`), `fmtHourLabel` (753), estado `timeStatsYear`/`timeStatsMonth`/`timeChart` (766-768), `renderTimeStats` (770 — arma los rieles de filtro año/mes, los chips, la gráfica Chart.js de línea con puntos —mismo estilo que Progreso, puntos ocultos y línea fina salvo que año **y** mes estén ambos filtrados— y las barras de distribución por hora), listener delegado sobre `#time-stats-host` (887).
+**Horarios de entrenamiento** (Perfil, panel nuevo debajo de Hitos, sin botón propio en el `bottom-nav`): `collectTimeEntries` (720 — junta todas las sesiones con `duration_min` registrado, sin filtrar), `computeTimeStats` (735 — recibe el set ya filtrado por año/mes y devuelve total/promedio/más larga/más corta/hora frecuente/`hourBuckets`), `fmtHourLabel` (758), estado `timeStatsYear`/`timeStatsMonth`/`timeChart` (771-773), `renderTimeStats` (775 — arma los rieles de filtro año/mes, los chips, la gráfica Chart.js de línea con puntos —mismo estilo que Progreso, puntos ocultos y línea fina salvo que año **y** mes estén ambos filtrados— y las barras de distribución por hora), listener delegado sobre `#time-stats-host` (892).
 
-**Render de "Hoy"**: `renderAll` (904), `renderWeekNote` (916), `renderWeekPills`/`selectWeek` (925-952 aprox.), `goToDate` (966 — navega a una fecha puntual desde Calendario/Historial/heatmap, centrando el riel de semanas), `deleteWeek` (982 — acepta `{doubleConfirm}`), `renderDayRack` (998), `exerciseRowHtml` (1027 — incluye la comparación contra semana pasada, la progresión sugerida y el drag handle), `renderDayPanel` (1087), `fmtDurationLabel`/`computeDurationMin`/`nowHHMM` (1189-1204), `renderDaySession`/`saveDaySession`/`handleDaySessionTimeChange` (1209-1251 — card "Iniciar/Finalizar entrenamiento"), `migrateDay` (1266), `renderStreakBadges`/`updateStreakBadge` (1285-1297), `renderMilestones` (1317), `renderChangelog` (1393), `updateSummaryStrip` (1416), `computeDayVolume`/`computeWeekVolume`/`computeWeekAdherence` (1437-1458), `renderWeeklyRecap` (1464).
+**Render de "Hoy"**: `renderAll` (909), `renderWeekNote` (921), `renderWeekPills`/`selectWeek` (930-957 aprox.), `goToDate` (971 — navega a una fecha puntual desde Calendario/Historial/heatmap, centrando el riel de semanas), `deleteWeek` (987 — acepta `{doubleConfirm}`), `renderDayRack` (1003), `exerciseRowHtml` (1032 — incluye la comparación contra semana pasada, la progresión sugerida y el drag handle), `renderDayPanel` (1092), `fmtDurationLabel`/`computeDurationMin`/`nowHHMM` (1194-1209), `renderDaySession`/`saveDaySession`/`handleDaySessionTimeChange` (1214-1256 — card "Iniciar/Finalizar entrenamiento"), `migrateDay` (1271), `renderStreakBadges`/`updateStreakBadge` (1290-1302), `renderMilestones` (1322), `renderChangelog` (1398), `updateSummaryStrip` (1421), `computeDayVolume`/`computeWeekVolume`/`computeWeekAdherence` (1442-1463), `renderWeeklyRecap` (1469).
 
-**Acciones sobre ejercicios**: `toggleExercise` (1518 — incluye la detección de PR), `finalizePendingDelete`/`undoPendingDelete`/`deleteExercise` (1547-1566), `addExercise` (1591), `copyPreviousWeek` (1604), `toggleDetail`/`enterNameEdit` (1618-1624).
+**Acciones sobre ejercicios**: `toggleExercise` (1523 — incluye la detección de PR), `finalizePendingDelete`/`undoPendingDelete`/`deleteExercise` (1552-1571), `addExercise` (1596), `copyPreviousWeek` (1609), `toggleDetail`/`enterNameEdit` (1623-1629).
 
-**Reordenar ejercicios arrastrando**: `pointerdown`/`pointermove` sobre `.ex-drag-handle` (1755/1778, técnica de placeholder), `finishExerciseDrag` (1794 — persiste el nuevo orden vía `POST exercises.php?action=reorder`).
+**Reordenar ejercicios arrastrando**: `pointerdown`/`pointermove` sobre `.ex-drag-handle` (1760/1783, técnica de placeholder), `finishExerciseDrag` (1799 — persiste el nuevo orden vía `POST exercises.php?action=reorder`).
 
-**Navegación / Toast**: `switchToView` (1884), `goToProgress` (1895), `showToast`/`hideToast` (1920-1938).
+**Navegación / Toast**: `switchToView` (1889), `goToProgress` (1900), `showToast`/`hideToast` (1925-1943).
 
-**Nueva semana**: handler de `#new-week-date` (1946), `maxNewWeekKey` (1953 — tope de 1 semana en el futuro).
+**Nueva semana**: handler de `#new-week-date` (1951), `maxNewWeekKey` (1958 — tope de 1 semana en el futuro).
 
-**Calendario**: `computeDayTier` (2006), `renderCalendar` (2024), `availableHeatmapYears` (2108), `renderHeatmap` (2116 — heatmap anual de 365 días. Cada semana ocupa 3 "fine-rows" de grid — mitad arriba / mitad abajo / separador fijo de 3px — en vez de una fila + `gap` uniforme, para que el label de un mes pueda arrancar/terminar exacto en la línea del medio de la semana que comparte con el mes vecino, sin dejar hueco ni usar `position:absolute`/medición en JS. `seamRow[mes]` guarda en qué fila aparece por primera vez cada mes; celdas clickeables vía `goToDate`).
+**Calendario**: `computeDayTier` (2011), `renderCalendar` (2029), `availableHeatmapYears` (2113), `renderHeatmap` (2121 — heatmap anual de 365 días. Cada semana ocupa 3 "fine-rows" de grid — mitad arriba / mitad abajo / separador fijo de 3px — en vez de una fila + `gap` uniforme, para que el label de un mes pueda arrancar/terminar exacto en la línea del medio de la semana que comparte con el mes vecino, sin dejar hueco ni usar `position:absolute`/medición en JS. `seamRow[mes]` guarda en qué fila aparece por primera vez cada mes; celdas clickeables vía `goToDate`).
 
-**Historial**: `weekMonths` (2226), `computeGroupBalance`/`renderGroupBalance` (2237-2256 aprox., balance por grupo muscular), `renderHistorial` (2273).
+**Historial**: `weekMonths` (2231), `computeGroupBalance`/`renderGroupBalance` (2242-2261 aprox., balance por grupo muscular), `renderHistorial` (2278).
 
-**Progreso**: `cssVar` (2381), `shareElementAsImage` (2389 — compartir día/tarjeta de Historial como imagen). Export del resumen semanal (botón de calendario junto a "Compartir día", "patrón Strava" — card redondeada al 30%, ver bloque CSS del mismo nombre): `cloneForShare` (2411 — clona un nodo real quitando `id`s), `pairedFlexItems` (2429 — empareja los ítems reales del flex de un riel con sus clones por posición, mirando `display:contents` solo en el nodo vivo — un clon todavía fuera del DOM no siempre lo resuelve bien), `cloneRailForShare` (2460 — se queda solo con los ítems completamente visibles hoy en el riel real, comparando `getBoundingClientRect()` en vez de `offsetLeft`/`offsetWidth` — ninguno de los dos riels tiene `position:relative`, así que `offsetLeft` quedaba medido contra el offsetParent real y no contra el riel; `{stretch:true}` pisa el `flex` fijo de `.day-tab` para repartir 100% del ancho entre los que sobreviven), `buildDashboardShareContainer` (2491 — arma el header+riel de semanas+riel de días+resumen+recap; saca el `<input type="date">` de "+ Nueva semana" del clon porque pierde su estilo `opacity:0` al perder el `id`), `copyElementAsImage` (2519 — genera el PNG con `html2canvas(..., {backgroundColor:null})` — solo para que las esquinas redondeadas de la card queden transparentes — y lo copia al portapapeles vía `ClipboardItem`, con descarga como fallback), `shareDashboardAsImage` (2543). Después: `bestPriorKgForExercise` (2559), `collectExerciseHistory` (2575), `renderProgreso` (2615 — gráfica Chart.js con zoom/pan vía chartjs-plugin-zoom).
+**Progreso**: `cssVar` (2386), `shareElementAsImage` (2394 — compartir día/tarjeta de Historial como imagen). Export del resumen semanal (botón de calendario junto a "Compartir día", "patrón Strava" — card redondeada al 50%, ver bloque CSS del mismo nombre): `cloneForShare` (2416 — clona un nodo real quitando `id`s), `pairedFlexItems` (2434 — empareja los ítems reales del flex de un riel con sus clones por posición, mirando `display:contents` solo en el nodo vivo — un clon todavía fuera del DOM no siempre lo resuelve bien), `SHARE_CONTENT_WIDTH` (2455 — ancho de contenido de `.dashboard-share`: 520px de card menos su padding horizontal, hay que mantenerlo sincronizado a mano si esos valores cambian en el CSS), `cloneRailForShare` (2466 — selecciona qué ítems sobreviven y ensancha el clon al ancho real de la card en vez del `clientWidth` angosto del celular de origen; `.day-rack` (`{stretch:true}`) sigue decidiendo el conjunto vía `getBoundingClientRect()` contra el propio riel —ninguno de los dos riels tiene `position:relative`, así que `offsetLeft` quedaba medido contra el offsetParent real y no contra el riel— y pisa el `flex` fijo de `.day-tab` para repartir el 100% entre los que sobreviven; `.week-rail` sí cambia la selección, sumando anchos reales de pill + gap contra `SHARE_CONTENT_WIDTH` en vez de contra el ancho angosto del celular), `buildDashboardShareContainer` (2532 — arma el header+riel de semanas+riel de días+resumen+recap; saca el `<input type="date">` de "+ Nueva semana" del clon porque pierde su estilo `opacity:0` al perder el `id`), `copyElementAsImage` (2560 — genera el PNG con `html2canvas(..., {backgroundColor:null})` — solo para que las esquinas redondeadas de la card queden transparentes — y lo copia al portapapeles vía `ClipboardItem`, con descarga como fallback), `shareDashboardAsImage` (2584). Después: `bestPriorKgForExercise` (2600), `collectExerciseHistory` (2616), `renderProgreso` (2656 — gráfica Chart.js con zoom/pan vía chartjs-plugin-zoom).
 
-**Perfil — exportar/importar**: `buildExportPayload` (2856 — emite `days.<clave>` como `{exercises, start_time?, end_time?, duration_min?}`).
+**Perfil — exportar/importar**: `buildExportPayload` (2897 — emite `days.<clave>` como `{exercises, start_time?, end_time?, duration_min?}`).
 
-**Backups automáticos**: `loadBackupsList` (2948).
+**Backups automáticos**: `loadBackupsList` (2989).
 
-**Sesión y arranque**: `showLogin`/`showApp` (2988-2992), `loadAppData` (2999), `refreshOfflineBanner`/`syncOfflineQueue` (3035-3047, edición offline), registro del service worker (3087), `bootstrap()` (3094) al final del archivo.
+**Sesión y arranque**: `showLogin`/`showApp` (3029-3033), `loadAppData` (3040), `refreshOfflineBanner`/`syncOfflineQueue` (3076-3088, edición offline), registro del service worker (3128), `bootstrap()` (3135) al final del archivo.
 
 ## Backend (`api/`)
 
