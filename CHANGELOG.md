@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.40.0] - 2026-08-13 — Horarios de entrenamiento en Perfil
+
+### Added
+
+- **Panel "Horarios de entrenamiento"** (Perfil, `#time-stats-host`/`renderTimeStats()` en `js/app.js`): vive debajo de "Hitos y constancia" a propósito — no se agregó botón al `bottom-nav`, que ya tenía sus 6 fijos. Reemplaza los 5 renglones de texto suelto que antes vivían al final de la lista de Hitos (`computeTimeStats()` ya no se llama desde `computeMilestones()`, ahora es standalone).
+- **Filtros de año/mes**, independientes entre sí (`timeStatsYear`/`timeStatsMonth`, `null` = "Todo"/"Todos"): el de año lista solo los años que tienen alguna sesión con horario registrado (`collectTimeEntries()`), no todos los años con semanas creadas. El de mes es acumulativo entre años cuando el año está en "Todo" (ej. "Todo" + "Julio" junta todos los julios de cualquier año) — mismo patrón de riel (`.week-rail`/`.week-pill`) que ya usa el heatmap para su filtro de año, delegando el click una sola vez sobre `#time-stats-host` porque `renderTimeStats()` reconstruye el innerHTML en cada render.
+- **Gráfica de duración por sesión**: mismo estilo de línea con puntos que Progreso (`prog-canvas`) — tension suave, zoom/pan con `chartjs-plugin-zoom`, doble click resetea. A diferencia de Progreso, los puntos y el grosor de línea son condicionales: con año **y** mes filtrados a la vez (`detailed`) se ven puntos y línea normal; si cualquiera de los dos queda en "Todo"/"Todos" el set puede tener cientos de sesiones, así que la línea se adelgaza (`borderWidth`) y los puntos se ocultan (`pointRadius:0`, quedan solo al hacer hover) para que se lea como tendencia y no como un enjambre de dots.
+- **Distribución de horas de inicio** (`computeTimeStats()` ahora recibe el set ya filtrado en vez de recorrer todo `state.weeks`, y devuelve `hourBuckets`): barras horizontales reusando el mismo patrón visual que "Balance por grupo muscular" en Historial (`.balance-row` → `.hour-row`), la hora más frecuente resaltada con `--accent`.
+
+### Nota de diseño
+
+Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear cada punto de la gráfica de duración según su hora de inicio (degradé `--info`→`--accent`) para fusionar ambos gráficos en uno solo — funcionaba pero perdía el ranking numérico por hora; (2) una segunda línea en eje `y1` para la hora de inicio (mismo patrón que el toggle de reps en Progreso) — technically correcto pero el usuario no quedó convencido visualmente. Se volvió a la versión con panel de barras separado.
+
 ## [1.39.0] - 2026-08-13 — Heatmap: etiquetas de mes alineadas al corte real
 
 ### Changed

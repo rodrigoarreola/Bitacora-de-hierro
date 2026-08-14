@@ -45,6 +45,12 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.40.0', date: '2026-08-13', title: 'Horarios de entrenamiento en Perfil', items: [
+      'Nuevo panel "Horarios de entrenamiento" en Perfil, debajo de Hitos y constancia — sin agregar botón al menú inferior.',
+      'Filtro por año (Todo / años con sesiones registradas) y por mes (Todos / Ene-Dic, combinables entre sí).',
+      'Gráfica de duración por sesión (mismo estilo de línea con puntos que Progreso, con zoom/pan) — con año y mes filtrados a la vez se ven los puntos; si alguno queda en "Todo", la línea se adelgaza y los puntos se ocultan para no saturar la vista.',
+      'Distribución de horas de inicio más frecuentes, como barras horizontales.',
+    ]},
     { version: '1.39.0', date: '2026-08-13', title: 'Heatmap: etiquetas de mes alineadas al corte real', items: [
       'Las etiquetas de mes del heatmap anual ahora tienen borde y esquinas redondeadas, igual que las celdas de días.',
       'La fila donde cambia el mes ya no queda entera de un lado — se reparte 50/50 entre el mes que termina y el que empieza, sin dejar un hueco sin bordear entre los dos.',
@@ -683,16 +689,15 @@
     }
     const topWeak = gaps.sort((a,b)=> b.gapDays - a.gapDays).slice(0, 3);
 
-    return { firstDate, bestStreak, bestStart, bestEnd, bestMonthKey, bestMonthCount, bestYear, bestYearCount, maxGapDays, maxGapStart, maxGapEnd, topStrong, topWeak, timeStats: computeTimeStats() };
+    return { firstDate, bestStreak, bestStart, bestEnd, bestMonthKey, bestMonthCount, bestYear, bestYearCount, maxGapDays, maxGapStart, maxGapEnd, topStrong, topWeak };
   }
 
-  // Estadísticas de tiempo para Hitos y Constancia: recorre todos los días
-  // con duration_min registrado (botón "Iniciar/Finalizar entrenamiento" o
-  // backfill de Garmin), sin importar si ese día quedó "cumplido" — la
-  // duración de la sesión es un dato aparte de cuántos ejercicios se
-  // marcaron. Se degrada solo (return null) si todavía no hay ningún día
-  // con horario, para que renderMilestones() no muestre nada a medias.
-  function computeTimeStats(){
+  // Entradas de tiempo (panel "Horarios de entrenamiento" en Perfil): un
+  // registro por día con duration_min guardado (botón "Iniciar/Finalizar
+  // entrenamiento" o backfill de Garmin), sin importar si ese día quedó
+  // "cumplido" — la duración de la sesión es un dato aparte de cuántos
+  // ejercicios se marcaron.
+  function collectTimeEntries(){
     const entries = [];
     state.order.forEach(wk=>{
       const week = state.weeks[wk];
@@ -702,6 +707,12 @@
         entries.push({ date: dayDate(wk, dk), durationMin: day.durationMin, startTime: day.startTime });
       });
     });
+    return entries;
+  }
+
+  // Estadísticas sobre un set de entradas ya filtrado (por año/mes, ver
+  // renderTimeStats). Se degrada solo (return null) si el set queda vacío.
+  function computeTimeStats(entries){
     if(entries.length === 0) return null;
 
     const totalMin = entries.reduce((s,e)=> s + e.durationMin, 0);
@@ -717,8 +728,11 @@
     });
     let commonHour = null, commonHourCount = 0;
     hourCounts.forEach((count, hour)=>{ if(count > commonHourCount){ commonHourCount = count; commonHour = hour; } });
+    const hourBuckets = [...hourCounts.entries()]
+      .map(([hour, count]) => ({ hour, count }))
+      .sort((a, b) => a.hour - b.hour);
 
-    return { sessionCount: entries.length, totalMin, avgMin, longest, shortest, commonHour, commonHourCount };
+    return { sessionCount: entries.length, totalMin, avgMin, longest, shortest, commonHour, commonHourCount, hourBuckets };
   }
 
   function fmtHourLabel(hour){
@@ -726,6 +740,148 @@
     const h12 = hour % 12 === 0 ? 12 : hour % 12;
     return `${h12}:00 ${suffix}`;
   }
+
+  // ------------------------------------------------------------
+  // Render: panel "Horarios de entrenamiento" (Perfil). Filtro por año
+  // (Todo / años con sesiones registradas) y por mes (Todos / Ene-Dic,
+  // acumulado a través de años si el año activo es "Todo"). El gráfico de
+  // duración por sesión reusa el mismo look de línea con puntos que la
+  // gráfica de Progreso (mismo dataset de opciones + zoom/pan).
+  // ------------------------------------------------------------
+  let timeStatsYear = null;  // null = "Todo"
+  let timeStatsMonth = null; // null = "Todos", 1-12
+  let timeChart = null;
+
+  function renderTimeStats(){
+    const host = document.getElementById('time-stats-host');
+    if(!host) return;
+    if(timeChart){ timeChart.destroy(); timeChart = null; }
+
+    const allEntries = collectTimeEntries();
+    if(allEntries.length === 0){
+      host.innerHTML = `<p class="milestone-empty">Todavía no hay sesiones con horario registrado — usa "Iniciar/Finalizar entrenamiento" en Hoy para que aparezcan acá.</p>`;
+      return;
+    }
+
+    const years = [...new Set(allEntries.map(e => e.date.getFullYear()))].sort((a, b) => b - a);
+    if(timeStatsYear !== null && !years.includes(timeStatsYear)) timeStatsYear = null;
+
+    const yearPillsHtml = [`<div class="week-pill${timeStatsYear === null ? ' active' : ''}" data-year="">Todo</div>`]
+      .concat(years.map(y => `<div class="week-pill${timeStatsYear === y ? ' active' : ''}" data-year="${y}">${y}</div>`))
+      .join('');
+    const monthPillsHtml = [`<div class="week-pill${timeStatsMonth === null ? ' active' : ''}" data-month="">Todos</div>`]
+      .concat(MESES.map((m, i) => `<div class="week-pill${timeStatsMonth === i + 1 ? ' active' : ''}" data-month="${i + 1}">${m.toUpperCase()}</div>`))
+      .join('');
+    const filtersHtml = `
+      <div class="week-rail time-filter-rail">${yearPillsHtml}</div>
+      <div class="week-rail time-filter-rail">${monthPillsHtml}</div>`;
+
+    const filtered = allEntries
+      .filter(e => (timeStatsYear === null || e.date.getFullYear() === timeStatsYear)
+                && (timeStatsMonth === null || e.date.getMonth() + 1 === timeStatsMonth))
+      .sort((a, b) => a.date - b.date);
+    const stats = computeTimeStats(filtered);
+
+    if(!stats){
+      host.innerHTML = filtersHtml + `<p class="milestone-empty">No hay sesiones con horario registrado en este período.</p>`;
+      return;
+    }
+
+    const chipsHtml = `
+      <div class="summary-strip cols-4 time-summary">
+        <div class="sum-chip"><div class="k">Tiempo total</div><div class="v accent">${fmtDurationLabel(stats.totalMin)}</div></div>
+        <div class="sum-chip"><div class="k">Promedio</div><div class="v">${fmtDurationLabel(Math.round(stats.avgMin))}</div></div>
+        <div class="sum-chip"><div class="k">Más larga</div><div class="v">${fmtDurationLabel(stats.longest.durationMin)}</div></div>
+        <div class="sum-chip"><div class="k">Hora frecuente</div><div class="v">${stats.commonHour !== null ? fmtHourLabel(stats.commonHour) : '—'}</div></div>
+      </div>`;
+
+    const chartHtml = `
+      <div class="time-chart-card">
+        <div class="time-chart-title">Duración por sesión <span class="sub">${stats.sessionCount} sesión${stats.sessionCount === 1 ? '' : 'es'}</span></div>
+        <div class="time-canvas-wrap"><canvas id="time-duration-canvas"></canvas></div>
+      </div>`;
+
+    const maxHourCount = stats.hourBuckets.reduce((m, h) => Math.max(m, h.count), 0);
+    const hourListHtml = stats.hourBuckets.length
+      ? stats.hourBuckets.map(h => `
+        <div class="hour-row">
+          <span class="hour-label">${fmtHourLabel(h.hour)}</span>
+          <div class="hour-bar-track"><div class="hour-bar-fill${h.count === maxHourCount ? ' peak' : ''}" style="width:${(h.count / maxHourCount * 100).toFixed(0)}%"></div></div>
+          <span class="hour-value">${h.count}</span>
+        </div>`).join('')
+      : `<p class="milestone-empty">Ninguna de estas sesiones tiene hora de inicio registrada.</p>`;
+    const hourHtml = `
+      <div class="time-chart-card">
+        <div class="time-chart-title">¿A qué hora sueles entrenar?</div>
+        <div class="hour-list">${hourListHtml}</div>
+      </div>`;
+
+    host.innerHTML = filtersHtml + chipsHtml + chartHtml + hourHtml;
+
+    const chartColor = cssVar('--info');
+    const line = cssVar('--line');
+    const textFaint = cssVar('--text-faint');
+    const surface = cssVar('--surface-2');
+    // Con "Todo"/"Todos" en año o en mes el set puede tener muchísimas
+    // sesiones — los puntos se ocultan (quedan solo al hacer hover) y la
+    // línea se adelgaza para que se lea como una tendencia y no como un
+    // enjambre de dots. Recién con año Y mes puntuales (ambos filtrados) se
+    // ve el detalle sesión por sesión con puntos y línea normal.
+    const detailed = timeStatsYear !== null && timeStatsMonth !== null;
+
+    // Mismo estilo de línea con puntos que el gráfico de Progreso
+    // (prog-canvas): tension suave, puntos rellenos con el color de fondo
+    // y borde de acento, más zoom/pan en X para cuando hay muchas sesiones.
+    timeChart = new Chart(document.getElementById('time-duration-canvas'), {
+      type: 'line',
+      data: {
+        labels: filtered.map(e => fmtShortDate(e.date)),
+        datasets: [{
+          data: filtered.map(e => e.durationMin),
+          borderColor: chartColor, backgroundColor: chartColor + '33', fill: true, tension: 0.25, borderWidth: detailed ? 2 : 1,
+          pointRadius: detailed ? 4 : 0, pointHoverRadius: 6, pointBackgroundColor: surface, pointBorderColor: chartColor, pointBorderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: surface, borderColor: line, borderWidth: 1,
+            callbacks: { label: (ctx) => `${ctx.parsed.y} min` },
+          },
+          zoom: {
+            pan: { enabled: true, mode: 'x' },
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+          },
+        },
+        scales: {
+          x: { grid: { color: line }, ticks: { color: textFaint, font: { size: 9 } } },
+          y: { grid: { color: line }, ticks: { color: textFaint, font: { size: 9 } } },
+        },
+      },
+    });
+    document.getElementById('time-duration-canvas').addEventListener('dblclick', ()=> timeChart.resetZoom());
+  }
+
+  // Delegado una sola vez sobre el contenedor fijo (renderTimeStats()
+  // reconstruye el innerHTML en cada render, mismo criterio que el riel de
+  // años del heatmap).
+  document.getElementById('time-stats-host').addEventListener('click', (e)=>{
+    const yearPill = e.target.closest('[data-year]');
+    if(yearPill){
+      timeStatsYear = yearPill.dataset.year ? parseInt(yearPill.dataset.year, 10) : null;
+      renderTimeStats();
+      return;
+    }
+    const monthPill = e.target.closest('[data-month]');
+    if(monthPill){
+      timeStatsMonth = monthPill.dataset.month ? parseInt(monthPill.dataset.month, 10) : null;
+      renderTimeStats();
+    }
+  });
 
   // ============================================================
   // Render
@@ -1140,6 +1296,7 @@
     renderHistorial();
     renderProgreso();
     renderMilestones();
+    renderTimeStats();
   }
 
   function renderMilestones(){
@@ -1199,18 +1356,6 @@
     }
     if(m.bestYear){
       items.push(`Año más productivo: <strong>${m.bestYear}</strong> (${m.bestYearCount} días entrenados)`);
-    }
-    if(m.timeStats){
-      const ts = m.timeStats;
-      items.push(`Tiempo total entrenado: <strong>${fmtDurationLabel(ts.totalMin)}</strong> (${ts.sessionCount} sesiones con horario registrado)`);
-      items.push(`Duración promedio de sesión: <strong>${fmtDurationLabel(Math.round(ts.avgMin))}</strong>`);
-      items.push(`Sesión más larga: <strong>${fmtDurationLabel(ts.longest.durationMin)}</strong> (${fmtLongDate(ts.longest.date)})`);
-      if(ts.shortest.durationMin !== ts.longest.durationMin){
-        items.push(`Sesión más corta: <strong>${fmtDurationLabel(ts.shortest.durationMin)}</strong> (${fmtLongDate(ts.shortest.date)})`);
-      }
-      if(ts.commonHour !== null){
-        items.push(`Hora de inicio más frecuente: <strong>${fmtHourLabel(ts.commonHour)}</strong>`);
-      }
     }
 
     host.innerHTML = `

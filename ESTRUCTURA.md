@@ -4,7 +4,7 @@ Mapa de referencia rápida: qué hace cada archivo y dónde vive cada
 funcionalidad, para poder pedir cambios puntuales sin que tenga que
 explorar el repo primero (ver tips de prompting al final).
 
-**Los números de línea son aproximados** (versión actual: `1.39.0`) —
+**Los números de línea son aproximados** (versión actual: `1.40.0`) —
 cambian con cada edición. Sirven para ubicarse rápido, no como
 referencia exacta; si hace falta precisión, decime el nombre de la
 función y listo, la busco por nombre en un Grep.
@@ -35,11 +35,11 @@ usuario, auth por sesión PHP.
 ├── scripts/
 │   └── bump-sw-cache.php        Recalcula CACHE_NAME de sw.js según hash del app shell
 ├── css/
-│   └── styles.css               Todos los estilos (702 líneas, sin preprocesador)
+│   └── styles.css               Todos los estilos (724 líneas, sin preprocesador)
 ├── js/
 │   ├── api.js                   Cliente fetch + cola offline (86 líneas)
 │   ├── offline-queue.js         Wrapper de IndexedDB para la cola offline (79 líneas)
-│   └── app.js                   Toda la UI y el estado (2859 líneas, un solo IIFE)
+│   └── app.js                   Toda la UI y el estado (3004 líneas, un solo IIFE)
 └── api/
     ├── config.php                Conexión PDO + arranque de sesión
     ├── config.local.php.example  Plantilla de credenciales de BD
@@ -95,11 +95,11 @@ CSS en `:root`). Bloques marcados con comentarios `/* ---------- Nombre
 | Bottom nav | 433 | Nav inferior fija |
 | Banner de edición offline | 449 | Banner "sin conexión" |
 | Login / Logout | 460, 485 | Pantalla de login, botón de logout |
-| Perfil: datos / backups / hitos / changelog | 493, 504, 517, 541 | Exportar/importar, backups automáticos, Hitos y constancia, Changelog |
-| Calendario / heatmap anual | 562, 604 | Grid mensual y heatmap de 365 días (celdas clickeables; etiquetas de mes con borde/radio en columna fija de 16px) |
-| Balance por grupo muscular | 637 | Barras en Historial |
-| Historial | 647 | Tarjetas por semana |
-| Progreso | 670 | Buscador + gráfica Chart.js (con zoom/pan) |
+| Perfil: datos / backups / hitos / horarios / changelog | 493, 504, 517, 541, 563 | Exportar/importar, backups automáticos, Hitos y constancia, Horarios de entrenamiento (filtros + chips + chart + barras de hora), Changelog |
+| Calendario / heatmap anual | 584, 626 | Grid mensual y heatmap de 365 días (celdas clickeables; etiquetas de mes con borde/radio en columna fija de 16px) |
+| Balance por grupo muscular | 659 | Barras en Historial |
+| Historial | 669 | Tarjetas por semana |
+| Progreso | 692 | Buscador + gráfica Chart.js (con zoom/pan) |
 
 ### `js/api.js`
 Cliente fetch mínimo: `Api.get/post/put/del(path, body, opts)`. Maneja
@@ -125,44 +125,51 @@ bloque en el archivo real):
 **Configuración y reglas**
 - `DAY_ORDER` (línea 5) — orden fijo de días (`lun`..`dom`).
 - `RULES` (26) — reglas editables desde Ajustes (mín. día cumplido, racha, Hitos, semana en curso), respaldadas por `api/settings.php`.
-- `APP_VERSIONS` / `CURRENT_VERSION` (47/199 aprox.) — changelog de cara al usuario (Perfil), `CURRENT_VERSION = APP_VERSIONS[0].version`.
-- `EXERCISE_LIBRARY` (205) — caché de la librería de ejercicios.
+- `APP_VERSIONS` / `CURRENT_VERSION` (47/205) — changelog de cara al usuario (Perfil), `CURRENT_VERSION = APP_VERSIONS[0].version`.
+- `EXERCISE_LIBRARY` (211) — caché de la librería de ejercicios.
 
-**Librería de ejercicios** (Ajustes): `addToLibrary` (207), `removeFromLibrary` (221), `renderLibraryDatalist` (231), `renderLibraryView` (241).
+**Librería de ejercicios** (Ajustes): `addToLibrary`, `removeFromLibrary`, `renderLibraryDatalist`, `renderLibraryView` (213-247 aprox.).
 
-**Reglas** (Ajustes): `renderRulesPanel` (260), `saveRules` (267).
+**Reglas** (Ajustes): `renderRulesPanel` (266), `saveRules` (273 aprox.).
 
-**Helpers de fecha**: `toISO`/`fromISO` (299-300), `mondayOfWeek` (302), `nearestMonday` (310), `dayDate` (320), `fmtShortDate`/`fmtShortDateRange`/`fmtLongDate`/`fmtFullDate` (325-341), `weekLabel` (342), `diasLabel` (350), `escapeHtml` (352).
+**Helpers de fecha**: `toISO`/`fromISO` (305-306), `mondayOfWeek` (308), `nearestMonday` (316), `dayDate` (326), `fmtShortDate`/`fmtShortDateRange`/`fmtLongDate`/`fmtFullDate` (331-347 aprox.), `weekLabel` (348), `diasLabel` (356), `escapeHtml` (358).
 
-**Estado** (`state.weeks`/`state.order`/`state.activeWeek`/`state.activeDay`): `currentWeek`/`currentDay`/`findExercise` (374-376), `getPrevWeekKey` (377), `findExerciseInPrevWeek` (383), `applyWeekDetail` (395 — acá se traduce `start_time`/`end_time`/`duration_min` de la API a `startTime`/`endTime`/`durationMin` del estado), `comparisonHtml` (414).
+**Estado** (`state.weeks`/`state.order`/`state.activeWeek`/`state.activeDay`): `currentWeek`/`currentDay`/`findExercise` (380-382 aprox.), `getPrevWeekKey` (383), `findExerciseInPrevWeek` (389 aprox.), `applyWeekDetail` (401 — acá se traduce `start_time`/`end_time`/`duration_min` de la API a `startTime`/`endTime`/`durationMin` del estado), `comparisonHtml` (420).
 
-**Racha**: `buildChronoDays` (446), `fullWeekRange` (478), `computeStreakDetail` (504), `computeStreaks` (538).
+**Racha**: `buildChronoDays` (452), `fullWeekRange` (484), `computeStreakDetail` (510), `computeStreaks` (544).
 
-**Hitos** (Perfil): `periodMonthYearLabel`/`periodDayLabel` (558-571), `findRuns` (579), `computeMilestones` (618), `computeTimeStats` (695 — estadísticas de tiempo: total entrenado, promedio, sesión más larga/corta, hora más frecuente), `fmtHourLabel` (724).
+**Hitos** (Perfil): `periodMonthYearLabel`/`periodDayLabel` (564-577 aprox.), `findRuns` (585), `computeMilestones` (624 — ya no incluye estadísticas de tiempo, se separaron a su propio panel).
 
-**Render de "Hoy"**: `renderAll` (733), `renderWeekNote` (745), `renderWeekPills`/`selectWeek` (754-781), `goToDate` (795 — navega a una fecha puntual desde Calendario/Historial/heatmap, centrando el riel de semanas), `deleteWeek` (811 — acepta `{doubleConfirm}`), `renderDayRack` (827), `exerciseRowHtml` (856 — incluye la comparación contra semana pasada, la progresión sugerida y el drag handle), `renderDayPanel` (916), `fmtDurationLabel`/`computeDurationMin`/`nowHHMM` (1018-1033), `renderDaySession`/`saveDaySession`/`handleDaySessionTimeChange` (1038-1080 — card "Iniciar/Finalizar entrenamiento"), `migrateDay` (1095), `renderStreakBadges`/`updateStreakBadge` (1114-1126), `renderMilestones` (1145), `renderChangelog` (1233), `updateSummaryStrip` (1256), `computeDayVolume`/`computeWeekVolume`/`computeWeekAdherence` (1277-1298), `renderWeeklyRecap` (1304).
+**Horarios de entrenamiento** (Perfil, panel nuevo debajo de Hitos, sin botón propio en el `bottom-nav`): `collectTimeEntries` (700 — junta todas las sesiones con `duration_min` registrado, sin filtrar), `computeTimeStats` (715 — recibe el set ya filtrado por año/mes y devuelve total/promedio/más larga/más corta/hora frecuente/`hourBuckets`), `fmtHourLabel` (738), estado `timeStatsYear`/`timeStatsMonth`/`timeChart` (751-753), `renderTimeStats` (755 — arma los rieles de filtro año/mes, los chips, la gráfica Chart.js de línea con puntos —mismo estilo que Progreso, puntos ocultos y línea fina salvo que año **y** mes estén ambos filtrados— y las barras de distribución por hora), listener delegado sobre `#time-stats-host` (872).
 
-**Acciones sobre ejercicios**: `toggleExercise` (1358 — incluye la detección de PR), `finalizePendingDelete`/`undoPendingDelete`/`deleteExercise` (1387-1406), `addExercise` (1431), `copyPreviousWeek` (1444), `toggleDetail`/`enterNameEdit` (1458-1464).
+**Render de "Hoy"**: `renderAll` (889), `renderWeekNote` (901), `renderWeekPills`/`selectWeek` (910-931 aprox.), `goToDate` (951 — navega a una fecha puntual desde Calendario/Historial/heatmap, centrando el riel de semanas), `deleteWeek` (967 — acepta `{doubleConfirm}`), `renderDayRack` (983), `exerciseRowHtml` (1012 — incluye la comparación contra semana pasada, la progresión sugerida y el drag handle), `renderDayPanel` (1072), `fmtDurationLabel`/`computeDurationMin`/`nowHHMM` (1174-1189), `renderDaySession`/`saveDaySession`/`handleDaySessionTimeChange` (1194-1241 — card "Iniciar/Finalizar entrenamiento"), `migrateDay` (1251), `renderStreakBadges`/`updateStreakBadge` (1270-1282), `renderMilestones` (1302), `renderChangelog` (1378), `updateSummaryStrip` (1401), `computeDayVolume`/`computeWeekVolume`/`computeWeekAdherence` (1422-1443), `renderWeeklyRecap` (1449).
 
-**Reordenar ejercicios arrastrando**: `pointerdown`/`pointermove` sobre `.ex-drag-handle` (1595-1618, técnica de placeholder), `finishExerciseDrag` (1634 — persiste el nuevo orden vía `POST exercises.php?action=reorder`).
+**Acciones sobre ejercicios**: `toggleExercise` (1503 — incluye la detección de PR), `finalizePendingDelete`/`undoPendingDelete`/`deleteExercise` (1532-1551), `addExercise` (1576), `copyPreviousWeek` (1589), `toggleDetail`/`enterNameEdit` (1603-1609).
 
-**Navegación / Toast**: `switchToView` (1724), `goToProgress` (1735), `showToast`/`hideToast` (1760-1778).
+**Reordenar ejercicios arrastrando**: `pointerdown`/`pointermove` sobre `.ex-drag-handle` (1740 aprox., técnica de placeholder), `finishExerciseDrag` (1779 — persiste el nuevo orden vía `POST exercises.php?action=reorder`).
 
-**Nueva semana**: `maxNewWeekKey` (1793 — tope de 1 semana en el futuro), handler de `#new-week-date` (1807).
+**Navegación / Toast**: `switchToView` (1869), `goToProgress` (1880), `showToast`/`hideToast` (1905-1923).
 
-**Calendario**: `computeDayTier` (1846), `renderCalendar` (1864), `availableHeatmapYears` (1948), `renderHeatmap` (1956 — heatmap anual de 365 días. Cada semana ocupa 3 "fine-rows" de grid — mitad arriba / mitad abajo / separador fijo de 3px — en vez de una fila + `gap` uniforme, para que el label de un mes pueda arrancar/terminar exacto en la línea del medio de la semana que comparte con el mes vecino, sin dejar hueco ni usar `position:absolute`/medición en JS. `seamRow[mes]` guarda en qué fila aparece por primera vez cada mes; celdas clickeables vía `goToDate`).
+**Nueva semana**: handler de `#new-week-date` (1931), `maxNewWeekKey` (1938 — tope de 1 semana en el futuro).
 
-**Historial**: `weekMonths` (2066), `computeGroupBalance`/`renderGroupBalance` (2077-2096, balance por grupo muscular), `renderHistorial` (2113).
+**Calendario**: `computeDayTier` (1991), `renderCalendar` (2009), `availableHeatmapYears` (2093), `renderHeatmap` (2101 — heatmap anual de 365 días. Cada semana ocupa 3 "fine-rows" de grid — mitad arriba / mitad abajo / separador fijo de 3px — en vez de una fila + `gap` uniforme, para que el label de un mes pueda arrancar/terminar exacto en la línea del medio de la semana que comparte con el mes vecino, sin dejar hueco ni usar `position:absolute`/medición en JS. `seamRow[mes]` guarda en qué fila aparece por primera vez cada mes; celdas clickeables vía `goToDate`).
 
-**Progreso**: `cssVar` (2221), `shareElementAsImage` (2229 — compartir día/semana/semana-completa como imagen), `weekShareRowHtml`/`buildWeekShareContainer`/`shareWeekAsImage` (2251-2292 — export de semana completa), `bestPriorKgForExercise` (2310), `collectExerciseHistory` (2326), `renderProgreso` (2366 — gráfica Chart.js con zoom/pan vía chartjs-plugin-zoom).
+**Historial**: `weekMonths` (2211), `computeGroupBalance`/`renderGroupBalance` (2222-2246 aprox., balance por grupo muscular), `renderHistorial` (2258).
 
-**Perfil — exportar/importar**: `buildExportPayload` (2607 — emite `days.<clave>` como `{exercises, start_time?, end_time?, duration_min?}`).
+**Progreso**: `cssVar` (2366), `shareElementAsImage` (2374 — compartir día/semana/semana-completa como imagen), `weekShareRowHtml`/`buildWeekShareContainer`/`shareWeekAsImage` (2396-2437 — export de semana completa), `bestPriorKgForExercise` (2455), `collectExerciseHistory` (2471), `renderProgreso` (2511 — gráfica Chart.js con zoom/pan vía chartjs-plugin-zoom).
 
-**Backups automáticos**: `loadBackupsList` (2699).
+**Perfil — exportar/importar**: `buildExportPayload` (2752 — emite `days.<clave>` como `{exercises, start_time?, end_time?, duration_min?}`).
 
-**Sesión y arranque**: `showLogin`/`showApp` (2739-2743), `loadAppData` (2750), `refreshOfflineBanner`/`syncOfflineQueue` (2786-2798, edición offline), registro del service worker (2838), `bootstrap()` (2845) al final del archivo.
+**Backups automáticos**: `loadBackupsList` (2844).
+
+**Sesión y arranque**: `showLogin`/`showApp` (2884-2888), `loadAppData` (2895), `refreshOfflineBanner`/`syncOfflineQueue` (2931-2943, edición offline), registro del service worker (aprox. 2980), `bootstrap()` (2990) al final del archivo.
 
 ## Backend (`api/`)
+
+Sin cambios de backend en esta versión — "Horarios de entrenamiento" es
+puramente client-side, filtra/agrega lo que ya trae `applyWeekDetail()`
+desde `week_day_sessions` (mismo dato que ya usa la card "Iniciar/Finalizar
+entrenamiento").
 
 Todos los endpoints siguen el mismo patrón: `require config.php` (PDO +
 sesión) → `require auth.php` → `require_login()` → switch por
@@ -198,13 +205,13 @@ $status)`.
 - **`exercise_library`** — nombres para autocompletar.
 - **`week_day_overrides`** — group_name/notes/migrated_from específicos de una semana puntual (solo cuando un día recibió contenido migrado).
 - **`app_settings`** — `setting_key`/`setting_value`, respaldo de `RULES`.
-- **`week_day_sessions`** — `start_time`/`end_time`/`duration_min` de un día puntual (botón "Iniciar/Finalizar entrenamiento", o backfill desde Garmin). Sin fila = sin horario registrado.
+- **`week_day_sessions`** — `start_time`/`end_time`/`duration_min` de un día puntual (botón "Iniciar/Finalizar entrenamiento", o backfill desde Garmin). Sin fila = sin horario registrado. Fuente de datos de "Horarios de entrenamiento" en Perfil.
 
 ## Cómo usar esto para pedir cambios puntuales
 
 En vez de "cambiá cómo se calcula la racha", ahora podés decir:
 
-> En `js/app.js`, en `computeStreaks()` (línea ~534), cambiá X por Y.
+> En `js/app.js`, en `computeStreaks()` (línea ~544), cambiá X por Y.
 
 O para el backend:
 
