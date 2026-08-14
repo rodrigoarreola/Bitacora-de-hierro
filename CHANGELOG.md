@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.43.0] - 2026-08-14 — Resumen semanal: card al 30%, texto legible y rieles sin cortes
+
+### Changed
+
+- **`.dashboard-share` pasa de sólida a `rgba(20,23,27,0.3)`** (30% de opacidad, mismo tono que `--bg`/#14171B) — probado en real: sólida al 100% tapaba demasiado la foto de fondo al compartir en redes; a medias se sigue leyendo la card y se nota el fondo.
+- **Contraste de los elementos sin card propia** (`.dashboard-share h1`, `.dashboard-share .sub`, `.dashboard-share .streak .l`, `.dashboard-share .streak .n`): con la card semitransparente, los tonos apagados de la app en vivo (`--text-dim`, `--text-faint`, y el gris del número de racha cuando no es "complete") perdían contraste. Se fuerzan a blanco (título/subtítulo/label) y verde fijo (`--ok`, siempre, tenga o no la clase `.complete`) solo dentro del export — la app en vivo no cambia. `.day-tab.completed` también sube de 10% a 30% de opacidad en el verde de fondo, mismo criterio que la card exterior.
+- **`cloneRailForShare()` reescrito**: antes recortaba con `overflow:hidden` + replicar el `scrollLeft` del riel real, lo que dejaba el último pill/tab cortado a la mitad. Ahora se queda solo con los ítems completamente visibles en el riel real (mismo scroll que ya tiene en pantalla) y descarta el resto — nunca un ítem a medias. Nueva función auxiliar `pairedFlexItems()` resuelve los ítems reales del flex recorriendo el nodo VIVO y el clon en paralelo por posición: `#week-rail` mete los pills adentro de un `#week-pills{display:contents}`, y `getComputedStyle` sobre un clon todavía fuera del DOM no siempre resuelve `display:contents` bien — de ahí el primer intento (`flexItems()` mirando el clon directamente) fallara con "Cannot read properties of undefined" al perder la cuenta de cuántos ítems había.
+- **Bug encontrado y corregido en la misma reescritura**: la primera versión medía cada ítem con `offsetLeft`/`offsetWidth`, pero ni `.week-rail` ni `.day-rack` tienen `position:relative` — `offsetLeft` quedaba medido contra el offsetParent real (algún ancestro más arriba), no contra el riel, con un sesgo fijo para todos los ítems. En vivo esto hizo perder el tab "VIE" del riel de días (5º de 5, calculado 14px "de más" por el sesgo). Reemplazado por `getBoundingClientRect()` de cada ítem contra el propio riel, que da coordenadas de viewport reales sin ese problema.
+- **`.day-rack` reparte 100% del ancho dinámicamente** (`{ stretch: true }` en `cloneRailForShare`, pisa el `flex:0 0 calc((100% - 24px) / 5)` fijo de `.day-tab` con `flex:1 1 0` inline en cada tab que sobrevive al recorte) — antes asumía siempre exactamente 5 tabs; ahora sea cual sea la cantidad que entre (probado con 5 normal y con 5 después de scrollear a sáb/dom), llenan el 100% del riel sin dejar espacio muerto.
+
 ## [1.42.0] - 2026-08-14 — Resumen semanal: card sólida ("patrón Strava") en vez de fondo transparente
 
 ### Changed

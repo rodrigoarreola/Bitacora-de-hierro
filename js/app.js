@@ -45,6 +45,12 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.43.0', date: '2026-08-14', title: 'Resumen semanal: card al 30%, texto legible y rieles sin cortes', items: [
+      'La card del resumen semanal pasa de sólida a 30% de opacidad — se sigue notando un poco el fondo detrás.',
+      'Título, subtítulo y el label "racha actual" ahora van en blanco; el número de racha siempre en verde. Los días completados llevan su verde también al 30%.',
+      'El riel de semanas ya no corta un pill a la mitad — solo muestra los que entran completos.',
+      'El riel de días reparte el 100% del ancho entre los tabs que entran, sea cual sea la cantidad (antes asumía siempre 5 y podía perder un tab si el cálculo daba justo en el borde).',
+    ]},
     { version: '1.42.0', date: '2026-08-14', title: 'Resumen semanal: card sólida en vez de fondo transparente', items: [
       'El PNG que se copia al portapapeles ("Copiar resumen de la semana") ahora es una sola card sólida y redondeada, no un fondo transparente — se veía mal sobre una foto real al compartir en redes, porque el título y los labels sueltos quedaban sin nada detrás.',
     ]},
@@ -2409,17 +2415,71 @@
     return clone;
   }
 
+  // Empareja los ítems reales del flex de un riel con sus clones: por lo
+  // general son los hijos directos, pero #week-rail mete los pills
+  // adentro de un #week-pills{display:contents} (para no armar el botón
+  // "+ Nueva semana" desde JS) — un nodo con display:contents no genera
+  // caja propia, así que sus HIJOS son los que cuentan como ítems del
+  // flex, no él. El display computado se mira siempre sobre el nodo VIVO
+  // (`liveEl`): sobre un clon todavía fuera del DOM, `getComputedStyle`
+  // no siempre resuelve `display:contents` bien (algunos navegadores
+  // devuelven el valor inicial en vez del que trae el `style` inline),
+  // así que el clon se recorre en paralelo por posición en vez de
+  // preguntarle a él directamente.
+  function pairedFlexItems(liveEl, cloneEl){
+    const live = [];
+    const clone = [];
+    Array.from(liveEl.children).forEach((liveChild, i)=>{
+      const cloneChild = cloneEl.children[i];
+      if(getComputedStyle(liveChild).display === 'contents'){
+        const sub = pairedFlexItems(liveChild, cloneChild);
+        live.push(...sub.live);
+        clone.push(...sub.clone);
+      } else {
+        live.push(liveChild);
+        clone.push(cloneChild);
+      }
+    });
+    return { live, clone };
+  }
+
   // Igual que cloneForShare, pero para un riel horizontal (.week-rail,
-  // .day-rack): fija el ancho visible y el scroll actual del riel real
-  // para que el clon recorte exactamente lo mismo que ya se ve en
-  // pantalla (el recorte se aplica después de insertar el clon en el
-  // DOM, ver buildDashboardShareContainer — scrollLeft no "pega" antes
-  // de eso).
-  function cloneRailForShare(el){
+  // .day-rack). Antes recortaba visualmente con overflow+scrollLeft, lo
+  // que dejaba el último ítem cortado a la mitad (ej. un pill de semana
+  // partido al medio) — en vez de eso, se queda solo con los ítems que ya
+  // están COMPLETOS dentro de lo que se ve hoy en el riel real (mismo
+  // scrollLeft/ancho que ya tiene en pantalla) y descarta el resto, tanto
+  // los que quedaron antes del scroll como el que se corta al final.
+  // `stretch:true` además pisa el flex-basis fijo que trae `.day-tab` de
+  // la hoja de estilos (pensado siempre para 5 tabs) para que los que
+  // sobrevivan repartan el 100% del ancho entre ellos, sea cual sea la
+  // cantidad — así no queda espacio muerto si terminan siendo menos de 5,
+  // ni tabs angostos de más si por scroll llegan a ser 6 o 7. `.day-rack`
+  // no tiene wrapper `display:contents`, así que ahí alcanza con los
+  // hijos directos del clon ya recortado.
+  function cloneRailForShare(el, { stretch = false } = {}){
     const clone = cloneForShare(el);
+    const { live: liveItems, clone: cloneItems } = pairedFlexItems(el, clone);
+    // getBoundingClientRect(), no offsetLeft: ninguno de los dos riels
+    // tiene position:relative/absolute, así que el offsetParent real de
+    // sus hijos es algún ancestro más arriba — offsetLeft quedaba medido
+    // contra ESE ancestro, no contra el riel, con el mismo sesgo fijo
+    // para todos los ítems (encontrado en vivo: día "vie" perdido por 14px
+    // de más justo por esto). getBoundingClientRect() da coordenadas de
+    // viewport reales para ambos, así que la comparación es directa sin
+    // tener que reconstruir a mano el sistema de referencia del scroll.
+    const containerRect = el.getBoundingClientRect();
+    const eps = 2; // tolerancia por redondeo subpixel
+    liveItems.forEach((liveItem, i)=>{
+      const r = liveItem.getBoundingClientRect();
+      const fullyVisible = r.left >= containerRect.left - eps && r.right <= containerRect.right + eps;
+      if(!fullyVisible) cloneItems[i].remove();
+    });
     clone.style.width = el.clientWidth + 'px';
     clone.style.overflow = 'hidden';
-    clone.dataset.pendingScrollLeft = el.scrollLeft;
+    if(stretch){
+      Array.from(clone.children).forEach(item => { item.style.flex = '1 1 0'; });
+    }
     return clone;
   }
 
@@ -2440,7 +2500,7 @@
     // tiene sentido en una imagen estática de todos modos, así que se saca.
     weekRailClone.querySelector('input[type="date"]')?.remove();
     card.appendChild(weekRailClone);
-    card.appendChild(cloneRailForShare(document.getElementById('day-rack')));
+    card.appendChild(cloneRailForShare(document.getElementById('day-rack'), { stretch: true }));
     card.appendChild(cloneForShare(document.querySelector('.summary-strip')));
     const recapHost = document.getElementById('weekly-recap-host');
     if(recapHost && !recapHost.classList.contains('hidden') && recapHost.innerHTML.trim()){
@@ -2486,10 +2546,6 @@
     container.style.left = '-9999px';
     container.style.top = '0';
     document.body.appendChild(container);
-    container.querySelectorAll('[data-pending-scroll-left]').forEach(el=>{
-      el.scrollLeft = Number(el.dataset.pendingScrollLeft);
-      delete el.dataset.pendingScrollLeft;
-    });
     try{
       await copyElementAsImage(container, `bitacora-resumen-${state.activeWeek}.png`);
     } finally {
