@@ -292,31 +292,15 @@
   .week-note-input:focus{ outline:none; }
   .week-note-input::placeholder{ color:var(--text-faint); }
 
-  /* ---------- Export de semana completa (imagen, fuera de pantalla) ---------- */
-  .week-share-container{ background:var(--bg); padding:20px; font-family:var(--font-body); }
-  .week-share-title{
-    font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--text);
-    text-transform:uppercase; letter-spacing:.01em; margin-bottom:16px;
-  }
-  .week-share-empty{ color:var(--text-faint); font-size:12px; }
-  .week-share-day{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-bottom:12px; }
-  .week-share-day-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
-  .week-share-day-name{ font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--text); text-transform:uppercase; }
-  .week-share-day-group{ font-size:10px; color:var(--text-faint); }
-  .week-share-col-heads{
-    display:grid; grid-template-columns:22px 1fr 40px 40px 40px; gap:5px; padding:4px 0;
-    font-size:9px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; font-weight:600;
-  }
-  .week-share-col-heads span:nth-child(3), .week-share-col-heads span:nth-child(4), .week-share-col-heads span:nth-child(5){ text-align:center; }
-  .week-share-row{
-    display:grid; grid-template-columns:22px 1fr 40px 40px 40px; gap:5px;
-    align-items:center; padding:6px 0; border-top:1px solid var(--line);
-  }
-  .week-share-name{ font-size:12px; font-weight:500; color:var(--text); }
-  .week-share-row.pending .week-share-name{ color:var(--text-dim); }
-  .week-share-name.empty{ color:var(--text-faint); }
-  .week-share-val{ font-family:var(--font-mono); font-size:12px; color:var(--text-dim); text-align:center; font-weight:500; }
-  .week-share-row.done .week-share-val{ color:var(--text); }
+  /* ---------- Export de resumen semanal (imagen, fuera de pantalla) ---------- */
+  /* Sin fondo propio a propósito: solo las cards clonadas adentro
+     (.week-pill, .day-tab, .sum-chip, .recap-card) traen su color sólido
+     de la hoja de estilos general — el resto queda transparente en el
+     PNG. Los nodos clonados conservan sus clases originales, así que
+     todo su estilo ya viene de las reglas de arriba (header, week-rail,
+     day-rack, summary-strip, recap-card); acá solo el ancho/padding del
+     contenedor, que normalmente pone <body>. */
+  .dashboard-share{ width:520px; padding:16px 14px; box-sizing:border-box; font-family:var(--font-body); }
 
   /* ---------- Sesión del día (Iniciar/Finalizar entrenamiento) ---------- */
   .day-session-panel{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:16px; }

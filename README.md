@@ -85,6 +85,7 @@ Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único us
   - "Copiar semana pasada" cuando el día está vacío.
   - "Migrar día": mueve el set completo de ejercicios (mismo grupo muscular, notas y estado marcado) de un día a otro **posterior dentro de la misma semana** — pensado para cuando un entrenamiento entre semana se recupera más adelante. El destino puede ser cualquier día posterior, tenga o no contenido: si ya tiene, ese contenido se recorre un día más adelante y así en cadena hasta encontrar un hueco (ej. migrar martes→miércoles cuando miércoles ya tiene rutina empuja miércoles→jueves, jueves→viernes...). Se bloquea solo si algún día de la cadena ya tiene ejercicios marcados como hechos, o si no queda ningún hueco hasta el domingo. Se muestra debajo de "+ Agregar ejercicio".
   - Botón "Compartir" (ícono) que captura el panel del día como imagen PNG (html2canvas) y usa `navigator.share()` en celular o cae a descarga normal.
+  - Botón de calendario junto al anterior: clona el bloque de arriba de "Hoy" (header con racha, riel de semanas, riel de días, tira de resumen y comparación semanal) y lo copia al portapapeles como PNG con fondo transparente — solo las cards (pills, tabs, chips, la card de comparación) llevan color sólido, listo para pegar en un chat. Si el navegador no soporta copiar imágenes, cae a descarga normal.
   - Anillo de progreso (ejercicios marcados / total) y tira de resumen de 4 columnas (series de hoy, ejercicios, mejor racha, volumen del día en kg×reps×series).
   - Al final del bloque: **nota libre de la semana** (textarea, se guarda sola al salir del campo) y un **conversor kg / lbs** suelto (dos inputs enlazados, no se guarda en ningún lado).
 - **Ajustes**: **Reglas** editables — mínimos de ejercicios/día para "cumplido", días/semana para no romper la racha, semana fuerte y semanas mínimas para mostrar un período en Hitos. Se guardan en `app_settings` vía `api/settings.php` y afectan el cálculo real de inmediato (racha, riel de días, Historial, Hitos), sin recargar la página. **Librería de ejercicios**: lista reutilizable para autocompletar nombres al agregar ejercicios; se alimenta sola con lo que se escribe en cualquier día, y se puede buscar/eliminar manualmente.
@@ -126,6 +127,8 @@ php -S localhost:8000
 ```
 
 Necesita `api/config.local.php` ya configurado apuntando a una base de datos con el esquema importado — ver "Puesta en marcha del backend" arriba.
+
+Para no tener que loguearse cada vez en local, agregar `define('DEV_AUTOLOGIN', true);` a `api/config.local.php` — salta el login automáticamente con el único usuario que existe. Solo tiene efecto corriendo con `php -S` desde `localhost`/`127.0.0.1` (chequeo de `PHP_SAPI` + IP en `api/config.php`); no hay forma de que esto se active en producción, y el archivo nunca se sube a git.
 
 ## Despliegue
 

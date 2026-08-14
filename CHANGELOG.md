@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.41.0] - 2026-08-14 — Compartir semana: resumen del dashboard, copiado al portapapeles
+
+### Changed
+
+- **"Compartir semana completa" reemplazado por "Copiar resumen de la semana"** (mismo ícono de calendario junto a "Compartir día", `data-action="share-dashboard"` en `js/app.js`): antes armaba un contenedor sintético con los 7 días en tablas de ejercicios (`weekShareRowHtml`/`buildWeekShareContainer`); ahora clona el bloque real que se ve arriba de "Hoy" — `header.app-head`, `#week-rail`, `#day-rack`, `.summary-strip` y `#weekly-recap-host` (si tiene datos) — vía `cloneForShare()`/`cloneRailForShare()`/`buildDashboardShareContainer()`. Clonar el DOM real en vez de reconstruir HTML a mano evita que el export se desalinee de lo que la app ya renderiza. Los dos riels horizontales (`week-rail`, `day-rack`) fijan `width`/`overflow:hidden` y replican el `scrollLeft` del elemento real para que el clon recorte exactamente lo mismo que ya se ve en pantalla — el recorte se aplica recién después de insertar el clon en el DOM, porque `scrollLeft` no "pega" antes de eso.
+- **Fondo transparente**: `html2canvas(..., { backgroundColor: null })` en vez de `cssVar('--bg')` — como ninguno de los contenedores intermedios (`.app-head`, `.week-rail`, `.day-rack`, `.summary-strip`) tiene fondo propio en `css/styles.css` (solo lo tienen las cards — `.week-pill`, `.day-tab`, `.sum-chip`, `.recap-card`), el PNG resultante queda transparente en todo lo que no sea una card, sin tocar una sola regla de CSS para lograrlo.
+- **Copiar al portapapeles en vez de descargar de entrada**: nueva `copyElementAsImage()` usa `navigator.clipboard.write([new ClipboardItem({'image/png': blob})])`; si el navegador no soporta `ClipboardItem` o el usuario niega el permiso, cae al mismo patrón de `<a download>` que ya usaba `shareElementAsImage()` (el compartir de día e Historial no cambia, sigue usando `navigator.share()`/descarga).
+- CSS: el bloque `.week-share-*` (7 reglas, pensadas para la tabla de 7 días) se reemplaza por una sola regla `.dashboard-share` (ancho/padding del contenedor) — los nodos clonados conservan sus clases originales, así que heredan todo su estilo de las reglas que ya existían para el header/riel/tira/recap real.
+
+### Fixed
+
+- **"+ Nueva semana" salía con una caja blanca de más en la imagen exportada**: el `<input type="date">` de `#new-week-date` es invisible en la app real gracias a `#new-week-date{opacity:0}` — un selector por `id`. `cloneForShare()` quita los `id` de todo lo que clona (para no dejar ids duplicados dando vueltas mientras el clon vive fuera de pantalla), así que esa regla dejaba de aplicar al clon y el input aparecía con su estilo nativo del navegador. Al no tener ningún valor en una imagen estática (es un control interactivo para elegir fecha), `buildDashboardShareContainer()` ahora lo saca del todo del clon del riel de semanas (`weekRailClone.querySelector('input[type="date"]')?.remove()`) en vez de intentar preservarle el estilo.
+
+### Added (solo desarrollo local)
+
+- **`DEV_AUTOLOGIN`** (constante opcional en `api/config.local.php`, gitignored): salta la pantalla de login en local. Gateado por tres condiciones a la vez en `api/config.php` — `PHP_SAPI === 'cli-server'` (el servidor embebido de `php -S`, nunca lo que corre producción), la constante definida `true`, y `REMOTE_ADDR` en `127.0.0.1`/`::1` — así que no hay forma de que se active accidentalmente fuera de una sesión de `php -S localhost:...`. Auto-loguea al único usuario que existe (`SELECT id FROM users LIMIT 1`), sin tocar `api/login.php` ni el flujo de sesión real.
+
 ## [1.40.0] - 2026-08-13 — Horarios de entrenamiento en Perfil
 
 ### Added

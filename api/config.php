@@ -51,3 +51,22 @@ try {
     echo json_encode(['ok' => false, 'error' => 'No se pudo conectar a la base de datos.']);
     exit;
 }
+
+// Bypass de login solo para desarrollo local: requiere las tres cosas a la
+// vez — PHP_SAPI === 'cli-server' (el servidor embebido de `php -S`, nunca
+// lo que corre Hostgator/Apache/PHP-FPM en producción), la constante
+// DEV_AUTOLOGIN definida en config.local.php (gitignored, por entorno — no
+// existe copia en git ni en el servidor real salvo que alguien la agregue a
+// mano) y que la request venga de localhost. Con las tres, auto-loguea al
+// único usuario que existe (no hay nada que elegir, es un solo usuario).
+if (
+    empty($_SESSION['user_id'])
+    && PHP_SAPI === 'cli-server'
+    && defined('DEV_AUTOLOGIN') && DEV_AUTOLOGIN === true
+    && in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)
+) {
+    $devUser = $pdo->query('SELECT id FROM users LIMIT 1')->fetch();
+    if ($devUser) {
+        $_SESSION['user_id'] = (int) $devUser['id'];
+    }
+}

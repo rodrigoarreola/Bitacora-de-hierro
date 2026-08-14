@@ -9,3 +9,9 @@ define('DB_HOST', 'localhost');
 define('DB_NAME', 'usuario_cpanel_bitacorahierro');
 define('DB_USER', 'usuario_cpanel_dbuser');
 define('DB_PASS', 'cambia-esto');
+
+// Opcional, solo para desarrollo local: saltea la pantalla de login y
+// entra directo con el único usuario que existe. Sin efecto salvo que
+// PHP corra con el servidor embebido (`php -S`) y la request venga de
+// localhost — ver api/config.php. Nunca actives esto en producción.
+// define('DEV_AUTOLOGIN', true);

@@ -45,6 +45,12 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.41.0', date: '2026-08-14', title: 'Compartir semana: resumen del dashboard, copiado al portapapeles', items: [
+      'El botón de calendario junto a "Compartir día" ahora captura el mismo bloque que se ve arriba de "Hoy" (racha, riel de semanas, riel de días, resumen y comparación semanal) en vez de una tabla larga con los 7 días.',
+      'La imagen sale en PNG con fondo transparente — solo las cards (pills, tabs, chips, la card de comparación) llevan color sólido.',
+      'Ya no descarga de entrada: la imagen se copia directo al portapapeles, y solo cae a descarga si el navegador no soporta copiar imágenes.',
+      'Corregido: "+ Nueva semana" salía con una caja blanca de más en la imagen (el date picker invisible perdía su estilo al clonar el DOM).',
+    ]},
     { version: '1.40.0', date: '2026-08-13', title: 'Horarios de entrenamiento en Perfil', items: [
       'Nuevo panel "Horarios de entrenamiento" en Perfil, debajo de Hitos y constancia — sin agregar botón al menú inferior.',
       'Filtro por año (Todo / años con sesiones registradas) y por mes (Todos / Ene-Dic, combinables entre sí).',
@@ -1152,7 +1158,7 @@
           </div>
           <div class="day-panel-head-actions">
             <button class="share-btn" type="button" data-action="share-day" aria-label="Compartir día"><i class="icon fa-solid fa-share-nodes"></i></button>
-            <button class="share-btn" type="button" data-action="share-week-full" aria-label="Compartir semana completa"><i class="icon fa-solid fa-calendar-week"></i></button>
+            <button class="share-btn" type="button" data-action="share-dashboard" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-calendar-week"></i></button>
             <div class="progress-ring ${ringTier}">
               <svg width="40" height="40" viewBox="0 0 40 40">
                 <circle class="bgc" cx="20" cy="20" r="16"></circle>
@@ -1649,8 +1655,8 @@
       shareElementAsImage(document.querySelector('.day-panel'), `bitacora-${state.activeWeek}-${state.activeDay}.png`);
       return;
     }
-    if(e.target.closest('[data-action="share-week-full"]')){
-      shareWeekAsImage(state.activeWeek);
+    if(e.target.closest('[data-action="share-dashboard"]')){
+      shareDashboardAsImage();
       return;
     }
     if(e.target.closest('[data-action="first-week"]')){ addWeekBtn.click(); return; }
@@ -2367,10 +2373,10 @@
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
 
-  // Compartir día/semana como imagen: captura el elemento con html2canvas
-  // (CDN) y usa Web Share API si el navegador la soporta (celular), o
-  // cae a una descarga directa (mismo patrón de <a download> que ya usa
-  // exportar datos en Perfil).
+  // Compartir día/tarjeta de Historial como imagen: captura el elemento
+  // con html2canvas (CDN) y usa Web Share API si el navegador la soporta
+  // (celular), o cae a una descarga directa (mismo patrón de <a download>
+  // que ya usa exportar datos en Perfil).
   async function shareElementAsImage(el, filename){
     if(typeof html2canvas === 'undefined'){ showToast('No se pudo generar la imagen.'); return; }
     const canvas = await html2canvas(el, { backgroundColor: cssVar('--bg'), scale: 2 });
@@ -2389,61 +2395,100 @@
     }, 'image/png');
   }
 
-  // Fila estática para el export de semana completa: sin inputs ni
-  // botones (nada editable ni clickeable tiene sentido en una imagen),
-  // solo nombre/kg/rep/ser y el check de hecho — clases propias
-  // (.week-share-*) para no heredar el grid de 8 columnas de .ex-row.
-  function weekShareRowHtml(ex){
-    const hasName = !!(ex.name && ex.name.trim());
-    return `
-      <div class="week-share-row ${ex.done ? 'done' : 'pending'}">
-        <div class="ex-check"><i class="icon fa-solid ${ex.done ? 'fa-check' : 'fa-minus'}"></i></div>
-        <div class="week-share-name${hasName ? '' : ' empty'}">${hasName ? escapeHtml(ex.name) : 'Nombre del ejercicio'}</div>
-        <div class="week-share-val">${escapeHtml(ex.kg) || '—'}</div>
-        <div class="week-share-val">${escapeHtml(ex.reps) || '—'}</div>
-        <div class="week-share-val">${escapeHtml(ex.series) || '—'}</div>
-      </div>`;
+  // Clona un nodo del dashboard real para el export de imagen, quitando
+  // los `id` (evita colisiones mientras el clon vive fuera de pantalla —
+  // getElementById igual encuentra primero el original, pero mejor no
+  // dejar ids duplicados dando vueltas).
+  function cloneForShare(el){
+    const clone = el.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
+    return clone;
   }
 
-  function buildWeekShareContainer(weekKey){
-    const week = state.weeks[weekKey];
+  // Igual que cloneForShare, pero para un riel horizontal (.week-rail,
+  // .day-rack): fija el ancho visible y el scroll actual del riel real
+  // para que el clon recorte exactamente lo mismo que ya se ve en
+  // pantalla (el recorte se aplica después de insertar el clon en el
+  // DOM, ver buildDashboardShareContainer — scrollLeft no "pega" antes
+  // de eso).
+  function cloneRailForShare(el){
+    const clone = cloneForShare(el);
+    clone.style.width = el.clientWidth + 'px';
+    clone.style.overflow = 'hidden';
+    clone.dataset.pendingScrollLeft = el.scrollLeft;
+    return clone;
+  }
+
+  // Arma, fuera de pantalla, el mismo bloque que se ve arriba de "Hoy":
+  // header con racha, riel de semanas, riel de días, tira de resumen y
+  // (si hay datos) la card de comparación semanal. Clona el DOM real en
+  // vez de reconstruir HTML a mano para que el export nunca se desalinee
+  // de lo que la app ya renderiza.
+  function buildDashboardShareContainer(){
     const container = document.createElement('div');
-    container.className = 'week-share-container';
-    const daysHtml = DAY_ORDER.filter(dk => dk !== 'dom').map(dk=>{
-      const day = week.days[dk];
-      if(day.exercises.length === 0) return '';
-      const d = dayDate(weekKey, dk);
-      return `
-        <div class="week-share-day">
-          <div class="week-share-day-head">
-            <span class="week-share-day-name">${DAY_NAMES[dk]} · ${fmtShortDate(d)}</span>
-            <span class="week-share-day-group">${escapeHtml(day.group)}</span>
-          </div>
-          <div class="week-share-col-heads"><span></span><span>Ejercicio</span><span>Kg</span><span>Rep</span><span>Ser</span></div>
-          ${day.exercises.map(weekShareRowHtml).join('')}
-        </div>`;
-    }).join('');
-    container.innerHTML = `
-      <div class="week-share-title">Bitácora de Hierro — ${weekLabel(weekKey)}</div>
-      ${daysHtml || '<p class="week-share-empty">Semana sin ejercicios todavía.</p>'}`;
+    container.className = 'dashboard-share';
+    container.appendChild(cloneForShare(document.querySelector('header.app-head')));
+    const weekRailClone = cloneRailForShare(document.getElementById('week-rail'));
+    // El <input type="date"> de "+ Nueva semana" es invisible en la app real
+    // gracias a #new-week-date{opacity:0} (selector por id) — como
+    // cloneForShare() quita los ids para evitar duplicados, esa regla ya no
+    // aplica al clon y el input aparecería como una caja blanca suelta. No
+    // tiene sentido en una imagen estática de todos modos, así que se saca.
+    weekRailClone.querySelector('input[type="date"]')?.remove();
+    container.appendChild(weekRailClone);
+    container.appendChild(cloneRailForShare(document.getElementById('day-rack')));
+    container.appendChild(cloneForShare(document.querySelector('.summary-strip')));
+    const recapHost = document.getElementById('weekly-recap-host');
+    if(recapHost && !recapHost.classList.contains('hidden') && recapHost.innerHTML.trim()){
+      container.appendChild(cloneForShare(recapHost));
+    }
     return container;
   }
 
-  // Semana completa como una sola imagen larga: arma un contenedor fuera
-  // de pantalla con los 7 días (reusa weekShareRowHtml, no exerciseRowHtml
-  // — una imagen no necesita inputs/botones editables) y lo captura con el
-  // mismo shareElementAsImage() que ya usan día e Historial, sin sumar una
-  // dependencia nueva (nada de jsPDF: una imagen larga cubre el pedido).
-  async function shareWeekAsImage(weekKey){
-    if(!weekKey || !state.weeks[weekKey]) return;
-    const container = buildWeekShareContainer(weekKey);
+  // Genera el PNG con html2canvas y lo copia al portapapeles (Clipboard
+  // API). `backgroundColor: null` deja transparente todo lo que no sea
+  // una card — esas ya traen su propio fondo sólido de la hoja de
+  // estilos (.week-pill, .day-tab, .sum-chip, .recap-card), así que no
+  // hace falta pintar nada a mano. Si el navegador no soporta copiar
+  // imágenes (o el usuario niega el permiso), cae a una descarga directa
+  // (mismo patrón de <a download> que ya usa exportar datos en Perfil).
+  async function copyElementAsImage(el, filename){
+    if(typeof html2canvas === 'undefined'){ showToast('No se pudo generar la imagen.'); return; }
+    const canvas = await html2canvas(el, { backgroundColor: null, scale: 2 });
+    canvas.toBlob(async (blob)=>{
+      if(!blob){ showToast('No se pudo generar la imagen.'); return; }
+      if(navigator.clipboard && window.ClipboardItem){
+        try{
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          showToast('Imagen copiada al portapapeles');
+          return;
+        }catch(err){ /* sin permiso o sin soporte real: cae a descarga */ }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Imagen descargada (tu navegador no soporta copiar al portapapeles)');
+    }, 'image/png');
+  }
+
+  // Resumen semanal (header + riel de semanas + riel de días + tira de
+  // resumen + comparación semanal) como una sola imagen PNG, copiada al
+  // portapapeles — ver copyElementAsImage() y buildDashboardShareContainer().
+  async function shareDashboardAsImage(){
+    const container = buildDashboardShareContainer();
     container.style.position = 'fixed';
     container.style.left = '-9999px';
     container.style.top = '0';
-    container.style.width = '520px';
     document.body.appendChild(container);
+    container.querySelectorAll('[data-pending-scroll-left]').forEach(el=>{
+      el.scrollLeft = Number(el.dataset.pendingScrollLeft);
+      delete el.dataset.pendingScrollLeft;
+    });
     try{
-      await shareElementAsImage(container, `bitacora-semana-completa-${weekKey}.png`);
+      await copyElementAsImage(container, `bitacora-resumen-${state.activeWeek}.png`);
     } finally {
       document.body.removeChild(container);
     }
