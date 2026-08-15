@@ -18,3 +18,11 @@ api/db/backups/*.json
 
 # Zips de despliegue armados para subir por FTP — artefacto local, no código
 /producción/
+
+# Caché en disco de GIFs/imágenes del dataset de ejercicios (api/exercise_media.php)
+# — se repuebla solo pidiéndolos de nuevo, no hace falta versionarlos.
+api/media_cache/*/*
+
+# Dataset crudo descargado por scripts/build-exercises-dataset.php — se
+# vuelve a bajar con solo correr el script, no hace falta versionarlo.
+scripts/.cache/
