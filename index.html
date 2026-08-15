@@ -255,6 +255,23 @@
 
     <div class="lib-panel">
       <div class="lib-head">
+        <div class="lib-title">Fuente de nombres de ejercicios</div>
+        <p class="lib-sub">Qué lista se usa para autocompletar al agregar un ejercicio. El ícono <i class="icon fa-solid fa-eye"></i> con GIF y datos del ejercicio aparece igual con cualquiera de las dos, si hay coincidencia.</p>
+      </div>
+      <div class="source-options" id="exercise-source-options">
+        <label class="source-option">
+          <input type="radio" name="exercise-source" value="custom" id="exercise-source-custom">
+          <span class="source-option-label">Personalizada (la mía)</span>
+        </label>
+        <label class="source-option">
+          <input type="radio" name="exercise-source" value="dataset" id="exercise-source-dataset">
+          <span class="source-option-label">Dataset (1.324 ejercicios, con GIF)</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="lib-panel">
+      <div class="lib-head">
         <div class="lib-title">Librería de ejercicios</div>
         <p class="lib-sub">Se usa para autocompletar al agregar ejercicios en cualquier día. Escribe uno nuevo en un día y se guarda aquí solo.</p>
       </div>
@@ -280,6 +297,10 @@
   <div class="toast" id="toast">
     <span class="toast-msg" id="toast-msg"></span>
     <button type="button" class="toast-action hidden" id="toast-action"></button>
+  </div>
+
+  <div class="ex-info-overlay hidden" id="exercise-info-overlay">
+    <div class="ex-info-panel" id="exercise-info-panel"></div>
   </div>
 
   </div>

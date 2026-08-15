@@ -193,6 +193,16 @@
   .ex-name-cell.editing .ex-name-display{ display:none; }
   .ex-name-cell.editing .ex-name-input{ display:block; }
 
+  .ex-name-row{ display:flex; align-items:flex-start; gap:5px; }
+  .ex-name-row .ex-name-display{ flex:1; min-width:0; }
+  .ex-info-btn{
+    flex-shrink:0; background:none; border:none; color:var(--text-faint); cursor:pointer;
+    padding:2px; display:flex; align-items:center; justify-content:center; margin-top:2px;
+  }
+  .ex-info-btn .icon{ font-size:11px; }
+  .ex-info-btn:hover{ color:var(--accent); }
+  .ex-name-cell.editing .ex-info-btn{ display:none; }
+
   .ex-note{
     display:block; margin-top:3px; font-size:9.5px; color:var(--text-faint); background:none; border:none;
     padding:0; text-align:left; cursor:pointer; font-family:var(--font-body); line-height:1.3;
@@ -415,6 +425,19 @@
      el ancho/margen angostos y quedaba pegado a los bordes redondeados
      del panel en vez de alinearse con el resto del contenido. */
   .perfil-btn.rules-save-btn{ margin:14px 18px 18px; width:calc(100% - 36px); }
+
+  /* Paneles de Ajustes apilados: mismo separador que .rules-panel/.lib-panel
+     de siempre, pero por selector de hermano en vez de tocar la clase base
+     .lib-panel (se reusa también en Historial sin este margen). */
+  #view-ajustes .lib-panel + .lib-panel{ margin-top:16px; }
+  .source-options{ padding:14px 18px 18px; display:flex; flex-direction:column; gap:10px; }
+  .source-option{
+    display:flex; align-items:center; gap:10px; padding:11px 12px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:10px; cursor:pointer;
+  }
+  .source-option:has(input:checked){ border-color:var(--accent-dim); }
+  .source-option input{ accent-color:var(--accent); width:16px; height:16px; flex-shrink:0; }
+  .source-option-label{ font-size:12.5px; color:var(--text); font-weight:500; }
 
   /* ---------- Librería de ejercicios (Ajustes) ---------- */
   .lib-panel{ background:var(--surface); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
@@ -758,3 +781,42 @@
   .prog-spark-trend.flat{ color:var(--text-faint); }
   .prog-spark-canvas-wrap{ position:relative; height:38px; margin:8px 0 6px; }
   .prog-spark-last{ font-family:var(--font-mono); font-size:11.5px; color:var(--text-dim); }
+
+  /* ---------- Panel de info de ejercicio (ícono de ojo) ---------- */
+  /* Bottom sheet, no modal centrado — mismo lenguaje "mobile-first" que el
+     resto de la app (no hay overlay/modal reutilizable previo, ver
+     ESTRUCTURA.md). Fondo oscuro fijo + card anclada abajo, scrollable. */
+  .ex-info-overlay{
+    position:fixed; inset:0; background:rgba(10,12,15,0.72); z-index:50;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .ex-info-panel{
+    width:100%; max-width:520px; max-height:85vh; overflow-y:auto;
+    background:var(--surface); border:1px solid var(--line); border-bottom:none;
+    border-radius:20px 20px 0 0; padding:16px 18px calc(20px + env(safe-area-inset-bottom));
+  }
+  .ex-info-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .ex-info-title{ font-family:var(--font-display); font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; color:var(--text); line-height:1.2; }
+  .ex-info-subtitle{ font-size:11px; color:var(--text-faint); margin-top:3px; text-transform:capitalize; }
+  .ex-info-close{
+    flex-shrink:0; width:30px; height:30px; border-radius:9px; background:var(--surface-2); border:1px solid var(--line);
+    color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .ex-info-media{
+    position:relative; width:100%; aspect-ratio:1; max-width:280px; margin:0 auto 14px; border-radius:14px;
+    overflow:hidden; background:var(--surface-2); display:flex; align-items:center; justify-content:center;
+  }
+  .ex-info-media img{ width:100%; height:100%; object-fit:contain; }
+  .ex-info-media-loading{ font-size:11.5px; color:var(--text-faint); padding:12px; text-align:center; }
+  .ex-info-tags{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .ex-info-tag{
+    display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-dim); font-weight:600;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:6px 10px;
+  }
+  .ex-info-tag .icon{ font-size:10px; color:var(--text-faint); }
+  .ex-info-secondary{ font-size:11px; color:var(--text-faint); margin-bottom:14px; line-height:1.5; }
+  .ex-info-section-title{ font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); font-weight:700; margin-bottom:8px; }
+  .ex-info-steps{ margin:0 0 16px; padding-left:18px; display:flex; flex-direction:column; gap:6px; }
+  .ex-info-steps li{ font-size:12.5px; color:var(--text-dim); line-height:1.5; }
+  .ex-info-empty{ font-size:12px; color:var(--text-faint); margin:0 0 16px; }
+  .ex-info-attribution{ font-size:9.5px; color:var(--text-faint); line-height:1.4; border-top:1px solid var(--line); padding-top:10px; }

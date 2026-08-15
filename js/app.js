@@ -45,6 +45,11 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.46.0', date: '2026-08-14', title: 'GIFs e info de ejercicios (dataset externo)', items: [
+      'Nuevo ícono de ojo junto al nombre de un ejercicio (cuando hay coincidencia con el dataset externo hasaneyldrm/exercises-dataset): abre un panel con el GIF de demostración, categoría/equipo/músculo objetivo y las instrucciones paso a paso, todo en español.',
+      'En Ajustes, "Fuente de nombres de ejercicios": elegir entre tu librería personalizada de siempre o el dataset completo (1.324 ejercicios) para autocompletar al agregar un ejercicio. El ícono de ojo aparece igual con cualquiera de las dos.',
+      'Los GIFs se traen bajo demanda y quedan cacheados en el servidor — la primera vez tardan un toque, después son instantáneos incluso sin conexión al origen.',
+    ]},
     { version: '1.45.0', date: '2026-08-14', title: 'Timer del día como íconos, y changelog colapsado en Perfil', items: [
       'La card "Iniciar/Finalizar entrenamiento" ahora es un ícono de play/stop en rojo, en vez de un botón de texto — entra en la misma fila que Hora inicio/Hora fin/Duración incluso en un celular angosto.',
       'Si el día cargado en "Hoy" es literalmente hoy, esa card se mueve arriba, entre el riel de días y las 4 cards de resumen — cualquier otro día la deja donde siempre vivió.',
@@ -236,6 +241,164 @@
   // ============================================================
   const EXERCISE_LIBRARY = [];
 
+  // ============================================================
+  // Dataset externo de ejercicios (hasaneyldrm/exercises-dataset) — GIFs,
+  // músculo/equipo e instrucciones. Vive como JSON estático en data/, no
+  // en la base. EXERCISE_SOURCE es una preferencia del dispositivo (no
+  // pasa por api/settings.php, que solo valida reglas numéricas), guardada
+  // en localStorage. NAME_MAPPING (chico) se carga siempre al boot para
+  // saber cuándo mostrar el ícono de ojo; EXERCISE_DATASET (~1MB) se carga
+  // lazy recién cuando hace falta (ojo abierto, o fuente "dataset" elegida).
+  // ============================================================
+  let EXERCISE_SOURCE = localStorage.getItem('bitacora.exerciseSource') === 'dataset' ? 'dataset' : 'custom';
+  let NAME_MAPPING = {};
+  let EXERCISE_DATASET = null;
+  let EXERCISE_DATASET_BY_ID = null;
+  let exerciseDatasetPromise = null;
+
+  function normalizeExerciseName(name){
+    return String(name ?? '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, ''); // saca acentos (á->a, etc.)
+  }
+
+  async function loadNameMapping(){
+    try{
+      const res = await fetch('data/exercise-name-mapping.json');
+      NAME_MAPPING = res.ok ? await res.json() : {};
+    }catch(err){
+      NAME_MAPPING = {}; // sin conexión / archivo no disponible: el ojito simplemente no aparece
+    }
+  }
+
+  function findDatasetMatch(name){
+    const entry = NAME_MAPPING[normalizeExerciseName(name)];
+    return entry ? entry.datasetId : null;
+  }
+
+  function loadExerciseDataset(){
+    if(EXERCISE_DATASET) return Promise.resolve(EXERCISE_DATASET);
+    if(exerciseDatasetPromise) return exerciseDatasetPromise;
+    exerciseDatasetPromise = fetch('data/exercises-dataset.json')
+      .then(res => { if(!res.ok) throw new Error('No se pudo cargar el catálogo.'); return res.json(); })
+      .then(list => {
+        EXERCISE_DATASET = list;
+        EXERCISE_DATASET_BY_ID = new Map(list.map(e => [e.id, e]));
+        return list;
+      })
+      .catch(err => { exerciseDatasetPromise = null; throw err; });
+    return exerciseDatasetPromise;
+  }
+
+  function renderExerciseSourceSetting(){
+    const customRadio = document.getElementById('exercise-source-custom');
+    const datasetRadio = document.getElementById('exercise-source-dataset');
+    if(!customRadio || !datasetRadio) return;
+    customRadio.checked = EXERCISE_SOURCE === 'custom';
+    datasetRadio.checked = EXERCISE_SOURCE === 'dataset';
+  }
+
+  async function setExerciseSource(source){
+    EXERCISE_SOURCE = source === 'dataset' ? 'dataset' : 'custom';
+    localStorage.setItem('bitacora.exerciseSource', EXERCISE_SOURCE);
+    await renderLibraryDatalist();
+  }
+
+  // Labels ES para los enums chicos del dataset (category/body_part,
+  // equipment, target/muscle_group) — a diferencia de los ~1.324 nombres,
+  // acá son ~10-30 valores fijos por campo, así que un diccionario a mano
+  // da una traducción siempre limpia, sin el fallback a inglés.
+  const CATEGORY_LABELS_ES = {
+    waist: 'Abdomen', 'upper legs': 'Piernas (superior)', back: 'Espalda', 'lower legs': 'Pantorrillas',
+    chest: 'Pecho', 'upper arms': 'Brazos (superior)', cardio: 'Cardio', shoulders: 'Hombros',
+    'lower arms': 'Antebrazos', neck: 'Cuello',
+  };
+  const EQUIP_LABELS_ES = {
+    'body weight': 'Peso corporal', cable: 'Polea', 'leverage machine': 'Máquina', assisted: 'Asistido',
+    'medicine ball': 'Balón medicinal', 'stability ball': 'Balón', band: 'Banda', barbell: 'Barra',
+    rope: 'Cuerda', dumbbell: 'Mancuerna', 'ez barbell': 'Barra Z', 'sled machine': 'Prensa',
+    'upper body ergometer': 'Ergómetro de brazos', kettlebell: 'Pesa rusa', 'olympic barbell': 'Barra olímpica',
+    weighted: 'Con peso', 'bosu ball': 'Bosu', 'resistance band': 'Banda de resistencia', roller: 'Rodillo',
+    'skierg machine': 'Máquina de esquí', hammer: 'Martillo (máquina)', 'smith machine': 'Multipower',
+    'wheel roller': 'Rueda abdominal', 'stationary bike': 'Bicicleta estática', tire: 'Llanta',
+    'trap bar': 'Barra hexagonal', 'elliptical machine': 'Elíptica', 'stepmill machine': 'Escaladora',
+  };
+  const MUSCLE_LABELS_ES = {
+    abs: 'Abdominales', quads: 'Cuádriceps', lats: 'Dorsales', calves: 'Pantorrillas', pectorals: 'Pectorales',
+    glutes: 'Glúteos', hamstrings: 'Isquiotibiales', adductors: 'Aductores', triceps: 'Tríceps',
+    'cardiovascular system': 'Sistema cardiovascular', spine: 'Columna', 'upper back': 'Espalda alta',
+    biceps: 'Bíceps', delts: 'Deltoides', forearms: 'Antebrazos', traps: 'Trapecios',
+    'serratus anterior': 'Serrato anterior', abductors: 'Abductores', 'levator scapulae': 'Elevador de la escápula',
+    'hip flexors': 'Flexores de cadera', obliques: 'Oblicuos', 'ankle stabilizers': 'Estabilizadores de tobillo',
+    'lower back': 'Zona lumbar', ankles: 'Tobillos', trapezius: 'Trapecio', deltoids: 'Deltoides',
+    core: 'Core', rhomboids: 'Romboides', 'rotator cuff': 'Manguito rotador', 'wrist flexors': 'Flexores de muñeca',
+    'wrist extensors': 'Extensores de muñeca', 'latissimus dorsi': 'Dorsal ancho', abdominals: 'Abdominales',
+    soleus: 'Sóleo', wrists: 'Muñecas', hands: 'Manos', quadriceps: 'Cuádriceps', chest: 'Pecho',
+  };
+  const esLabel = (dict, key) => dict[key] || key;
+
+  function renderExerciseInfoPanel(ex, entry){
+    const panel = document.getElementById('exercise-info-panel');
+    const secondary = (entry.secondary_muscles || []).map(m => esLabel(MUSCLE_LABELS_ES, m));
+    const steps = entry.instruction_steps_es && entry.instruction_steps_es.length
+      ? entry.instruction_steps_es
+      : (entry.instructions_es ? entry.instructions_es.split(/(?<=[.!?])\s+/).filter(Boolean) : []);
+    const stepsHtml = steps.length
+      ? `<ol class="ex-info-steps">${steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`
+      : '<p class="ex-info-empty">Sin instrucciones disponibles.</p>';
+    panel.innerHTML = `
+      <div class="ex-info-head">
+        <div>
+          <div class="ex-info-title">${escapeHtml(ex.name)}</div>
+          <div class="ex-info-subtitle">${escapeHtml(entry.name_es || entry.name)}</div>
+        </div>
+        <button type="button" class="ex-info-close" data-action="close-exercise-info" aria-label="Cerrar"><i class="icon fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="ex-info-media" id="ex-info-media">
+        <div class="ex-info-media-loading">Cargando GIF…</div>
+        <img class="hidden" alt="Demostración: ${escapeHtml(entry.name_es || entry.name)}" src="api/exercise_media.php?id=${encodeURIComponent(entry.id)}&type=gif">
+      </div>
+      <div class="ex-info-tags">
+        <span class="ex-info-tag"><i class="icon fa-solid fa-layer-group"></i>${escapeHtml(esLabel(CATEGORY_LABELS_ES, entry.category))}</span>
+        <span class="ex-info-tag"><i class="icon fa-solid fa-dumbbell"></i>${escapeHtml(esLabel(EQUIP_LABELS_ES, entry.equipment))}</span>
+        <span class="ex-info-tag"><i class="icon fa-solid fa-bullseye"></i>${escapeHtml(esLabel(MUSCLE_LABELS_ES, entry.target))}</span>
+      </div>
+      ${secondary.length ? `<div class="ex-info-secondary">Músculos secundarios: ${escapeHtml(secondary.join(', '))}</div>` : ''}
+      <div class="ex-info-instructions">
+        <div class="ex-info-section-title">Instrucciones</div>
+        ${stepsHtml}
+      </div>
+      <div class="ex-info-attribution">Animaciones © Gym visual (gymvisual.com), vía github.com/hasaneyldrm/exercises-dataset.</div>
+    `;
+    const media = document.getElementById('ex-info-media');
+    const img = media.querySelector('img');
+    const loading = media.querySelector('.ex-info-media-loading');
+    img.addEventListener('load', () => { loading.remove(); img.classList.remove('hidden'); }, { once: true });
+    img.addEventListener('error', () => { loading.textContent = 'GIF no disponible.'; }, { once: true });
+  }
+
+  async function openExerciseInfo(name){
+    const datasetId = findDatasetMatch(name);
+    if(!datasetId) return;
+    const overlay = document.getElementById('exercise-info-overlay');
+    const panel = document.getElementById('exercise-info-panel');
+    panel.innerHTML = '<div class="ex-info-media-loading">Cargando…</div>';
+    overlay.classList.remove('hidden');
+    try{
+      await loadExerciseDataset();
+      const entry = EXERCISE_DATASET_BY_ID.get(datasetId);
+      if(!entry){ closeExerciseInfo(); return; }
+      renderExerciseInfoPanel({ name }, entry);
+    }catch(err){
+      panel.innerHTML = '<p class="ex-info-empty">No se pudo cargar la info del ejercicio.</p>';
+    }
+  }
+
+  function closeExerciseInfo(){
+    document.getElementById('exercise-info-overlay').classList.add('hidden');
+  }
+
   async function addToLibrary(name){
     const trimmed = (name || '').trim();
     if(!trimmed) return;
@@ -260,12 +423,19 @@
     renderLibraryView();
   }
 
-  function renderLibraryDatalist(){
+  async function renderLibraryDatalist(){
     let dl = document.getElementById('exercise-library-list');
     if(!dl){
       dl = document.createElement('datalist');
       dl.id = 'exercise-library-list';
       document.body.appendChild(dl);
+    }
+    if(EXERCISE_SOURCE === 'dataset'){
+      let list;
+      try{ list = await loadExerciseDataset(); }
+      catch(err){ showToast('No se pudo cargar el dataset de ejercicios.'); list = []; }
+      dl.innerHTML = list.map(e => `<option value="${escapeHtml(e.name_es || e.name)}">`).join('');
+      return;
     }
     dl.innerHTML = EXERCISE_LIBRARY.map(e => `<option value="${escapeHtml(e.name)}">`).join('');
   }
@@ -1078,11 +1248,17 @@
     const displayText = hasName ? escapeHtml(ex.name) : 'Nombre del ejercicio';
     const noteText = ex.note && ex.note.trim() ? escapeHtml(ex.note.trim()) : '+ nota';
     const noteClass = ex.note && ex.note.trim() ? 'ex-note has-note' : 'ex-note';
+    const infoBtnHtml = hasName && findDatasetMatch(ex.name)
+      ? `<button type="button" class="ex-info-btn" data-action="view-exercise-info" data-name="${escapeHtml(ex.name)}" aria-label="Ver GIF e info del ejercicio"><i class="icon fa-solid fa-eye"></i></button>`
+      : '';
     return `
       <div class="ex-row ${ex.done ? 'done' : 'pending'}" data-id="${ex.id}">
         <div class="ex-check" data-action="toggle"><i class="icon fa-solid ${ex.done ? 'fa-check' : 'fa-minus'}"></i></div>
         <div class="ex-name-cell">
-          <div class="ex-name-display${hasName ? '' : ' empty'}" data-action="edit-name">${displayText}</div>
+          <div class="ex-name-row">
+            <div class="ex-name-display${hasName ? '' : ' empty'}" data-action="edit-name">${displayText}</div>
+            ${infoBtnHtml}
+          </div>
           <input class="ex-name-input" data-field="name" list="exercise-library-list" value="${escapeHtml(ex.name)}" placeholder="Nombre del ejercicio">
           <button type="button" class="${noteClass}" data-action="edit-note">${noteText}</button>
         </div>
@@ -1672,6 +1848,8 @@
     if(chevronEl){ toggleDetail(chevronEl.closest('.ex-row').dataset.id); return; }
     const progressEl = e.target.closest('[data-action="view-progress"]');
     if(progressEl){ goToProgress(progressEl.dataset.name); return; }
+    const infoEl = e.target.closest('[data-action="view-exercise-info"]');
+    if(infoEl){ openExerciseInfo(infoEl.dataset.name); return; }
     const nameEl = e.target.closest('[data-action="edit-name"]');
     if(nameEl){ enterNameEdit(nameEl.closest('.ex-row').dataset.id); return; }
     const noteEl = e.target.closest('[data-action="edit-note"]');
@@ -1873,6 +2051,22 @@
   // Reglas: eventos de la vista Ajustes
   // ============================================================
   document.getElementById('rules-save-btn').addEventListener('click', saveRules);
+
+  // Fuente de nombres de ejercicios (Ajustes)
+  document.getElementById('exercise-source-options').addEventListener('change', (e)=>{
+    const input = e.target.closest('input[name="exercise-source"]');
+    if(input) setExerciseSource(input.value);
+  });
+
+  // Panel de info de ejercicio (ícono de ojo): cerrar con la X o tocando
+  // el fondo (nunca el panel mismo, para no cerrarlo al hacer scroll/tap
+  // dentro de las instrucciones).
+  const exerciseInfoOverlay = document.getElementById('exercise-info-overlay');
+  exerciseInfoOverlay.addEventListener('click', (e)=>{
+    if(e.target === exerciseInfoOverlay || e.target.closest('[data-action="close-exercise-info"]')){
+      closeExerciseInfo();
+    }
+  });
 
   // ============================================================
   // Nota libre de la semana: se guarda sola al salir del campo, mismo
@@ -3073,6 +3267,7 @@
       Api.get('api/weeks.php'),
       Api.get('api/library.php'),
       Api.get('api/settings.php').catch(()=> null), // si falla, se queda con los defaults de RULES
+      loadNameMapping(), // liviano (~40 entradas) — decide cuándo mostrar el ícono de ojo
     ]);
 
     state.order = bulk.order;
@@ -3088,6 +3283,7 @@
     renderLibraryDatalist();
     renderLibraryView();
     renderRulesPanel();
+    renderExerciseSourceSetting();
     renderAll();
     await refreshOfflineBanner();
   }
