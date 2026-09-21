@@ -2,6 +2,25 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.47.0] - 2026-09-21 — Arranque en frío sin conexión
+
+### Added
+
+- **`js/snapshot.js` (`window.Snapshot`)**: copia local (IndexedDB `bitacora-snapshot`) de `{ bulk, library, settings }`, guardada tras cada `loadAppData()` exitoso. `save()`/`load()`/`clear()`, todo en try/catch; `load()` devuelve `null` si la copia falta o está incompleta.
+- **Pantalla de arranque (`#boot-screen`)**: "Cargando…" mientras `bootstrap()` verifica la sesión; ante un fallo muestra el motivo y un botón "Reintentar".
+- **`Error.offline`** en `js/api.js` para distinguir "sin red" de un error real del servidor.
+
+### Changed
+
+- **`bootstrap()` ya no manda al Login ante un error de red.** Solo va al Login si `session.php` confirma `authenticated:false` (y ahí borra la copia). Sin red y con copia, abre la app con esos datos y el banner "Sin conexión — mostrando tus últimos datos guardados"; sin copia (o ante un 5xx), pantalla de reintento.
+- **`loadAppData()` separado en traer + `applyAppData()`**, para poder pintar tanto lo de la API como la copia local. `syncOfflineQueue()` recarga los datos al volver la red si se abrió con la copia.
+- **Sesión perdida (401) o logout borran la copia local** — los datos no quedan en el dispositivo sin sesión.
+
+### Limitaciones conocidas
+
+- Las ediciones hechas offline (en la cola) no se reflejan en la copia local: si se cierra y reabre la app sin red, se ven los datos previos hasta sincronizar.
+- Font Awesome, Chart.js, html2canvas y las tipografías siguen viniendo de CDN sin cachear, así que sin red en frío faltan íconos y gráficas.
+
 ## [1.46.1] - 2026-09-21 — El domingo cuenta en racha, Historial y comparación semanal
 
 ### Fixed

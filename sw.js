@@ -3,12 +3,13 @@
 // API sería mostrar datos incorrectos sin avisar. Solo acelera/permite
 // instalar el shell estático (HTML/CSS/JS/íconos).
 
-const CACHE_NAME = 'bitacora-shell-17d7215f88';
+const CACHE_NAME = 'bitacora-shell-558f07a3b6';
 const SHELL_ASSETS = [
   './',
   'index.html',
   'css/styles.css',
   'js/offline-queue.js',
+  'js/snapshot.js',
   'js/api.js',
   'js/app.js',
   'manifest.json',

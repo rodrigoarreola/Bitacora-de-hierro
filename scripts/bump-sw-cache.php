@@ -14,6 +14,7 @@ $shellFiles = [
     'js/app.js',
     'js/api.js',
     'js/offline-queue.js',
+    'js/snapshot.js',
 ];
 
 $hashInput = '';

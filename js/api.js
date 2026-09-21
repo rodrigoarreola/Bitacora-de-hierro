@@ -27,7 +27,9 @@
         if (typeof Api.onQueueChange === 'function') Api.onQueueChange();
         return { __queued: true };
       }
-      throw new Error('Sin conexión — no se pudo completar la acción.');
+      const offlineErr = new Error('Sin conexión — no se pudo completar la acción.');
+      offlineErr.offline = true; // permite distinguir "sin red" de un error real del servidor
+      throw offlineErr;
     }
 
     let json;

@@ -19,6 +19,16 @@
 </head>
 <body>
 
+  <!-- ================= ARRANQUE (cargando / sin conexión) ================= -->
+  <div class="login-screen" id="boot-screen">
+    <div class="login-card">
+      <div class="brand-mark login-mark"><i class="icon fa-solid fa-dumbbell"></i></div>
+      <h1 class="login-title">Bitácora</h1>
+      <p class="login-sub" id="boot-msg" role="status">Cargando…</p>
+      <button type="button" class="perfil-btn hidden" id="boot-retry"><i class="icon fa-solid fa-rotate-right"></i>Reintentar</button>
+    </div>
+  </div>
+
   <!-- ================= LOGIN ================= -->
   <div class="login-screen hidden" id="view-login">
     <div class="login-card">
@@ -310,6 +320,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="js/offline-queue.js" defer></script>
+<script src="js/snapshot.js" defer></script>
 <script src="js/api.js" defer></script>
 <script src="js/app.js" defer></script>
 </body>

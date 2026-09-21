@@ -45,6 +45,12 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.47.0', date: '2026-09-21', title: 'Abrir la app sin conexión', items: [
+      'Si abres la app sin internet, ya no te manda al inicio de sesión: abre con tus últimos datos guardados y un aviso "Sin conexión". Al volver la red se actualiza sola.',
+      'Si no hay datos guardados y no hay conexión, ves una pantalla con "Reintentar" en vez del login.',
+      'Pantalla de carga al arrancar, en vez de quedar en blanco mientras se verifica tu sesión.',
+      'Al cerrar sesión (o si tu sesión vence) se borran los datos guardados en el dispositivo.',
+    ]},
     { version: '1.46.1', date: '2026-09-21', title: 'El domingo cuenta en racha, Historial y comparación semanal', items: [
       'Un día recuperado en domingo ahora suma a la racha (y a los 5 días mínimos de la semana). Un domingo sin ejercicios no cuenta ni corta la racha, igual que el sábado.',
       'El domingo también se incluye en la comparación semanal, el balance por grupo muscular, el calendario y el heatmap. En Historial, el punto "D" aparece siempre.',
@@ -3246,31 +3252,38 @@
   const loginUsername = document.getElementById('login-username');
   const loginPassword = document.getElementById('login-password');
 
+  const bootScreen = document.getElementById('boot-screen');
+  const bootMsg = document.getElementById('boot-msg');
+  const bootRetry = document.getElementById('boot-retry');
+
   function showLogin(){
+    bootScreen.classList.add('hidden');
     appShell.classList.add('hidden');
     viewLogin.classList.remove('hidden');
   }
   function showApp(){
+    bootScreen.classList.add('hidden');
     viewLogin.classList.add('hidden');
     appShell.classList.remove('hidden');
   }
+  // Pantalla de arranque: "Cargando…" mientras se verifica la sesión, o un
+  // mensaje con "Reintentar" si no se pudo verificar (sin red o error del
+  // servidor). Nunca manda al Login por un fallo de red: eso pasa solo si el
+  // servidor confirma que no hay sesión.
+  function showBoot(msg, { retry = false } = {}){
+    appShell.classList.add('hidden');
+    viewLogin.classList.add('hidden');
+    bootScreen.classList.remove('hidden');
+    bootMsg.textContent = msg;
+    bootRetry.classList.toggle('hidden', !retry);
+  }
 
-  Api.onUnauthorized = showLogin;
+  // Sesión perdida (401): la copia local de datos no debe sobrevivirla.
+  Api.onUnauthorized = ()=>{ window.Snapshot && window.Snapshot.clear(); showLogin(); };
 
-  async function loadAppData(){
-    // api/weeks.php sin ?date trae TODAS las semanas en una sola petición
-    // (fetch_all_weeks_detail() del lado del servidor) — antes era una
-    // petición HTTP por semana en paralelo, que en cuentas con muchas
-    // semanas disparaba decenas de requests simultáneas y saturaba el
-    // hosting compartido justo después de loguearse (mezcla de 504 y 401
-    // encontrada en producción).
-    const [bulk, library, settings] = await Promise.all([
-      Api.get('api/weeks.php'),
-      Api.get('api/library.php'),
-      Api.get('api/settings.php').catch(()=> null), // si falla, se queda con los defaults de RULES
-      loadNameMapping(), // liviano (~40 entradas) — decide cuándo mostrar el ícono de ojo
-    ]);
-
+  // Vuelca en memoria y pinta lo que devuelve la API (o la copia local
+  // guardada por Snapshot cuando se abre la app sin conexión).
+  function applyAppData({ bulk, library, settings }){
     state.order = bulk.order;
     EXERCISE_LIBRARY.length = 0;
     library.forEach(item => EXERCISE_LIBRARY.push(item));
@@ -3286,6 +3299,25 @@
     renderRulesPanel();
     renderExerciseSourceSetting();
     renderAll();
+  }
+
+  async function loadAppData(){
+    // api/weeks.php sin ?date trae TODAS las semanas en una sola petición
+    // (fetch_all_weeks_detail() del lado del servidor) — antes era una
+    // petición HTTP por semana en paralelo, que en cuentas con muchas
+    // semanas disparaba decenas de requests simultáneas y saturaba el
+    // hosting compartido justo después de loguearse (mezcla de 504 y 401
+    // encontrada en producción).
+    const [bulk, library, settings] = await Promise.all([
+      Api.get('api/weeks.php'),
+      Api.get('api/library.php'),
+      Api.get('api/settings.php').catch(()=> null), // si falla, se queda con los defaults de RULES
+      loadNameMapping(), // liviano (~40 entradas) — decide cuándo mostrar el ícono de ojo
+    ]);
+
+    applyAppData({ bulk, library, settings });
+    showingSnapshot = false;
+    if(window.Snapshot) window.Snapshot.save({ bulk, library, settings });
     await refreshOfflineBanner();
   }
 
@@ -3295,23 +3327,31 @@
   // CHANGELOG para el detalle de qué queda fuera (crear semana, agregar
   // ejercicio, migrar día, copiar semana, importar, librería).
   // ============================================================
+  // true mientras se muestran los datos de la copia local (Snapshot) porque
+  // no se pudo llegar al servidor — el navegador puede seguir reportando
+  // "en línea" (servidor caído, red intermitente), así que no basta con
+  // navigator.onLine para decidir el banner.
+  let showingSnapshot = false;
+
   async function refreshOfflineBanner(){
     const pendingCount = window.OfflineQueue ? await window.OfflineQueue.count() : 0;
     const banner = document.getElementById('offline-banner');
     if(!banner) return;
-    const offline = !navigator.onLine;
+    const offline = !navigator.onLine || showingSnapshot;
     if(!offline && pendingCount === 0){ banner.classList.add('hidden'); return; }
     banner.classList.remove('hidden');
     banner.textContent = offline
-      ? (pendingCount > 0 ? `Sin conexión — ${pendingCount} cambio${pendingCount===1?'':'s'} pendiente${pendingCount===1?'':'s'} de sincronizar.` : 'Sin conexión.')
+      ? (pendingCount > 0 ? `Sin conexión — ${pendingCount} cambio${pendingCount===1?'':'s'} pendiente${pendingCount===1?'':'s'} de sincronizar.` : (showingSnapshot ? 'Sin conexión — mostrando tus últimos datos guardados.' : 'Sin conexión.'))
       : `Sincronizando ${pendingCount} cambio${pendingCount===1?'':'s'}…`;
   }
 
   async function syncOfflineQueue(){
     if(!window.OfflineQueue || !navigator.onLine) return;
     const result = await window.OfflineQueue.flush(Api.replayMutation);
-    if(result.synced > 0){
-      await loadAppData(); // resincroniza todo el estado desde el servidor — más simple y seguro que parchear campo por campo
+    // También se recarga si se abrió con la copia local: ya hay red, hay que traer lo real.
+    if(result.synced > 0 || showingSnapshot){
+      try{ await loadAppData(); }catch(err){ if(err.status !== 401) await refreshOfflineBanner(); return; } // resincroniza todo el estado desde el servidor — más simple y seguro que parchear campo por campo
+      if(result.synced === 0) return; // solo era refrescar la copia local, sin cambios que anunciar
       let msg = `${result.synced} cambio${result.synced===1?'':'s'} sincronizado${result.synced===1?'':'s'}.`;
       if(result.stale > 0) msg += ` ${result.stale} se descartó${result.stale===1?'':'aron'} por ser más viejo${result.stale===1?'':'s'} que un cambio posterior.`;
       showToast(msg);
@@ -3341,6 +3381,7 @@
 
   document.getElementById('logout-btn').addEventListener('click', async ()=>{
     try{ await Api.post('api/logout.php'); }catch(err){ /* ya no hay sesión útil de todos modos */ }
+    if(window.Snapshot) await window.Snapshot.clear();
     showLogin();
   });
 
@@ -3354,18 +3395,55 @@
   // ============================================================
   // Arranque
   // ============================================================
-  (async function bootstrap(){
+  async function bootstrap(){
+    showBoot('Cargando…');
+    let session;
     try{
-      const session = await Api.get('api/session.php');
-      if(session.authenticated){
-        showApp();
-        await loadAppData();
-        await syncOfflineQueue(); // por si quedó una cola sin sincronizar de una sesión anterior cerrada offline
-      } else {
-        showLogin();
-      }
+      session = await Api.get('api/session.php');
     }catch(err){
-      showLogin();
+      // No se pudo verificar la sesión. Sin red y con copia local, se abre la
+      // app con esos datos (la cookie dura 30 días); si el servidor la dio
+      // por vencida, el primer 401 al reconectar manda al Login y borra la
+      // copia. Sin copia, o ante un error real del servidor, se pide
+      // reintentar — no se manda al Login: no hay evidencia de que no haya
+      // sesión.
+      const snap = err.offline && window.Snapshot ? await window.Snapshot.load() : null;
+      if(snap){
+        showApp();
+        applyAppData(snap);
+        showingSnapshot = true;
+        await refreshOfflineBanner();
+        return;
+      }
+      showBoot(err.offline ? 'Sin conexión. Conéctate para abrir la app.' : 'No se pudo conectar con el servidor.', { retry: true });
+      return;
     }
-  })();
+
+    if(!session.authenticated){
+      if(window.Snapshot) await window.Snapshot.clear();
+      showLogin();
+      return;
+    }
+    showApp();
+    try{
+      await loadAppData();
+    }catch(err){
+      if(err.status === 401) return; // sesión vencida: onUnauthorized ya mostró el Login y borró la copia
+      // Sesión válida pero la carga falló a medias (red que se cae, 5xx):
+      // misma salida que arriba, con la copia local si existe.
+      const snap = window.Snapshot ? await window.Snapshot.load() : null;
+      if(snap){
+        applyAppData(snap);
+        showingSnapshot = true;
+        await refreshOfflineBanner();
+        return;
+      }
+      showBoot('No se pudieron cargar tus datos.', { retry: true });
+      return;
+    }
+    await syncOfflineQueue(); // por si quedó una cola sin sincronizar de una sesión anterior cerrada offline
+  }
+
+  bootRetry.addEventListener('click', bootstrap);
+  bootstrap();
 })();
