@@ -2,6 +2,37 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.52.0] - 2026-09-21 — Librerías de CDN sin conexión
+
+### En la app: Íconos, gráficas y tipografías también sin internet
+
+- Después de abrir la app una vez con conexión, ahora también se ven sin internet los íconos, las gráficas de Progreso, las tipografías y la opción de compartir como imagen; antes, sin conexión, faltaban.
+
+### Added
+
+- **Caché de librerías en el service worker** (`sw.js`): `bitacora-libs-v1`, separado del shell, con caché primero para `cdnjs.cloudflare.com`, `fonts.googleapis.com` y `fonts.gstatic.com`. Guarda Chart.js 4.4.0, chartjs-plugin-zoom 2.0.1, html2canvas 1.4.1, Font Awesome 6.5.1 (`all.min.css` y `fa-solid-900.woff2`) y Google Fonts (CSS + 6 archivos `woff2`): 12 archivos, ~910 KB.
+- **Precarga en `install`** (`warmLibs()`): en la primera visita la página carga antes de que el SW la controle, así que se guardan al instalar. Las URLs se leen del propio `index.html` (sin lista duplicada en `sw.js`); de los CSS solo se toman las fuentes que la app usa (`fontUrlsToWarm()`: Font Awesome `solid` y los subconjuntos `latin` y `latin-ext`, ~236 KB en vez de ~1 MB). Es de mejor esfuerzo: si falla, no impide instalar y las librerías se guardan al pedirlas.
+- **ADR 0007** con la decisión, las alternativas (vendorizar las librerías al repo, descartado) y las consecuencias.
+
+### Changed
+
+- **`activate` solo borra los `bitacora-shell-*` viejos**: antes borraba todo caché distinto del actual, lo que se habría llevado `bitacora-libs-v1` en cada versión.
+- Las peticiones a los CDN se hacen en **modo CORS** (`credentials:'omit'`): una respuesta opaca cuesta ~7 MB de cuota en Chrome por archivo aunque pese 40 KB. Si un CDN no enviara `Access-Control-Allow-Origin`, se cae a la petición original.
+
+### Verificado (Navegador integrado)
+
+- Instalación desde cero con conexión: `bitacora-libs-v1` queda con los 12 archivos, todos de tipo `cors`.
+- Con el SW controlando la página, las 9 peticiones externas de una carga (Google Fonts CSS, Font Awesome CSS y fuente, Chart.js, zoom, html2canvas y 3 fuentes) las resolvió el service worker con 0 bytes de red; `Chart` y `html2canvas` cargados y las 8 familias/pesos de fuente en estado `loaded`.
+- Actualización del shell (simulada cambiando `CACHE_NAME`): el shell viejo se borra y `bitacora-libs-v1` conserva sus 12 entradas.
+- No se pudo cortar la red de los CDN a propósito (el panel no permite desconectar solo internet): "0 bytes de red y atendido por el SW" es la prueba de que salen del caché.
+
+### Límites conocidos
+
+- La primera visita debe ser con conexión. La app sigue dependiendo de los CDN para esa visita y para versiones nuevas de una librería.
+- `bitacora-libs-v1` no se limpia solo al cambiar una librería de versión; para vaciarlo, renombrarlo (`-v2`) en `sw.js`.
+- Otro estilo de Font Awesome (regular/brands) u otros alfabetos requieren ampliar `fontUrlsToWarm()`.
+- El dataset de ejercicios y los GIFs siguen sin guardarse offline.
+
 ## [1.51.0] - 2026-09-21 — Espaciado a la escala (impares al par siguiente)
 
 ### En la app: Botones y separaciones más parejos

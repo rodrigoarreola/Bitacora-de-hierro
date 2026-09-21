@@ -13,6 +13,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0004](0004-tokens-y-componentes-base.md) | Design tokens y componentes base (`.card`, `.btn`) | Aceptada |
 | [0005](0005-ajustes-en-el-header.md) | Barra de 5 destinos y Ajustes como ícono del header | Aceptada |
 | [0006](0006-changelog-fuente-unica.md) | `CHANGELOG.md` como fuente única del changelog de la app | Aceptada |
+| [0007](0007-cache-de-librerias-cdn.md) | Librerías de CDN en un caché propio del service worker | Aceptada |
 
 ## Formato
 

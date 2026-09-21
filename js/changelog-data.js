@@ -2,6 +2,14 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.52.0",
+        "date": "2026-09-21",
+        "title": "Íconos, gráficas y tipografías también sin internet",
+        "items": [
+            "Después de abrir la app una vez con conexión, ahora también se ven sin internet los íconos, las gráficas de Progreso, las tipografías y la opción de compartir como imagen; antes, sin conexión, faltaban."
+        ]
+    },
+    {
         "version": "1.51.0",
         "date": "2026-09-21",
         "title": "Botones y separaciones más parejos",

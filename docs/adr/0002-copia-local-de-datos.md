@@ -28,4 +28,5 @@ confirma `authenticated:false`. La copia se borra al cerrar sesión y ante un 40
 - Las ediciones en cola (`offline-queue.js`) no se reflejan en la copia: al
   reabrir sin red se ven los datos anteriores hasta sincronizar.
 - Al volver la red se recarga todo desde el servidor (`syncOfflineQueue`).
-- Sin CDN cacheados (íconos, gráficas, tipografías) la app abre, pero incompleta.
+- Las librerías de CDN (íconos, gráficas, tipografías) se resolvieron aparte, en el
+  caché del service worker: ver [ADR 0007](0007-cache-de-librerias-cdn.md).

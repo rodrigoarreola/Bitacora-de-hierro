@@ -32,7 +32,7 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 | Login | Formulario | `#view-login` (sin ruta) | `api/session.php`, `api/login.php` | V n/a · C ~ · E ✓ · O ~ |
 | Hoy | Formulario + dashboard | `#/hoy` | `api/weeks.php`, `api/exercises.php`, `api/migrate_day.php`, `api/library.php`, `api/settings.php` | V ✓ · C ~ · E ~ · O ~ |
 | Historial | Lista | `#/historial` | semanas ya cargadas (memoria) | V ✓ · C ~ · E n/a · O ✓ |
-| Progreso | Dashboard / detalle | `#/progreso` | semanas en memoria + Chart.js (CDN) | V ✓ · C ~ · E ✗ · O ✗ |
+| Progreso | Dashboard / detalle | `#/progreso` | semanas en memoria + Chart.js (CDN, en caché del SW) | V ✓ · C ~ · E ✗ · O ✓ |
 | Calendario | Dashboard | `#/calendario` | semanas en memoria | V ~ · C ~ · E n/a · O ✓ |
 | Perfil | Dashboard + datos | `#/perfil` | semanas en memoria, `api/backups.php`, `api/import.php` | V ✓ · C ~ · E ✓ · O ~ |
 | Ajustes | Ajustes | `#/ajustes` | `api/settings.php`, `api/library.php`, `data/exercises-dataset.json` | V ~ · C ~ · E ~ · O ✗ |
@@ -52,10 +52,13 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
   semana; crear semana, agregar ejercicio, migrar día, copiar semana, importar,
   guardar reglas y la librería requieren conexión. Las ediciones en cola no se
   reflejan en la copia local hasta sincronizar.
-- **Progreso (✗ E/O):** Chart.js viene de un CDN que el service worker no
-  cachea y no hay aviso si no carga. Font Awesome, las tipografías y
-  html2canvas también son CDN: sin red en frío faltan íconos, gráficas y
-  "Compartir".
+- **Librerías de CDN:** Chart.js, html2canvas, Font Awesome y las tipografías
+  están en `bitacora-libs-v1` (caché del service worker), así que íconos,
+  gráficas, tipografías y "Compartir" funcionan sin red desde la segunda visita
+  (la primera, con conexión, las guarda). Sigue sin haber aviso si Chart.js no
+  carga en una primera visita sin red (Progreso ✗ E).
+- **Info de ejercicio (✗ O):** el dataset y los GIFs vienen del servidor y no
+  se guardan en el service worker.
 - **Ajustes (~ V):** el estado vacío de la librería de ejercicios no está
   verificado.
 - **Calendario (~ V):** sin semanas registradas la cuadrícula aparece sin

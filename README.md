@@ -6,7 +6,7 @@ Un solo usuario. Sin frameworks de frontend. Pensada para desplegarse como archi
 
 ## Stack
 
-- **Frontend**: HTML/CSS/JS vanilla, sin framework — dependencias externas solo vía CDN (Google Fonts, Font Awesome, [Chart.js](https://www.chartjs.org/) 4.4.0 para la gráfica de Progreso, [html2canvas](https://html2canvas.hertzen.com/) 1.4.1 para "Compartir"). Edición offline vía IndexedDB (`js/offline-queue.js`), sin librería externa.
+- **Frontend**: HTML/CSS/JS vanilla, sin framework — dependencias externas solo vía CDN, que el service worker guarda en un caché propio para que la app abra completa sin conexión (Google Fonts, Font Awesome, [Chart.js](https://www.chartjs.org/) 4.4.0 para la gráfica de Progreso, [html2canvas](https://html2canvas.hertzen.com/) 1.4.1 para "Compartir"). Edición offline vía IndexedDB (`js/offline-queue.js`), sin librería externa.
 - **Backend**: PHP + MySQL (PDO, sin framework).
 - **Auth**: login usuario/contraseña con sesión PHP — sin API keys expuestas ni OAuth.
 - **Hosting**: Hostgator, subcarpeta del dominio principal — `tu-dominio.com/bitacora`.
@@ -123,6 +123,8 @@ Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único us
 - Layout mobile-first, `max-width: 520px`.
 
 ### PWA
+
+**Librerías de CDN sin conexión:** Chart.js, el plugin de zoom, html2canvas, Font Awesome y las tipografías de Google Fonts van a `bitacora-libs-v1`, un caché aparte del shell que no cambia con cada versión (sus URLs ya llevan la versión). Se guardan al instalar el service worker —lee las URLs del propio `index.html`— y, de los CSS, solo las fuentes que la app usa (Font Awesome `solid` y los subconjuntos `latin`/`latin-ext`). Requiere una primera visita con conexión. Si se agrega otra librería o se cambia de versión, basta con actualizar la URL en `index.html`; si se usa otro estilo de Font Awesome (regular/brands) o otro alfabeto, hay que ampliar `fontUrlsToWarm()` en `sw.js`. Ver [ADR 0007](docs/adr/0007-cache-de-librerias-cdn.md).
 
 `manifest.json` + `sw.js` ya están activos: la app es instalable (Android/desktop vía Chrome/Edge, iOS vía "Agregar a inicio" en Safari). El service worker cachea el *app shell* estático (HTML/CSS/JS/íconos) y **nunca intercepta `api/`**. La edición sin conexión la resuelven la cola de `js/offline-queue.js` (cambios pendientes) y la copia local de `js/snapshot.js` (últimos datos cargados, para abrir la app sin red). `start_url`/`scope` del manifest y el registro del service worker usan rutas relativas a propósito, para que funcionen igual en `localhost:8000`, en un subdominio o en una subcarpeta como `/bitacora`, sin tocar código.
 
