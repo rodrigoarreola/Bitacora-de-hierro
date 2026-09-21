@@ -9,13 +9,20 @@
 // la página muestra "Hay una versión nueva — Actualizar" y, al aceptar, le
 // pide al SW que se active (mensaje SKIP_WAITING) y se recarga.
 
-const CACHE_NAME = 'bitacora-shell-7fa1b875e7';
+const CACHE_NAME = 'bitacora-shell-f16b23fe76';
 const SHELL_ASSETS = [
   './',
   'index.html',
   'css/tokens.css',
   'css/components.css',
-  'css/styles.css',
+  'css/base.css',
+  'css/views/hoy.css',
+  'css/views/ajustes.css',
+  'css/views/login.css',
+  'css/views/perfil.css',
+  'css/views/calendario.css',
+  'css/views/historial.css',
+  'css/views/progreso.css',
   'js/offline-queue.js',
   'js/snapshot.js',
   'js/api.js',

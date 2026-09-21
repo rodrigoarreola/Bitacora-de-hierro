@@ -1,0 +1,89 @@
+/* Base de la app: reset, tipografía, header, toast, barra inferior, banner offline y utilidades.
+   Se carga después de tokens.css y components.css. */
+
+*{box-sizing:border-box; min-width:0;}
+html,body{background:var(--bg); overflow-x:hidden;}
+body{
+  color:var(--text);
+  font-family:var(--font-body);
+  margin:0;
+  padding:16px 14px calc(84px + env(safe-area-inset-bottom));
+  max-width:520px;
+  margin-inline:auto;
+  min-height:100vh;
+  width:100%;
+}
+
+.icon{ font-size:16px; line-height:1; flex-shrink:0; display:inline-block; vertical-align:-2px; }
+
+/* ---------- Header ---------- */
+header.app-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:14px; }
+.brand{ display:flex; align-items:center; gap:10px; }
+.brand-mark{
+  width:34px; height:34px; border-radius:var(--r-md); background:var(--surface-2);
+  border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+  color:var(--accent); flex-shrink:0;
+}
+.brand-mark .icon{ font-size:17px; }
+h1{ font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:.01em; text-transform:uppercase; color:var(--text); margin:0; line-height:1; }
+.sub{ font-size:var(--fs-md); color:var(--text-dim); margin:3px 0 0; }
+/* La racha y el engranaje no se parten: si falta ancho, se encoge la marca de la izquierda (su subtítulo ya envuelve a 2 líneas). */
+.head-right{ display:flex; align-items:center; gap:var(--sp-2); flex-shrink:0; }
+.streak-text{ white-space:nowrap; }
+.head-settings{ text-decoration:none; }
+.head-settings.active{ color:var(--accent); border-color:var(--accent-dim); }
+.streak{ display:flex; align-items:stretch; justify-content:flex-end; gap:7px; }
+.streak-text{ text-align:right; }
+.streak .n{ font-family:var(--font-mono); font-size:19px; font-weight:600; color:var(--text-faint); line-height:1; transition:color .2s ease; }
+.streak .n.complete{ color:var(--ok); }
+.streak .l{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
+.streak-badges{ display:flex; align-items:center; justify-content:center; gap:2px; padding-right:20px; }
+.streak-badges .streak-badge-ico{ font-size:28px; line-height:1; }
+
+
+.toast{
+  position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(12px);
+  background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+  font-size:var(--fs-md); padding:9px 14px; border-radius:var(--r-md); opacity:0; pointer-events:none;
+  transition:opacity .25s ease, transform .25s ease; z-index:20; max-width:88vw;
+  display:flex; align-items:center; gap:10px;
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+.toast-msg{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.toast-action{
+  flex-shrink:0; background:transparent; border:none; color:var(--accent);
+  font-family:var(--font-body); font-size:var(--fs-md); font-weight:700; text-transform:uppercase;
+  letter-spacing:.02em; padding:0; cursor:pointer;
+}
+.toast-action.hidden{ display:none; }
+
+
+.view{ display:none; }
+.view.active{ display:block; }
+
+/* ---------- Bottom nav ---------- */
+nav.bottom-nav{
+  position:fixed; left:0; right:0; bottom:0;
+  background:var(--surface); border-top:1px solid var(--line);
+  display:flex; padding-bottom:env(safe-area-inset-bottom); z-index:10;
+  max-width:520px; margin-inline:auto;
+}
+nav.bottom-nav button{
+  flex:1; background:none; border:none; color:var(--text-faint);
+  padding:11px 4px 9px; font-size:9.5px; /* fuera de escala: 5 botones en 360-375px, "CALENDARIO" (10px) casi no entra */ cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  font-family:var(--font-body); font-weight:600; text-transform:uppercase; letter-spacing:.02em;
+}
+nav.bottom-nav button .icon{ font-size:16px; margin:0; }
+nav.bottom-nav button.active{ color:var(--accent); }
+
+/* ---------- Banner de edición offline ---------- */
+.offline-banner{
+  position:fixed; top:0; left:0; right:0; z-index:30;
+  background:var(--pending); color:var(--accent-ink);
+  font-size:var(--fs-sm); font-weight:600; text-align:center;
+  padding:7px 10px; max-width:520px; margin-inline:auto;
+}
+
+/* ---------- Utilidad ---------- */
+.hidden{ display:none !important; }

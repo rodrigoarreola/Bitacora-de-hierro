@@ -36,7 +36,10 @@ usuario, auth por sesión PHP.
 ├── scripts/
 │   └── bump-sw-cache.php        Recalcula CACHE_NAME de sw.js según hash del app shell
 ├── css/
-│   └── styles.css               Todos los estilos (760 líneas, sin preprocesador)
+│   ├── tokens.css               Design tokens (colores, radios, tamaños de texto, espaciado)
+│   ├── components.css           .card, .btn y componentes compartidos entre pantallas
+│   ├── base.css                 Reset, header, toast, barra inferior, banner offline
+│   └── views/                   hoy, ajustes, login, perfil, calendario, historial, progreso
 ├── js/
 │   ├── api.js                   Cliente fetch + cola offline (86 líneas)
 │   ├── offline-queue.js         Wrapper de IndexedDB para la cola offline (79 líneas)
@@ -75,33 +78,24 @@ destinos; Ajustes es el ícono de engranaje del header) y
 banner offline. No tiene lógica — todo el comportamiento vive en
 `js/app.js` vía `id`/`data-*` que el JS engancha.
 
-### `css/styles.css`
-Un solo archivo, sin nesting ni variables SCSS (solo custom properties
-CSS en `:root`). Bloques marcados con comentarios `/* ---------- Nombre
----------- */` — para pedir un cambio de estilo, referencia el bloque:
+### `css/`
+Sin preprocesador ni nesting; solo custom properties. Se cargan en este orden
+(el orden es la cascada — ver `index.html`): `tokens.css`, `components.css`,
+`base.css` y `views/*.css`. Un selector vive en un solo archivo. Para pedir un
+cambio de estilo, indica el archivo y la clase:
 
-| Bloque | Línea | Para qué |
-|---|---|---|
-| Header | 27 | Racha actual, marca |
-| Week rail | 46 | Riel de semanas ("Hoy") |
-| Day tabs | 87 | Riel de días (Lun–Dom) |
-| Day panel | 116 | Panel del día: filas de ejercicio, drag handle, migrar día, progress ring |
-| Nota de la semana | 285 | Textarea de nota semanal |
-| Export de resumen semanal | 295 | "Patrón Strava": card redondeada al 50% de opacidad (`background:rgba(...)`/`border`/`border-radius`) para "Copiar resumen de la semana", + overrides de contraste (`.dashboard-share h1/.sub/.streak .l/.streak .n`, `.dashboard-share .day-tab .dname/.muted-tag`, `.dashboard-share .day-tab.completed`) — ver nota en el propio bloque sobre por qué se descartó `box-shadow` (html2canvas no lo renderiza) |
-| Sesión del día | 332 | Card "Iniciar/Finalizar entrenamiento": botón de ícono play/stop en rojo (`.day-session-toggle`, sin wrap — `.day-session-row{flex-wrap` quitado) + hora inicio/fin/duración, los 4 en una sola fila |
-| Conversor kg / lbs | 356 | Dos inputs enlazados |
-| Eliminar semana | 373 | Botón al final de "Hoy", doble confirmación |
-| Summary strip | 380 | Tira de 4 chips (series/ejercicios/racha/volumen) |
-| Reglas (Ajustes) | 401 | Panel de reglas editables |
-| Librería de ejercicios | 419 | Panel de librería (Ajustes) |
-| Bottom nav | 449 | Nav inferior fija |
-| Banner de edición offline | 465 | Banner "sin conexión" |
-| Login / Logout | 476, 501 | Pantalla de login, botón de logout |
-| Perfil: datos / backups / hitos / horarios / changelog | 509, 520, 533, 557, 579 | Exportar/importar, backups automáticos, Hitos y constancia, Horarios de entrenamiento (filtros + chips + chart + barras de hora), Changelog — `.changelog-panel` es un `<details>` colapsado por defecto (antes un `<div>` fijo), `.changelog-entry summary` en dos filas (`.changelog-entry-top`: versión+fecha+chevron / `.changelog-entry-title` suelta debajo) para que la fecha no quede descolgada con títulos de 2 líneas |
-| Calendario / heatmap anual | 620, 662 | Grid mensual y heatmap de 365 días (celdas clickeables; etiquetas de mes con borde/radio en columna fija de 16px) |
-| Balance por grupo muscular | 695 | Barras en Historial |
-| Historial | 705 | Tarjetas por semana |
-| Progreso | 728 | Buscador + gráfica Chart.js (con zoom/pan) |
+| Archivo | Contiene |
+|---|---|
+| `tokens.css` | Colores (y con transparencia), radios, tamaños de texto, espaciado |
+| `components.css` | `.card` y `.btn` con sus variantes; riel de píldoras (`.week-rail`/`.week-pill`); chips de resumen (`.sum-chip`); encabezado de panel (`.lib-panel`/`.lib-head`/`.lib-title`/`.lib-sub`); campo de búsqueda (`.prog-search`) |
+| `base.css` | Reset, `body`, header (racha, engranaje de Ajustes), toast, barra inferior, banner offline, `.hidden` |
+| `views/hoy.css` | Riel de días, panel del día y filas de ejercicio (drag, migrar, progress ring), nota de la semana, sesión del día, conversor, comparación semanal, imagen de "Compartir" (`.dashboard-share`) y el panel de info de ejercicio |
+| `views/ajustes.css` | Reglas, fuente de nombres, librería de ejercicios |
+| `views/login.css` | Login y pantalla de arranque |
+| `views/perfil.css` | Datos, backups, Hitos, Horarios de entrenamiento, changelog (`<details>` colapsado) |
+| `views/calendario.css` | Calendario mensual y heatmap anual |
+| `views/historial.css` | Tarjetas por semana y balance por grupo muscular |
+| `views/progreso.css` | Gráfica Chart.js, comparación, mini-dashboard de sparklines |
 
 ### `js/api.js`
 Cliente fetch mínimo: `Api.get/post/put/del(path, body, opts)`. Maneja
@@ -210,18 +204,18 @@ $status)`.
 
 ## Cómo usar esto para pedir cambios puntuales
 
-En vez de "cambiá cómo se calcula la racha", ahora puedes decir:
+En vez de "cambia cómo se calcula la racha", ahora puedes decir:
 
-> En `js/app.js`, en `computeStreaks()` (línea ~544), cambiá X por Y.
+> En `js/app.js`, en `computeStreaks()` (línea ~544), cambia X por Y.
 
 O para el backend:
 
-> En `api/exercises.php`, el branch `PUT`, agregá validación de Z.
+> En `api/exercises.php`, el branch `PUT`, agrega validación de Z.
 
 Si el cambio es de estilo:
 
-> En `css/styles.css`, bloque "Day panel" (línea ~116), la clase `.ex-row`...
+> En `css/views/hoy.css`, la clase `.ex-row`...
 
-Si no sabés el nombre exacto de la función pero sí la funcionalidad,
+Si no sabes el nombre exacto de la función pero sí la funcionalidad,
 buscala en las tablas de arriba por lo que hace — igual me ahorra la
 exploración inicial.

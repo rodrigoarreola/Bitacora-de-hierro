@@ -29,5 +29,7 @@ tenía tokens. Cada cambio de estilo había que hacerlo en muchos sitios.
 - Excepciones a la escala, comentadas en el CSS: `.sum-chip .k/.v` (8.5/14.5 px)
   y la barra inferior (9.5 px), porque el tamaño de la escala parte "MEJOR RACHA",
   "40 días" o hace desbordar "CALENDARIO" a 375 px.
-- Pendiente: partir `styles.css` en `css/views/*.css` y extender `--sp-*` a
-  márgenes y gaps.
+- `styles.css` se partió después en `base.css` y `css/views/*.css` (una hoja por
+  pantalla), con lo compartido en `components.css`. Un selector vive en un solo
+  archivo, así el orden de carga no cambia el resultado.
+- Pendiente: extender `--sp-*` a márgenes y gaps.

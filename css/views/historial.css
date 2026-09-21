@@ -1,0 +1,32 @@
+/* Vista Historial (#/historial): tarjetas por semana y balance por grupo muscular.
+   Se carga después de tokens.css, components.css y base.css. */
+
+/* ---------- Balance por grupo muscular (Historial) ---------- */
+.balance-panel{ margin-top:var(--sp-4); }
+.balance-list{ padding:6px 18px 16px; display:flex; flex-direction:column; gap:10px; }
+.balance-row{ display:grid; grid-template-columns:auto 1fr 22px; align-items:center; gap:10px; }
+.balance-label{ font-size:var(--fs-md); color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px; }
+.balance-bar-track{ height:8px; background:var(--surface-2); border-radius:var(--r-xs); overflow:hidden; }
+.balance-bar-fill{ height:100%; background:var(--accent); border-radius:var(--r-xs); }
+.balance-value{ font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-dim); text-align:right; }
+.balance-empty{ font-size:var(--fs-md); color:var(--text-faint); padding:8px 0; margin:0; }
+
+/* ---------- Historial ---------- */
+.hist-list{ display:flex; flex-direction:column; gap:8px; }
+.hist-card{ padding:14px 16px; cursor:pointer; }
+.hist-card:active{ background:var(--surface-2); }
+.hist-card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.hist-card-head-right{ display:flex; align-items:center; gap:8px; }
+.hist-card-label{
+  font-family:var(--font-display); font-size:var(--fs-xl); font-weight:700;
+  text-transform:uppercase; letter-spacing:.01em; color:var(--text);
+}
+.hist-card-total{ font-family:var(--font-mono); font-size:var(--fs-lg); font-weight:600; color:var(--accent); }
+.hist-card-days{ display:flex; gap:6px; }
+.hist-dot{
+  width:24px; height:24px; border-radius:var(--r-full); border:1.5px solid var(--steel-dim);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  font-family:var(--font-mono); font-size:var(--fs-xxs); font-weight:600; color:var(--text-dim);
+}
+.hist-dot.done{ border-color:var(--ok); color:var(--ok); background:var(--ok-soft); }
+.hist-empty{ padding:26px 18px; text-align:center; font-size:var(--fs-md); color:var(--text-faint); }

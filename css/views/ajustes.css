@@ -1,0 +1,57 @@
+/* Vista Ajustes (#/ajustes): reglas, fuente de nombres y librería de ejercicios.
+   Se carga después de tokens.css, components.css y base.css. */
+
+/* ---------- Reglas (Ajustes) ---------- */
+.rules-panel{ margin-bottom:var(--sp-4); }
+.rules-list{ padding:14px 18px 4px; display:flex; flex-direction:column; gap:14px; }
+.rule-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.rule-label{ font-size:var(--fs-md); color:var(--text-dim); line-height:1.4; flex:1; }
+.rule-input{
+  width:56px; flex-shrink:0; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md);
+  padding:8px; color:var(--text); font-size:var(--fs-lg); font-family:var(--font-body); text-align:center;
+}
+.rule-input:focus{ outline:none; border-color:var(--accent-dim); }
+/* Selector compuesto (no solo .rules-save-btn) a propósito: .perfil-btn
+   se define más abajo en este archivo con width:100%/margin-top:10px, y
+   con la misma especificidad (una sola clase) gana el que aparece
+   después en el cascade — sin este compound selector, el botón perdía
+   el ancho/margen angostos y quedaba pegado a los bordes redondeados
+   del panel en vez de alinearse con el resto del contenido. */
+.perfil-btn.rules-save-btn{ margin:14px 18px 18px; width:calc(100% - 36px); }
+
+/* Paneles de Ajustes apilados: mismo separador que .rules-panel/.lib-panel
+   de siempre, pero por selector de hermano en vez de tocar la clase base
+   .lib-panel (se reusa también en Historial sin este margen). */
+#view-ajustes .lib-panel + .lib-panel{ margin-top:var(--sp-4); }
+.source-options{ padding:14px 18px 18px; display:flex; flex-direction:column; gap:10px; }
+.source-option{
+  display:flex; align-items:center; gap:10px; padding:11px 12px; background:var(--surface-2);
+  border:1px solid var(--line); border-radius:var(--r-md); cursor:pointer;
+}
+.source-option:has(input:checked){ border-color:var(--accent-dim); }
+.source-option input{ accent-color:var(--accent); width:16px; height:16px; flex-shrink:0; }
+.source-option-label{ font-size:var(--fs-lg); color:var(--text); font-weight:500; }
+
+/* ---------- Librería de ejercicios (Ajustes) ---------- */
+
+.lib-add{ display:flex; gap:8px; padding:14px 18px 0; }
+.lib-add input{
+  flex:1; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md);
+  padding:10px 11px; color:var(--text); font-size:var(--fs-lg); font-family:var(--font-body);
+}
+.lib-add input:focus{ outline:none; border-color:var(--accent-dim); }
+.lib-add button{ width:38px; flex-shrink:0; padding:0; }
+.lib-search{
+  margin:10px 18px 4px; width:calc(100% - 36px); background:transparent; border:none; border-bottom:1px solid var(--line);
+  padding:8px 2px; color:var(--text); font-size:var(--fs-lg); font-family:var(--font-body);
+}
+.lib-search:focus{ outline:none; border-bottom-color:var(--accent-dim); }
+.lib-search::placeholder{ color:var(--text-faint); }
+.lib-list{ padding:4px 0 8px; max-height:340px; overflow-y:auto; }
+.lib-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-top:1px solid var(--line); font-size:var(--fs-lg); color:var(--text); }
+.lib-row:first-child{ border-top:none; }
+.lib-del{ background:none; border:none; color:var(--text-faint); cursor:pointer; padding:4px; display:flex; }
+.lib-del .icon{ font-size:var(--fs-lg); }
+.lib-del:hover{ color:var(--danger); }
+.lib-empty{ padding:22px 18px; text-align:center; font-size:var(--fs-md); color:var(--text-faint); margin:0; }
+.lib-count{ font-size:var(--fs-xs); color:var(--text-faint); padding:0 18px 12px; text-transform:uppercase; letter-spacing:.04em; }

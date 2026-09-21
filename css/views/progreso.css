@@ -1,0 +1,37 @@
+/* Vista Progreso (#/progreso): búsqueda, gráfica de un ejercicio y mini-dashboard de sparklines.
+   Se carga después de tokens.css, components.css y base.css. */
+
+/* ---------- Placeholder views ---------- */
+.placeholder{ padding:40px 20px; text-align:center; }
+.placeholder .icon{ font-size:22px; color:var(--text-faint); margin-bottom:10px; }
+.placeholder p{ font-size:var(--fs-lg); color:var(--text-dim); margin:0; }
+.placeholder span{ font-family:var(--font-display); font-size:16px; text-transform:uppercase; color:var(--text-dim); display:block; margin-bottom:4px; }
+
+
+/* ---------- Progreso ---------- */
+
+.prog-chart-card{ padding:16px; }
+.prog-ex-name{
+  font-family:var(--font-display); font-size:var(--fs-xl); font-weight:700;
+  text-transform:uppercase; letter-spacing:.01em; color:var(--text); margin-bottom:12px;
+}
+.prog-canvas-wrap{ position:relative; height:220px; }
+.prog-compare-row{ display:flex; gap:8px; margin-bottom:14px; align-items:center; }
+.prog-compare-row .prog-search-2{ flex:1; margin-bottom:0; }
+.prog-reps-toggle{ width:40px; height:40px; border-radius:var(--r-md); color:var(--text-dim); }
+.prog-reps-toggle.active{ background:var(--info); border-color:var(--info); color:var(--on-ok); }
+/* .btn:disabled apaga los eventos del puntero; acá se conservan para que se vea el title que explica por qué no está disponible. */
+.prog-reps-toggle:disabled{ cursor:not-allowed; pointer-events:auto; }
+.prog-ex-vs{ color:var(--text-faint); font-size:var(--fs-md); text-transform:none; margin:0 4px; }
+.prog-dash-hint{ font-size:var(--fs-md); color:var(--text-dim); margin:0 0 12px; }
+.prog-dash-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+.prog-spark-card{ padding:10px; cursor:pointer; }
+.prog-spark-card:active{ background:var(--surface-2); }
+.prog-spark-head{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.prog-spark-name{ font-size:var(--fs-sm); font-weight:600; text-transform:uppercase; letter-spacing:.01em; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.prog-spark-trend{ font-size:var(--fs-sm); flex-shrink:0; }
+.prog-spark-trend.up{ color:var(--ok); }
+.prog-spark-trend.down{ color:var(--danger); }
+.prog-spark-trend.flat{ color:var(--text-faint); }
+.prog-spark-canvas-wrap{ position:relative; height:38px; margin:8px 0 6px; }
+.prog-spark-last{ font-family:var(--font-mono); font-size:var(--fs-md); color:var(--text-dim); }

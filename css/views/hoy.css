@@ -1,0 +1,320 @@
+/* Vista Hoy (#/hoy): riel de días, panel del día, filas de ejercicio, sesión, nota, conversor, comparación semanal,
+   imagen de "Compartir" y el panel de info de ejercicio (se abre desde una fila).
+   Se carga después de tokens.css, components.css y base.css. */
+
+/* ---------- Day tabs (plate rack) ---------- */
+/* 7 días, ancho relativo al contenedor real (no un px fijo pensado para
+   el preview de escritorio de 520px) — calc() con el gap de 6px hace que
+   los primeros 5 siempre llenen el ancho disponible en cualquier celular,
+   y sábado/domingo queden revelados solo al hacer scroll horizontal —
+   mismo patrón que .week-rail. */
+.day-rack{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:var(--sp-4); scrollbar-width:none; }
+.day-rack::-webkit-scrollbar{ display:none; }
+.day-tab{
+  flex:0 0 calc((100% - 24px) / 5); background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg);
+  padding:9px 4px 8px; text-align:center; cursor:pointer; position:relative;
+}
+.day-tab .migrated-mark{
+  position:absolute; top:5px; right:6px; font-size:var(--fs-xxs); color:var(--pending);
+}
+.day-tab .plate{
+  width:26px; height:26px; border-radius:var(--r-full); margin:0 auto 6px;
+  border:3px solid var(--steel-dim); display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:var(--fs-xxs); color:var(--text-dim); font-weight:600;
+}
+.day-tab .dname{ font-size:var(--fs-sm); font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.02em; }
+.day-tab.active{ box-shadow:0 0 0 1.5px var(--accent); }
+.day-tab.active:not(.completed){ border-color:var(--accent); background:var(--surface-2); }
+.day-tab.active:not(.completed) .plate{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+.day-tab.active .dname{ color:var(--text); }
+.day-tab.completed{ border-color:var(--ok); background:var(--ok-faint); }
+.day-tab.completed .plate{ border-color:var(--ok); color:var(--ok); background:var(--ok-soft); }
+.day-tab .muted-tag{ font-size:var(--fs-xxs); color:var(--text-faint); margin-top:2px; text-transform:none; letter-spacing:0; display:block; }
+
+/* ---------- Day panel ---------- */
+
+
+.day-swipe-area{ touch-action:pan-y; }
+
+.day-panel{ overflow:hidden; margin-bottom:var(--sp-4); }
+.day-panel-head{
+  padding:var(--pad-card); display:flex; justify-content:space-between; align-items:center;
+  border-bottom:1px solid var(--line); background:var(--surface-2);
+}
+.day-panel-head .grp{ font-family:var(--font-display); font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; color:var(--text); }
+.day-panel-head .day-of{ font-size:var(--fs-sm); color:var(--text-dim); margin-top:2px; }
+.day-panel-head-actions{ display:flex; align-items:center; gap:8px; }
+.progress-ring{ position:relative; width:40px; height:40px; flex-shrink:0; }
+.progress-ring svg{ transform:rotate(-90deg); }
+.progress-ring .bgc{ fill:none; stroke:var(--line); stroke-width:4; }
+.progress-ring .fgc{ fill:none; stroke:var(--accent); stroke-width:4; stroke-linecap:round; transition:stroke-dashoffset .4s ease, stroke .2s ease; }
+.progress-ring.tier-red .fgc{ stroke:var(--danger); }
+.progress-ring.tier-yellow .fgc{ stroke:var(--pending); }
+.progress-ring.tier-green .fgc{ stroke:var(--ok); }
+.progress-ring .pct{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:var(--fs-xs); font-weight:600; color:var(--text); }
+
+.col-heads{
+  display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px 18px;
+  gap:5px; padding:8px 12px 6px; font-size:var(--fs-xxs); color:var(--text-faint);
+  text-transform:uppercase; letter-spacing:.05em; font-weight:600;
+}
+.col-heads span:nth-child(3), .col-heads span:nth-child(4), .col-heads span:nth-child(5){ text-align:center; }
+
+.ex-row{
+  display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px 18px; gap:5px;
+  align-items:center; padding:8px 12px; border-top:1px solid var(--line);
+  min-height:64px; background:var(--surface);
+}
+.ex-row.pending{ background:var(--pending-faint); }
+.ex-row.dragging{
+  z-index:20; box-shadow:0 8px 20px var(--shadow); border-radius:var(--r-md);
+  border-top-color:transparent; opacity:0.96;
+}
+.ex-row-placeholder{ border-top:1px dashed var(--accent-dim); background:var(--accent-faint); }
+.ex-drag-handle{
+  display:flex; align-items:center; justify-content:center; align-self:start; margin-top:2px;
+  color:var(--text-faint); cursor:grab; touch-action:none; padding:3px;
+}
+.ex-drag-handle:active{ cursor:grabbing; }
+.ex-drag-handle .icon{ font-size:var(--fs-md); }
+.ex-check{
+  width:20px; height:20px; border-radius:6px; border:1.5px solid var(--line);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; color:transparent;
+}
+.ex-check .icon{ font-size:var(--fs-sm); margin:0; }
+.ex-row.done .ex-check{ background:var(--ok); border-color:var(--ok); color:var(--on-ok); }
+.ex-row.pending .ex-check{ border-color:var(--pending); color:var(--pending); }
+.ex-row.pending .ex-check .icon{ font-size:var(--fs-xxs); }
+
+/* Nombre: modo mostrar (envuelve a 2 líneas, misma altura siempre) / modo editar */
+.ex-name-cell{ position:relative; min-width:0; }
+.ex-name-display{
+  font-family:var(--font-body); font-size:var(--fs-md); font-weight:500; line-height:1.35;
+  color:var(--text); cursor:text; padding:2px 0;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.ex-row.pending .ex-name-display{ color:var(--text-dim); }
+.ex-name-display.empty{ color:var(--text-faint); }
+.ex-name-input{
+  background:transparent; border:none; border-bottom:1px solid var(--accent-dim); color:var(--text);
+  font-family:var(--font-body); font-size:var(--fs-md); font-weight:500; padding:3px 0; width:100%; display:none;
+}
+.ex-name-input:focus{ outline:none; }
+.ex-name-cell.editing .ex-name-display{ display:none; }
+.ex-name-cell.editing .ex-name-input{ display:block; }
+
+.ex-name-row{ display:flex; align-items:flex-start; gap:5px; }
+.ex-name-row .ex-name-display{ flex:1; min-width:0; }
+.ex-info-btn{
+  flex-shrink:0; background:none; border:none; color:var(--text-faint); cursor:pointer;
+  padding:2px; display:flex; align-items:center; justify-content:center; margin-top:2px;
+}
+.ex-info-btn .icon{ font-size:var(--fs-sm); }
+.ex-info-btn:hover{ color:var(--accent); }
+.ex-name-cell.editing .ex-info-btn{ display:none; }
+
+.ex-note{
+  display:block; margin-top:3px; font-size:var(--fs-xs); color:var(--text-faint); background:none; border:none;
+  padding:0; text-align:left; cursor:pointer; font-family:var(--font-body); line-height:1.3;
+}
+.ex-note.has-note{ color:var(--steel); font-weight:600; }
+.ex-note:hover{ color:var(--accent); }
+
+.ex-val-input{
+  background:transparent; border:none; border-bottom:1px solid transparent; color:var(--text);
+  font-family:var(--font-mono); font-size:var(--fs-md); color:var(--text-dim); text-align:center; font-weight:500;
+  padding:3px 0; width:100%; align-self:start; margin-top:2px;
+}
+.ex-row.done .ex-val-input{ color:var(--text); }
+.ex-val-input:focus{ outline:none; border-bottom-color:var(--accent-dim); }
+
+.ex-del, .ex-chevron{ background:none; border:none; color:var(--text-faint); cursor:pointer; padding:3px; display:flex; align-items:center; justify-content:center; align-self:start; margin-top:2px; }
+.ex-del .icon, .ex-chevron .icon{ font-size:var(--fs-md); }
+.ex-del:hover{ color:var(--danger); }
+.ex-chevron:hover{ color:var(--accent); }
+.ex-chevron .icon{ transition:transform .2s ease; }
+.ex-chevron.open .icon{ transform:rotate(180deg); }
+.ex-chevron.open{ color:var(--accent); }
+
+/* Mismas columnas que .ex-row (22px check / 1fr nombre / 38-30-30 kg-rep-ser
+   / 18-18 del-chevron) para que el grid de "semana pasada" quede alineado
+   debajo del kg/rep/ser actual, en vez de un flex suelto con su propio
+   espaciado. */
+.ex-detail{
+  display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px; gap:5px;
+  padding:10px 12px; border-top:1px dashed var(--line); background:var(--wash);
+}
+.ex-detail-head-left{ grid-column:1 / 3; display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; }
+.ex-detail-empty-row{ grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.ex-detail-label{ font-size:var(--fs-xxs); text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); font-weight:700; line-height:1.35; }
+.ex-progress-btn{ display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--accent); font-size:var(--fs-sm); font-weight:700; cursor:pointer; padding:3px 0; flex-shrink:0; }
+.ex-progress-btn .icon{ font-size:var(--fs-xs); }
+.ex-progress-btn:hover{ color:var(--accent-dim); }
+.ex-detail-item{ display:flex; flex-direction:column; align-items:center; gap:3px; }
+.ex-detail-item .k{ font-size:var(--fs-xxs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; }
+.ex-detail-item .v{ display:flex; align-items:center; gap:3px; font-family:var(--font-mono); font-size:var(--fs-lg); color:var(--text); font-weight:600; }
+.cmp-icon{ font-size:var(--fs-xs); }
+.cmp-up{ color:var(--ok); transform:rotate(180deg); }
+.cmp-down{ color:var(--pending); }
+.cmp-eq{ color:var(--text-faint); font-size:var(--fs-sm); }
+.ex-detail-empty{ font-size:var(--fs-sm); color:var(--text-faint); margin:0; }
+.ex-detail-suggestion{ grid-column:1 / -1; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:var(--fs-sm); color:var(--text-dim); }
+.ex-detail-suggestion strong{ color:var(--accent); font-family:var(--font-mono); }
+
+.add-ex-row{
+  display:flex; align-items:center; gap:7px; padding:11px 14px; border-top:1px solid var(--line);
+  font-size:var(--fs-md); color:var(--text-faint); cursor:pointer; font-weight:600;
+}
+.add-ex-row:hover{ color:var(--accent); }
+.add-ex-row .icon{ font-size:var(--fs-md); }
+
+.day-empty{ padding:26px 18px 22px; text-align:center; }
+.day-empty p{ font-size:var(--fs-md); color:var(--text-dim); margin:0 0 14px; }
+.day-empty-actions{ display:flex; flex-direction:column; gap:8px; }
+
+.day-notes{ padding:12px 14px 16px; font-size:var(--fs-sm); color:var(--text-faint); line-height:1.7; border-top:1px solid var(--line); }
+
+.migrate-row{ padding:10px 18px; border-top:1px solid var(--line); }
+.migrate-row.open{ display:flex; gap:8px; align-items:center; }
+.migrate-row.open select{
+  flex:1; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md);
+  color:var(--text); font-family:var(--font-body); font-size:var(--fs-md); padding:8px 10px;
+}
+.btn-migrate-cancel{ width:32px; height:32px; }
+.day-notes b{ color:var(--text-dim); }
+
+/* ---------- Nota de la semana ---------- */
+.week-note-panel{ padding:var(--pad-card-sm); margin-bottom:var(--sp-4); }
+.week-note-label{ display:block; font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; font-weight:600; margin-bottom:6px; }
+.week-note-input{
+  width:100%; background:transparent; border:none; color:var(--text); font-family:var(--font-body);
+  font-size:var(--fs-md); line-height:1.5; resize:vertical; padding:0; min-height:36px;
+}
+.week-note-input:focus{ outline:none; }
+.week-note-input::placeholder{ color:var(--text-faint); }
+
+/* ---------- Export de resumen semanal (imagen, fuera de pantalla) ---------- */
+/* "Patrón Strava": una sola card redondeada en vez de fondo transparente
+   completo. Pensada para pegarse sobre CUALQUIER fondo al compartir en
+   redes (una foto, no solo un chat oscuro y uniforme) — transparente
+   puro dejaba el título, los labels sueltos y el borde de "+ Nueva
+   semana" ilegibles sobre una foto real, porque esos elementos no
+   tienen su propio fondo (solo lo tienen las cards internas: .week-pill,
+   .day-tab, .sum-chip, .recap-card). Fondo a 50% de opacidad (no
+   sólido del todo) para que se note un poco la foto de fondo en vez de
+   taparla por completo — probado primero al 30%, subido a 50% porque
+   30% dejaba pasar demasiado la foto de fondo. Sin box-shadow a
+   propósito: se probó (blur+offset) y html2canvas 1.4.1 no lo
+   renderiza — el corte entre la card y el resto queda sin ningún
+   degradé, alpha 0 de una (comprobado leyendo el PNG resultante). Un
+   borde de 1px sí se renderiza bien (ya lo usan .sum-chip/.recap-card),
+   así que hace ese trabajo en su lugar. */
+.dashboard-share{
+  width:520px; padding:16px 14px; box-sizing:border-box; font-family:var(--font-body);
+  background:var(--bg-glass); /* --bg (#14171B) al 50% */
+  border:1px solid var(--line); border-radius:22px;
+}
+/* Con la card semitransparente en vez de sólida, los elementos que no
+   tienen su propia card de fondo (título, subtítulo, label "racha
+   actual", nombre/grupo de cada day-tab) se apoyaban en tonos apagados
+   pensados para leerse sobre --bg sólido — sobre la card semitransparente
+   perdían contraste, sobre todo los day-tab .completed (fondo verde a
+   10-30%, encima el texto gris quedaba casi invisible). Se fuerzan acá,
+   solo dentro del export (la app en vivo no cambia). El número de racha
+   va siempre en verde, tenga o no la clase .complete. */
+.dashboard-share h1,
+.dashboard-share .sub,
+.dashboard-share .streak .l,
+.dashboard-share .day-tab .dname,
+.dashboard-share .day-tab .muted-tag{ color:var(--white); }
+.dashboard-share .streak .n{ color:var(--ok); }
+.dashboard-share .day-tab.completed{ background:var(--ok-strong); }
+
+/* ---------- Sesión del día (Iniciar/Finalizar entrenamiento) ---------- */
+.day-session-panel{ padding:var(--pad-card-sm); margin-bottom:var(--sp-4); }
+/* Sin wrap a propósito: botón de ícono angosto + 3 campos flexibles
+   (flex:1 1 0, min-width:0) entran los 4 en una sola fila incluso en un
+   celular angosto — antes el botón de texto (flex:1 1 140px) forzaba el
+   wrap a 2 filas casi siempre. */
+.day-session-row{ display:flex; align-items:stretch; gap:8px; }
+.day-session-toggle{
+  flex:0 0 auto; width:40px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:var(--r-md); color:var(--danger); font-size:var(--fs-xl); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.day-session-toggle.in-progress{ background:var(--danger-soft); border-color:var(--danger); }
+.day-session-field{
+  flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:4px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md); padding:6px 8px;
+}
+.day-session-field label{ font-size:var(--fs-xxs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+.day-session-field input[type="time"]{
+  background:transparent; border:none; color:var(--text); font-family:var(--font-mono); font-size:var(--fs-lg); font-weight:600; padding:0;
+}
+.day-session-field input[type="time"]:focus{ outline:none; }
+.day-session-duration{ font-family:var(--font-mono); font-size:var(--fs-lg); font-weight:600; color:var(--text); }
+
+/* ---------- Conversor kg / lbs ---------- */
+.converter-panel{ padding:var(--pad-card-sm); margin-top:var(--sp-4); }
+.converter-label{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; font-weight:600; margin-bottom:8px; }
+.converter-row{ display:flex; align-items:center; gap:10px; }
+.converter-field{
+  flex:1; min-width:0; display:flex; align-items:center; gap:6px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md); padding:8px 10px;
+}
+.converter-field input{
+  flex:1; min-width:0; background:transparent; border:none; color:var(--text);
+  font-family:var(--font-mono); font-size:var(--fs-xl); font-weight:600;
+}
+.converter-field input:focus{ outline:none; }
+.converter-field input::placeholder{ color:var(--text-faint); }
+.converter-unit{ font-size:var(--fs-sm); color:var(--text-faint); font-weight:600; text-transform:uppercase; flex-shrink:0; }
+.converter-icon{ font-size:var(--fs-md); color:var(--text-faint); flex-shrink:0; }
+
+/* ---------- Eliminar semana (fin de "Hoy") ---------- */
+.btn-delete-week{ margin-top:var(--sp-4); }
+
+
+.recap-card{ padding:var(--pad-card-sm); margin-bottom:14px; }
+.recap-title{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; font-weight:600; margin-bottom:8px; }
+.recap-row{ display:flex; gap:18px; }
+.recap-item .k{ font-size:var(--fs-xxs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; font-weight:600; }
+.recap-item .v{ font-family:var(--font-mono); font-size:var(--fs-xl); font-weight:600; color:var(--text); margin-top:3px; }
+.recap-delta{ font-size:var(--fs-sm); font-weight:700; margin-left:2px; }
+.recap-vs{ font-size:var(--fs-xs); color:var(--text-faint); font-weight:500; }
+
+
+/* ---------- Panel de info de ejercicio (ícono de ojo) ---------- */
+/* Bottom sheet, no modal centrado — mismo lenguaje "mobile-first" que el
+   resto de la app (no hay overlay/modal reutilizable previo, ver
+   ESTRUCTURA.md). Fondo oscuro fijo + card anclada abajo, scrollable. */
+.ex-info-overlay{
+  position:fixed; inset:0; background:var(--scrim); z-index:50;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.ex-info-panel{
+  width:100%; max-width:520px; max-height:85vh; overflow-y:auto;
+  background:var(--surface); border:1px solid var(--line); border-bottom:none;
+  border-radius:20px 20px 0 0; padding:16px 18px calc(20px + env(safe-area-inset-bottom));
+}
+.ex-info-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.ex-info-title{ font-family:var(--font-display); font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; color:var(--text); line-height:1.2; }
+.ex-info-subtitle{ font-size:var(--fs-sm); color:var(--text-faint); margin-top:3px; text-transform:capitalize; }
+.ex-info-media{
+  position:relative; width:100%; aspect-ratio:1; max-width:280px; margin:0 auto 14px; border-radius:var(--r-lg);
+  overflow:hidden; background:var(--surface-2); display:flex; align-items:center; justify-content:center;
+}
+.ex-info-media img{ width:100%; height:100%; object-fit:contain; }
+.ex-info-media-loading{ font-size:var(--fs-md); color:var(--text-faint); padding:12px; text-align:center; }
+.ex-info-tags{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+.ex-info-tag{
+  display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:var(--text-dim); font-weight:600;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:6px 10px;
+}
+.ex-info-tag .icon{ font-size:var(--fs-xs); color:var(--text-faint); }
+.ex-info-secondary{ font-size:var(--fs-sm); color:var(--text-faint); margin-bottom:14px; line-height:1.5; }
+.ex-info-section-title{ font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); font-weight:700; margin-bottom:8px; }
+.ex-info-steps{ margin:0 0 16px; padding-left:18px; display:flex; flex-direction:column; gap:6px; }
+.ex-info-steps li{ font-size:var(--fs-lg); color:var(--text-dim); line-height:1.5; }
+.ex-info-empty{ font-size:var(--fs-md); color:var(--text-faint); margin:0 0 16px; }
+.ex-info-attribution{ font-size:var(--fs-xs); color:var(--text-faint); line-height:1.4; border-top:1px solid var(--line); padding-top:10px; }

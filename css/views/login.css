@@ -1,0 +1,23 @@
+/* Pantalla de login y de arranque (comparten .login-screen / .login-card).
+   Se carga después de tokens.css, components.css y base.css. */
+
+/* ---------- Login ---------- */
+.login-screen{
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 0;
+}
+.login-card{
+  width:100%; max-width:320px; padding:28px 22px; text-align:center;
+}
+.login-mark{ width:44px; height:44px; margin:0 auto 14px; }
+.login-mark .icon{ font-size:22px; }
+.login-title{ font-family:var(--font-display); font-size:24px; font-weight:800; text-transform:uppercase; color:var(--text); margin:0; }
+.login-sub{ font-size:var(--fs-md); color:var(--text-dim); margin:6px 0 20px; }
+#login-form{ display:flex; flex-direction:column; gap:10px; }
+#login-form input{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md);
+  padding:11px 12px; color:var(--text); font-size:var(--fs-lg); font-family:var(--font-body);
+}
+#login-form input:focus{ outline:none; border-color:var(--accent-dim); }
+#login-submit{ font-size:var(--fs-lg); margin-top:4px; }
+#login-submit:disabled{ opacity:.6; }
+.login-error{ font-size:var(--fs-md); color:var(--danger); margin:2px 0 0; min-height:14px; }

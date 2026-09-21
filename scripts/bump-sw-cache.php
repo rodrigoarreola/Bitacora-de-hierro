@@ -12,13 +12,40 @@ $shellFiles = [
     'index.html',
     'css/tokens.css',
     'css/components.css',
-    'css/styles.css',
+    'css/base.css',
+    'css/views/hoy.css',
+    'css/views/ajustes.css',
+    'css/views/login.css',
+    'css/views/perfil.css',
+    'css/views/calendario.css',
+    'css/views/historial.css',
+    'css/views/progreso.css',
     'js/changelog-data.js',
     'js/app.js',
     'js/api.js',
     'js/offline-queue.js',
     'js/snapshot.js',
 ];
+
+$swPath = $repoRoot . '/sw.js';
+$swContent = file_get_contents($swPath);
+
+// Guarda: todo CSS/JS local que index.html carga debe estar en $shellFiles (para
+// el hash) y en SHELL_ASSETS de sw.js (para el precache). Un archivo olvidado en
+// cualquiera de las dos listas no rompe nada al desarrollar, pero deja la PWA
+// sin ese archivo offline o sin invalidar el caché cuando cambia.
+preg_match_all('/(?:href|src)="((?:css|js)\/[^"]+)"/', (string) file_get_contents($repoRoot . '/index.html'), $refs);
+preg_match("/const SHELL_ASSETS = \[(.*?)\];/s", $swContent, $assetsBlock);
+preg_match_all("/'([^']+)'/", $assetsBlock[1] ?? '', $precached);
+$problems = [];
+foreach ($refs[1] as $ref) {
+    if (!in_array($ref, $shellFiles, true)) $problems[] = "$ref: falta en \$shellFiles de scripts/bump-sw-cache.php";
+    if (!in_array($ref, $precached[1], true)) $problems[] = "$ref: falta en SHELL_ASSETS de sw.js";
+}
+if ($problems) {
+    fwrite(STDERR, "bump-sw-cache: index.html carga archivos que no están registrados en el app shell:\n  - " . implode("\n  - ", $problems) . "\n");
+    exit(1);
+}
 
 $hashInput = '';
 foreach ($shellFiles as $relPath) {
@@ -33,10 +60,7 @@ foreach ($shellFiles as $relPath) {
 $hash = substr(sha1($hashInput), 0, 10);
 $newCacheName = "bitacora-shell-$hash";
 
-$swPath = $repoRoot . '/sw.js';
-$swContent = file_get_contents($swPath);
-
-$pattern = "/const CACHE_NAME = '[^']*';/";
+$pattern ="/const CACHE_NAME = '[^']*';/";
 if (!preg_match($pattern, $swContent, $m)) {
     fwrite(STDERR, "bump-sw-cache: no se encontró la línea CACHE_NAME en sw.js\n");
     exit(1);

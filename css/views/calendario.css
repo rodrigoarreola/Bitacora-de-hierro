@@ -1,0 +1,64 @@
+/* Vista Calendario (#/calendario): calendario mensual y heatmap anual.
+   Se carga después de tokens.css, components.css y base.css. */
+
+/* ---------- Calendario ---------- */
+.cal-panel{ padding:14px; }
+.cal-head{ display:flex; align-items:center; justify-content:space-between; padding:2px 4px 6px; }
+.cal-nav .icon{ font-size:var(--fs-md); }
+.cal-title{ font-family:var(--font-display); font-size:16px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:var(--text); }
+.cal-today-row{ display:flex; justify-content:center; padding-bottom:12px; }
+.cal-weekdays{
+  display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:4px;
+  font-size:var(--fs-xs); font-weight:700; color:var(--text-faint); text-transform:uppercase; text-align:center;
+}
+.cal-grid{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; }
+.cal-day{
+  background:var(--surface-2); border-radius:var(--r-sm); padding:6px 2px 8px; min-height:44px;
+  display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+}
+.cal-day .num{ font-family:var(--font-mono); font-size:var(--fs-sm); font-weight:600; color:var(--text); }
+.cal-day.other-month{ opacity:.32; }
+.cal-day.today{ box-shadow:0 0 0 1.5px var(--accent); }
+.cal-day.clickable{ cursor:pointer; }
+.cal-day.clickable:hover{ background:var(--surface); }
+.cal-day.clickable:active{ background:var(--line); }
+.cal-line{ width:70%; height:3px; border-radius:2px; background:transparent; }
+.cal-line.tier-red{ background:var(--danger); }
+.cal-line.tier-yellow{ background:var(--pending); }
+.cal-line.tier-green{ background:var(--ok); }
+.cal-legend{ display:flex; flex-wrap:wrap; gap:10px 14px; margin-top:var(--sp-4); padding-top:12px; border-top:1px solid var(--line); }
+.cal-legend-item{ display:flex; align-items:center; gap:5px; font-size:var(--fs-xs); color:var(--text-faint); }
+.cal-dot{ width:8px; height:8px; border-radius:var(--r-full); flex-shrink:0; }
+
+/* ---------- Calendario: heatmap anual (primera versión) ---------- */
+.heatmap-panel{ padding:var(--pad-card); margin-top:var(--sp-4); }
+.heatmap-panel .lib-sub{ margin-bottom:14px; }
+.heatmap-panel .week-rail{ margin-bottom:12px; }
+/* Vertical: 7 columnas (Lun-Dom) x 52/53 semanas, en vez del layout
+   horizontal original (7 filas x N columnas). Cada semana ocupa 3
+   "fine-rows" (mitad arriba / mitad abajo / separador fijo de 3px) en
+   vez de una sola fila + gap uniforme — así el separador visual entre
+   semanas SOLO existe ahí, nunca entre las dos mitades de una fila de
+   transición (donde terminan/arrancan dos meses vecinos, ver
+   renderHeatmap()). Cada .heat-cell explícito hace `grid-row: N / span
+   2` para cubrir sus dos mitades como una celda normal, saltándose el
+   separador. row-gap en 0 a propósito — el espaciado entre semanas ya
+   lo da el separador, no la propiedad gap. */
+.heatmap-grid{
+  display:grid; grid-template-columns:16px repeat(7, 1fr); grid-auto-rows:auto auto 3px;
+  column-gap:3px; row-gap:0; max-width:44vw; margin-inline:auto;
+}
+.heat-month-label{
+  grid-column:1; display:flex; align-items:center; justify-content:center;
+  writing-mode:vertical-rl; transform:rotate(180deg); font-size:var(--fs-xxs); font-weight:600;
+  color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; padding-right:2px;
+  border:1px solid var(--line); border-radius:2px;
+}
+.heat-cell{ width:100%; aspect-ratio:1; border-radius:2px; background:var(--surface-2); }
+.heat-cell[data-date]{ cursor:pointer; }
+.heat-cell.out{ background:transparent; }
+.heat-cell.tier-yellow{ background:var(--pending); }
+.heat-cell.tier-green{ background:var(--ok); }
+.cal-dot.tier-red{ background:var(--danger); }
+.cal-dot.tier-yellow{ background:var(--pending); }
+.cal-dot.tier-green{ background:var(--ok); }

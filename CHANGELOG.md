@@ -2,6 +2,26 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.50.2] - 2026-09-21 — CSS por vistas
+
+### En la app: Sin cambios visibles (orden interno)
+
+- La app se ve y funciona igual: por dentro, los estilos se separaron en un archivo por pantalla para que sea más fácil mantenerlos.
+
+### Changed
+
+- **`css/styles.css` (749 líneas) se parte en 9 archivos**, sin cambiar ninguna regla: `css/base.css` (reset, header, toast, barra inferior, banner offline, `.hidden`), `css/views/{hoy,ajustes,login,perfil,calendario,historial,progreso}.css`, y lo que comparten varias pantallas pasa a `css/components.css` (riel de píldoras `.week-rail`/`.week-pill`, chips `.sum-chip`, encabezado de panel `.lib-*`, campo `.prog-search`). El panel de info de ejercicio va en `views/hoy.css`, que es desde donde se abre. `index.html` los carga en orden de cascada: tokens → components → base → views.
+- **`sw.js` y `scripts/bump-sw-cache.php`**: las listas del app shell pasan de `css/styles.css` a los 8 archivos nuevos.
+
+### Added
+
+- **Guarda en `scripts/bump-sw-cache.php`**: si `index.html` carga un CSS/JS local que no está en `$shellFiles` (hash) o en `SHELL_ASSETS` de `sw.js` (precache), el commit se aborta y el mensaje dice cuál falta. Con 11 hojas de estilo era fácil olvidar una.
+
+### Verificado
+
+- **Reglas idénticas**: las 389 reglas de los archivos nuevos son exactamente las de `styles.css` (comparadas por selector y declaraciones), y ningún selector aparece en más de un archivo, así que el orden de carga no altera la cascada.
+- **Estilos calculados idénticos**: hash de todas las propiedades computadas de cada elemento del DOM (unos 3.700) en 3 estados — vista por defecto, día con detalle y "Migrar día" abiertos, y panel de info de ejercicio abierto — antes y después del corte: 0 diferencias (con una corrida de control previa, también 0, para descartar ruido del método).
+
 ## [1.50.1] - 2026-09-21 — Deuda del handoff: changelog de fuente única, `docs/` y ADR
 
 ### En la app: Sin cambios visibles (orden interno)
