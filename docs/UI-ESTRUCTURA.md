@@ -1,0 +1,259 @@
+# Estructura de la app (UI / UX)
+
+Mapa de **pantallas y contenido** de Bitácora de Hierro, pensado como base
+para rediseñar la interfaz. Para el mapa de código (archivos, funciones,
+API) ver `ESTRUCTURA.md`.
+
+Versión de referencia: `1.46.0`. App móvil-first (PWA), un solo usuario,
+tema oscuro, ancho máximo 520 px.
+
+---
+
+## 1. Esquema general
+
+```
+┌─ Login (si no hay sesión)
+└─ App shell
+   ├─ Banner offline (condicional)
+   ├─ Header fijo ......... marca + racha actual + badges + engranaje (Ajustes)
+   ├─ Vista activa (una de 6)
+   │    Hoy · Historial · Progreso · Calendario · Perfil · Ajustes (desde el header)
+   ├─ Nav inferior ........ 5 botones
+   └─ Capas globales ...... toast, overlay de info de ejercicio
+```
+
+Navegación: barra inferior de 5 destinos más el engranaje de Ajustes en el
+header. Cada vista tiene URL por hash (`#/hoy`, `#/historial`, `#/progreso`,
+`#/calendario`, `#/perfil`, `#/ajustes`): atrás/adelante y enlaces directos
+funcionan. Hay atajos entre vistas: tocar una semana en Historial o un día en
+Calendario/Heatmap lleva a **Hoy**; "Ver progreso" en un ejercicio lleva a
+**Progreso** con ese ejercicio cargado.
+
+### Nav inferior (5 ítems, todos con ícono + texto)
+
+| Ítem | Ícono | Vista |
+|---|---|---|
+| Hoy | mancuerna | Registro del día |
+| Historial | reloj con flecha | Semanas pasadas |
+| Progreso | línea de gráfica | Evolución por ejercicio |
+| Calendario | calendario | Mes + heatmap anual |
+| Perfil | usuario | Hitos, horarios, datos |
+| _(header)_ Ajustes | engranaje | Reglas, fuente de nombres, librería |
+
+---
+
+## 2. Elementos globales
+
+### Login
+Tarjeta centrada: logo, título "Bitácora", "Inicia sesión para continuar",
+campos Usuario y Contraseña, botón **Entrar**, línea de error.
+
+### Header (siempre visible en la app)
+- **Izquierda:** logo (mancuerna), "Bitácora", subtítulo "Registro de entrenamiento".
+- **Derecha:** número de racha ("N días", verde), etiqueta "racha actual" y,
+  al lado, **badges** de hito: bronce (7+ días), plata (30+), oro (100+); y el
+  **engranaje** que abre Ajustes (se resalta cuando estás en esa vista).
+
+### Banner offline
+Aparece cuando no hay conexión o hay cambios pendientes de sincronizar.
+Los cambios offline se guardan en cola (IndexedDB) y se envían solos al
+volver la red.
+
+### Toast
+Mensaje breve inferior, con botón de acción opcional (se usa para
+**Deshacer** al borrar un ejercicio). Dura ~2.4 s.
+
+### Overlay "Info del ejercicio"
+Panel modal que se abre con el ícono de ojo de un ejercicio (solo si el
+nombre coincide con el dataset). Contiene: nombre (tuyo y en español del
+dataset), botón cerrar, **GIF** de demostración (con estado "Cargando…" /
+"GIF no disponible"), tres etiquetas (categoría, equipo, músculo objetivo),
+músculos secundarios, **instrucciones** paso a paso y atribución.
+
+### Sistema visual actual
+- **Colores:** fondo `#14171B`, superficies `#1B1F26` / `#242A33`, líneas
+  `#2E3540`, acento naranja `#D9481F`. Semánticos: verde `--ok`, ámbar
+  `--pending`, rojo `--danger`, azul `--info`.
+- **Tipografía:** Big Shoulders Display (títulos, mayúsculas), Inter
+  (texto), JetBrains Mono (números y datos).
+- **Íconos:** Font Awesome 6.
+- **Semáforo de rendimiento** (se reutiliza en anillo del día, calendario y
+  heatmap): rojo = sin actividad, ámbar = 1–5 ejercicios, verde = 6+.
+- **Patrón repetido:** "riel" de píldoras con scroll horizontal
+  (`week-rail`) para semanas, meses y años; tarjetas `lib-panel` con
+  `lib-title` + `lib-sub`; chips de resumen `sum-chip` (etiqueta + valor).
+
+---
+
+## 3. Vista HOY (`#view-hoy`)
+
+Pantalla principal y la más densa. De arriba abajo:
+
+1. **Riel de semanas.** Botón "+ Nueva semana" (abre selector de fecha, se
+   ajusta al lunes más cercano) seguido de una píldora por semana. La
+   semana activa muestra una X para eliminarla (si hay más de una).
+2. **Riel de días.** 7 pestañas (L M X J V S D): letra en "placa", nombre
+   corto y grupo muscular (primera palabra). Estados: activa / completada
+   (≥ mínimo de ejercicios) / con marca de "migrado". Se puede navegar
+   también **deslizando** el panel a izquierda/derecha.
+3. **Tira de resumen (4 chips):** Series hoy · Ejercicios (hechos/total) ·
+   Mejor racha · Volumen (kg).
+4. **Comparación semanal** (tarjeta, solo si la semana anterior es la
+   inmediata): "Esta semana vs. la pasada", con Volumen (± %) y
+   Adherencia (hechos/total y "antes X/Y"). En la semana en curso compara
+   solo hasta el día de hoy.
+5. **Panel del día:**
+   - Cabecera: grupo muscular, "Día · fecha", botón **compartir día**
+     (imagen), botón **compartir resumen semanal** (imagen) y **anillo de
+     progreso** hechos/total con color de semáforo.
+   - **Sin ejercicios:** mensaje vacío + botones "Copiar semana pasada" y
+     "+ Agregar ejercicio".
+   - **Con ejercicios:** encabezado de columnas (Ejercicio · Kg · Rep ·
+     Ser) y una **fila por ejercicio**:
+     - Check para marcar hecho / pendiente.
+     - Nombre (toca para editar, con autocompletado de la librería), botón
+       de ojo (info/GIF si hay coincidencia) y nota corta ("+ nota").
+     - Inputs Kg, Rep, Ser.
+     - Papelera (borra con opción de deshacer), chevron y asa de arrastre
+       para **reordenar**.
+     - **Detalle expandible** (chevron): compara Kg/Rep/Ser con la semana
+       pasada (flechas ↑ ↓ =), sugiere carga (+ incremento), botón "Ver
+       progreso"; o "Sin datos de la semana pasada".
+   - Fila "+ Agregar ejercicio" y notas del día (si existen).
+   - **Migrar día:** botón que abre un selector con los días posteriores de
+     la semana (avisa si el destino ya tiene rutina, que se recorre) y
+     botones Migrar / cancelar.
+6. **Panel de sesión del día** (solo si hay día activo): botón play/stop y
+   campos Hora inicio, Hora fin y Duración calculada.
+7. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
+   ajustes…").
+8. **Conversor kg ⇄ lbs:** dos inputs enlazados.
+9. **Eliminar esta semana** (botón destructivo, con confirmación).
+
+Estado vacío global (sin semanas): tarjeta "Todavía no has creado ninguna
+semana" con botón "+ Nueva semana".
+
+---
+
+## 4. Vista HISTORIAL (`#view-historial`)
+
+1. **Buscador** de ejercicio (con autocompletado): filtra semanas que
+   contengan ese ejercicio.
+2. **Riel de meses:** "Todas" + un mes por píldora.
+3. **Lista de tarjetas por semana:** etiqueta de la semana, total
+   hechos/total de ejercicios, botón compartir (imagen) y fila de **7
+   puntos** L M X J V S D (relleno = día cumplido; el domingo aparece
+   siempre). Tocar la tarjeta o un punto abre esa semana/día en **Hoy**.
+   Estado vacío: "No hay semanas en este mes / con ese ejercicio".
+4. **Balance por grupo muscular:** barras horizontales con los días
+   cumplidos por grupo en el período filtrado.
+
+---
+
+## 5. Vista PROGRESO (`#view-progreso`)
+
+1. **Buscador** de ejercicio principal.
+2. **Fila de comparación** (aparece al elegir uno): segundo buscador
+   ("Comparar con… opcional") y toggle para mostrar **repeticiones**.
+3. **Contenido:**
+   - **Sin ejercicio elegido → mini-dashboard:** cuadrícula de tarjetas
+     con **sparkline** por ejercicio, ícono de tendencia (sube/baja) y
+     último peso; tocar una tarjeta abre su detalle.
+   - **Con ejercicio → detalle:** chips Último · Mejor · Cambio (kg, con
+     color según signo) y tarjeta con **gráfica** de carga en el tiempo
+     (opcionalmente vs. un 2.º ejercicio y línea de reps; zoom/paneo,
+     doble clic para resetear).
+   - Solo cuenta apariciones marcadas como **hechas**.
+   - Sin datos: placeholder "Busca un ejercicio arriba para ver su
+     progreso".
+
+---
+
+## 6. Vista CALENDARIO (`#view-calendario`)
+
+1. **Calendario mensual:** flechas mes anterior / siguiente, título
+   "Mes año", botón "Volver a hoy", cabecera L M X J V S D y cuadrícula.
+   Cada día muestra número y una **línea de color** (semáforo); días de
+   otro mes atenuados, hoy resaltado, días con semana registrada son
+   tocables (abren **Hoy**). Leyenda: Sin actividad / 1–5 / 6+ ejercicios.
+   Sábado y domingo sin ejercicios quedan sin línea (no rojo).
+2. **Actividad del año (heatmap):** riel de años y cuadrícula tipo
+   contribuciones con etiquetas de mes; celdas coloreadas por semáforo,
+   con tooltip de fecha y tocables.
+
+---
+
+## 7. Vista PERFIL (`#view-perfil`)
+
+1. **Hitos y constancia:** tres bloques — periodos de **mayor**
+   constancia (top con trofeo/medallas oro-plata-bronce, rango de fechas y
+   "N semanas seguidas con X días en promedio"), periodos de **menor**
+   constancia (huecos sin entrenar, ícono de alerta) e "Hitos
+   interesantes" (primer entrenamiento, mejor racha, mejor mes, hueco más
+   largo, año más productivo).
+2. **Horarios de entrenamiento:** filtros de año y mes; chips Tiempo
+   total · Promedio · Más larga · Hora frecuente; gráfica "Duración por
+   sesión" y barras "¿A qué hora sueles entrenar?".
+3. **Tus datos:** botones Exportar e Importar (JSON).
+4. **Backups automáticos:** lista de los últimos 14 con fecha, tamaño y
+   descarga.
+5. **Cerrar sesión.**
+6. **Changelog** (colapsable): versión actual + historial de versiones.
+
+---
+
+## 8. Vista AJUSTES (`#view-ajustes`)
+
+1. **Reglas** (4 campos numéricos + Guardar): ejercicios mínimos por día
+   cumplido · días mínimos por semana para no romper la racha · días/semana
+   para "semana fuerte" en Hitos · semanas seguidas mínimas para mostrar un
+   periodo en Hitos. Aplican de inmediato a toda la app.
+2. **Fuente de nombres de ejercicios:** radio **Personalizada** vs.
+   **Dataset** (1.324 ejercicios con GIF).
+3. **Librería de ejercicios:** input para agregar, buscador, contador y
+   lista (con borrado por ítem, con confirmación). También se llena sola al
+   escribir ejercicios nuevos.
+
+---
+
+## 9. Interacciones y reglas de negocio que afectan la UI
+
+- **Día cumplido:** ≥ N ejercicios marcados (configurable, por defecto 3).
+- **Racha:** cuenta días cumplidos consecutivos entre semanas; una semana
+  necesita ≥ N días cumplidos (por defecto 5) para no romperla. Sábado y
+  domingo son bonus (solo cuentan si tienen ejercicios). "Migrar día" no
+  cuenta como fallo del día de origen.
+- **Compartir:** día, semana (Historial) y resumen semanal se exportan como
+  imagen (html2canvas).
+- **Gestos:** deslizar entre días, arrastrar para reordenar ejercicios,
+  doble clic en gráficas para resetear zoom.
+- **Confirmaciones nativas** (`confirm()`): eliminar semana, quitar de la
+  librería, importar datos.
+- **PWA / offline:** instalable, shell cacheado, cola de cambios offline.
+
+---
+
+## 10. Puntos a revisar para el rediseño
+
+Observaciones de la estructura actual (candidatos, no decisiones):
+
+- **Hoy concentra demasiado:** 9 bloques apilados; lo esencial (ejercicios
+  del día) queda debajo de riel de semanas, riel de días, 4 chips y la
+  comparación semanal. La sesión, la nota de la semana, el conversor y
+  "Eliminar semana" están al final, lejos de donde se usan.
+- ~~6 ítems en la nav inferior~~ — resuelto: quedan 5 y Ajustes pasó a un
+  ícono en el header (1.50.0).
+- **Acciones destructivas** con `confirm()` del navegador; sin estilo ni
+  contexto propio (excepto borrar ejercicio, que sí tiene deshacer).
+- **Fila de ejercicio muy cargada:** check, nombre, ojo, nota, 3 inputs,
+  papelera, chevron y asa — 9 controles en ~520 px.
+- **"Mejor racha"** vive en la tira del día aunque no es del día; la
+  racha actual está en el header y la mejor en otro lado.
+- **Perfil mezcla** análisis (Hitos, Horarios) con administración (datos,
+  backups, sesión, changelog).
+- **Progreso** sin ejercicio depende de un buscador vacío; el dashboard de
+  sparklines es más útil como estado inicial que como fallback.
+- **Estados vacíos** y errores de carga (backups, GIF) son texto plano
+  sin acción sugerida.
+- **Consistencia:** los rieles de píldoras se usan para semanas, meses y
+  años con el mismo estilo aunque su jerarquía difiere.

@@ -24,10 +24,17 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 ├── index.html                     Markup: pantalla de login + #app-shell con el resto
 ├── manifest.json                  Manifest de la PWA (rutas relativas, funciona en cualquier subcarpeta)
 ├── sw.js                          Service worker: cachea el app shell, nunca api/ — CACHE_NAME se recalcula solo (ver .githooks/)
+├── docs/
+│   ├── SCREENS.md                 Inventario de pantallas: rutas, datos y estados
+│   ├── UI-ESTRUCTURA.md           Qué contiene cada pantalla (base para rediseñar la UI)
+│   ├── ESTRUCTURA.md              Mapa de código: qué hace cada archivo y función
+│   ├── AUDITORIA.md               Auditoría de organización (foto del 2026-09-21)
+│   └── adr/                       Decisiones de arquitectura, una por archivo (ver adr/README.md)
 ├── scripts/
-│   └── bump-sw-cache.php          Recalcula CACHE_NAME de sw.js según hash del app shell — lo corre .githooks/pre-commit, no hace falta a mano
+│   ├── bump-sw-cache.php          Recalcula CACHE_NAME de sw.js según hash del app shell — lo corre .githooks/pre-commit, no hace falta a mano
+│   └── build-changelog.php        Genera js/changelog-data.js desde los bloques "### En la app:" de CHANGELOG.md — también lo corre el hook
 ├── .githooks/
-│   └── pre-commit                 Corre bump-sw-cache.php en cada commit — activar con `git config core.hooksPath .githooks`
+│   └── pre-commit                 Corre build-changelog.php y bump-sw-cache.php en cada commit — activar con `git config core.hooksPath .githooks`
 ├── icons/
 │   ├── icon-192.png                Ícono de la PWA (mancuerna --accent sobre --bg)
 │   └── icon-512.png
@@ -37,6 +44,8 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 │   └── styles.css                 Estilos por vista, incluyendo login/logout
 ├── js/
 │   ├── offline-queue.js           Cola de mutaciones pendientes en IndexedDB (edición offline)
+│   ├── snapshot.js                Copia local de los datos (IndexedDB) para abrir la app sin conexión
+│   ├── changelog-data.js          GENERADO desde CHANGELOG.md (Perfil → Changelog) — no editar a mano
 │   ├── api.js                     Cliente fetch (apiGet/Post/Put/Delete), maneja 401 y encola mutaciones sin conexión
 │   └── app.js                     UI, estado local (caché de lo cargado de la API), bootstrap de sesión y registro del service worker
 ├── .htaccess                      Fuerza HTTPS, bloquea config.local.php y *.sql
@@ -135,6 +144,14 @@ php -S localhost:8000
 Necesita `api/config.local.php` ya configurado apuntando a una base de datos con el esquema importado — ver "Puesta en marcha del backend" arriba.
 
 Para no tener que loguearse cada vez en local, agregar `define('DEV_AUTOLOGIN', true);` a `api/config.local.php` — salta el login automáticamente con el único usuario que existe. Solo tiene efecto corriendo con `php -S` desde `localhost`/`127.0.0.1` (chequeo de `PHP_SAPI` + IP en `api/config.php`); no hay forma de que esto se active en producción, y el archivo nunca se sube a git.
+
+## Proceso de cambios
+
+- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/) — `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`… con el resumen en español y en imperativo (ej. `fix: contar el domingo en racha`). Solo aplica hacia adelante; el historial anterior no se reescribe.
+- **Versiones:** semver, una entrada por versión en `CHANGELOG.md` (formato Keep a Changelog) y un tag `vX.Y.Z` en el commit que la publica (`git tag -a vX.Y.Z -m "Versión X.Y.Z"`).
+- **Changelog de la app:** la versión más reciente de `CHANGELOG.md` **debe** llevar un bloque `### En la app: <título>` con los cambios en lenguaje llano (`- …`). De ahí sale `js/changelog-data.js`, que el hook regenera en cada commit; si falta el bloque, el commit se aborta. Ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md).
+- **Archivos nuevos del shell** (HTML/CSS/JS que la app carga): agregarlos a `SHELL_ASSETS` en `sw.js` y a la lista de `scripts/bump-sw-cache.php`.
+- **Decisiones de arquitectura:** un archivo por decisión en `docs/adr/`.
 
 ## Despliegue
 

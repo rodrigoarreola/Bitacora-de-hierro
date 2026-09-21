@@ -13,6 +13,7 @@ $shellFiles = [
     'css/tokens.css',
     'css/components.css',
     'css/styles.css',
+    'js/changelog-data.js',
     'js/app.js',
     'js/api.js',
     'js/offline-queue.js',

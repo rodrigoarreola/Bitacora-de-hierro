@@ -1,11 +1,22 @@
 #!/bin/sh
-# Auto-bump de CACHE_NAME en sw.js. Corre antes de que el commit se
+# 1) Regenera js/changelog-data.js desde CHANGELOG.md (scripts/build-changelog.php).
+# 2) Auto-bump de CACHE_NAME en sw.js. Corre antes de que el commit se
 # materialice: si scripts/bump-sw-cache.php reescribe sw.js, lo agrega al
 # mismo commit que ya se está armando (no genera un commit aparte ni loop).
 # Activar una vez por clon del repo: git config core.hooksPath .githooks
 
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root" || exit 1
+
+php scripts/build-changelog.php
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo "pre-commit: build-changelog.php falló, commit abortado." >&2
+  exit 1
+fi
+
+git add js/changelog-data.js
 
 php scripts/bump-sw-cache.php
 status=$?

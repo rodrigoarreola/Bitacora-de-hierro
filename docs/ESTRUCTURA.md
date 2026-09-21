@@ -4,13 +4,14 @@ Mapa de referencia rápida: qué hace cada archivo y dónde vive cada
 funcionalidad, para poder pedir cambios puntuales sin que tenga que
 explorar el repo primero (ver tips de prompting al final).
 
-**Los números de línea son aproximados** (versión actual: `1.45.0`) —
+**Los números de línea son aproximados** (medidos en la versión `1.45.0`,
+anteriores al routing por hash, los tokens CSS y `js/changelog-data.js`) —
 cambian con cada edición. Sirven para ubicarse rápido, no como
-referencia exacta; si hace falta precisión, decime el nombre de la
+referencia exacta; si hace falta precisión, dime el nombre de la
 función y listo, la busco por nombre en un Grep.
 
 No hace falta mantener este archivo actualizado a mano en cada commit —
-pedímelo de nuevo cuando lo notes desactualizado y lo regenero.
+pídemelo de nuevo cuando lo notes desactualizado y lo regenero.
 
 ## Stack en una línea
 
@@ -77,7 +78,7 @@ banner offline. No tiene lógica — todo el comportamiento vive en
 ### `css/styles.css`
 Un solo archivo, sin nesting ni variables SCSS (solo custom properties
 CSS en `:root`). Bloques marcados con comentarios `/* ---------- Nombre
----------- */` — para pedir un cambio de estilo, referenciá el bloque:
+---------- */` — para pedir un cambio de estilo, referencia el bloque:
 
 | Bloque | Línea | Para qué |
 |---|---|---|
@@ -209,7 +210,7 @@ $status)`.
 
 ## Cómo usar esto para pedir cambios puntuales
 
-En vez de "cambiá cómo se calcula la racha", ahora podés decir:
+En vez de "cambiá cómo se calcula la racha", ahora puedes decir:
 
 > En `js/app.js`, en `computeStreaks()` (línea ~544), cambiá X por Y.
 

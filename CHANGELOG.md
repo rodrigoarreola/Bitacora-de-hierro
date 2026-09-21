@@ -1,8 +1,34 @@
 # Changelog
 
-Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
+Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
+
+## [1.50.1] - 2026-09-21 — Deuda del handoff: changelog de fuente única, `docs/` y ADR
+
+### En la app: Sin cambios visibles (orden interno)
+
+- No cambia cómo funciona la app: por dentro se reorganizó cómo se arma este historial de versiones y la documentación.
+- Corregido: dos textos que estaban escritos en otro español ("Elegí… mirá", "Bajalos acá") ahora dicen "Elige… mira" y "Bájalos aquí".
+
+### Added
+
+- **`scripts/build-changelog.php`**: genera `js/changelog-data.js` (`window.APP_VERSIONS`) desde los bloques `### En la app: …` de este archivo. Lo corre `.githooks/pre-commit` antes de `bump-sw-cache.php`; si la versión más reciente no tiene bloque, aborta el commit. `js/changelog-data.js` entra al app shell (`index.html`, `SHELL_ASSETS` de `sw.js`, lista de `bump-sw-cache.php`).
+- **`docs/`**: `SCREENS.md` (inventario de pantallas con rutas, datos y estados), `adr/` (6 decisiones: routing por hash, copia local, caché versionado, tokens/componentes, Ajustes en el header, changelog de fuente única) y los documentos que estaban sueltos (`ESTRUCTURA.md`, `UI-ESTRUCTURA.md`, `AUDITORIA.md`).
+- **README → "Proceso de cambios"**: Conventional Commits, tags `vX.Y.Z`, el bloque "En la app" y el alta de archivos nuevos del shell.
+- **Tags de git** `v1.46.1` … `v1.50.1` (locales), uno por versión desde que hay un commit que la publica.
+
+### Changed
+
+- **`APP_VERSIONS` sale de `js/app.js`** (−221 líneas): ahora es `window.APP_VERSIONS`, generado. Las 52 versiones existentes se traspasaron a bloques `### En la app:` de este archivo y el resultado se verificó idéntico, entrada por entrada, a la lista original.
+- Comentario obsoleto de `js/app.js` (citaba `PLAN-8-FEATURES.md`, ya eliminado) apunta ahora a la 1.14.0 de este changelog.
+- `docs/ESTRUCTURA.md` (antes en la raíz): aclarado que sus números de línea son de la 1.45.0 y pasado a tuteo.
 
 ## [1.50.0] - 2026-09-21 — Hash routing y Ajustes en el header (barra de 5 destinos)
+
+### En la app: Cada pantalla con su enlace, y Ajustes en el header
+
+- Ajustes ahora es un ícono de engranaje arriba a la derecha, junto a tu racha. La barra inferior queda con 5 destinos: Hoy, Historial, Progreso, Calendario y Perfil.
+- Cada pantalla tiene su propia dirección (#/hoy, #/perfil…): el botón atrás te regresa a la pantalla anterior, y si recargas o abres un enlace directo te quedas en la misma pantalla.
+- El subtítulo "Registro de entrenamiento" del header ahora ocupa dos líneas para dejar lugar al engranaje.
 
 ### Added
 
@@ -21,6 +47,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - Atajos: tarjeta de Historial → Hoy (semana correcta), día del Calendario → Hoy, "Ver progreso" → Progreso con el ejercicio cargado y el gráfico visible.
 
 ## [1.49.0] - 2026-09-21 — Design tokens y componentes base (`.card`, `.btn`)
+
+### En la app: Estilos unificados
+
+- Tarjetas, botones y tamaños de texto ahora salen de un mismo sistema de estilos, así los botones y paneles se ven consistentes en toda la app.
+- Algunos textos pequeños se ven medio punto más grandes y unas esquinas cambian 1-2 px de redondeo; el resto se ve igual.
 
 ### Added
 
@@ -47,6 +78,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 
 ## [1.48.0] - 2026-09-21 — Caché versionado y aviso de versión nueva
 
+### En la app: Aviso de versión nueva
+
+- Cuando hay una versión nueva de la app, aparece un aviso "Hay una versión nueva — Actualizar" y se aplica cuando tú quieras, sin que la pantalla cambie a la mitad de lo que estás haciendo.
+- Corregido: tras una actualización podía mezclarse una pantalla nueva con código viejo hasta recargar un par de veces. Ahora toda la app se sirve de la misma versión.
+- La app también busca actualizaciones cada vez que vuelves a ella, aunque la tengas instalada y abierta por días.
+
 ### Fixed
 
 - **HTML nuevo con JS/CSS viejo tras un deploy**: la navegación iba a la red primero pero `css/js` salían del caché primero, así que se podía mostrar un `index.html` nuevo con un `app.js` viejo hasta la recarga siguiente (visto en vivo al agregar `#boot-screen`). Ahora todo el shell, `index.html` incluido, sale del mismo caché versionado.
@@ -67,6 +104,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 
 ## [1.47.0] - 2026-09-21 — Arranque en frío sin conexión
 
+### En la app: Abrir la app sin conexión
+
+- Si abres la app sin internet, ya no te manda al inicio de sesión: abre con tus últimos datos guardados y un aviso "Sin conexión". Al volver la red se actualiza sola.
+- Si no hay datos guardados y no hay conexión, ves una pantalla con "Reintentar" en vez del login.
+- Pantalla de carga al arrancar, en vez de quedar en blanco mientras se verifica tu sesión.
+- Al cerrar sesión (o si tu sesión vence) se borran los datos guardados en el dispositivo.
+
 ### Added
 
 - **`js/snapshot.js` (`window.Snapshot`)**: copia local (IndexedDB `bitacora-snapshot`) de `{ bulk, library, settings }`, guardada tras cada `loadAppData()` exitoso. `save()`/`load()`/`clear()`, todo en try/catch; `load()` devuelve `null` si la copia falta o está incompleta.
@@ -86,6 +130,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 
 ## [1.46.1] - 2026-09-21 — El domingo cuenta en racha, Historial y comparación semanal
 
+### En la app: El domingo cuenta en racha, Historial y comparación semanal
+
+- Un día recuperado en domingo ahora suma a la racha (y a los 5 días mínimos de la semana). Un domingo sin ejercicios no cuenta ni corta la racha, igual que el sábado.
+- El domingo también se incluye en la comparación semanal, el balance por grupo muscular, el calendario y el heatmap. En Historial, el punto "D" aparece siempre.
+
 ### Fixed
 
 - **Un día recuperado en domingo no sumaba a la racha**: `buildChronoDays()` descartaba siempre el domingo (`if(dk === 'dom') return;`). Ahora sábado y domingo son días "bonus": solo entran a la lista si tienen ejercicios (vacío = neutral), y un domingo cumplido suma a la racha y a los `week_streak_min_days` de la semana.
@@ -96,6 +145,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 
 ## [1.46.0] - 2026-08-14 — GIFs e info de ejercicios (dataset externo)
 
+### En la app: GIFs e info de ejercicios (dataset externo)
+
+- Nuevo ícono de ojo junto al nombre de un ejercicio (cuando hay coincidencia con el dataset externo hasaneyldrm/exercises-dataset): abre un panel con el GIF de demostración, categoría/equipo/músculo objetivo y las instrucciones paso a paso, todo en español.
+- En Ajustes, "Fuente de nombres de ejercicios": elegir entre tu librería personalizada de siempre o el dataset completo (1.324 ejercicios) para autocompletar al agregar un ejercicio. El ícono de ojo aparece igual con cualquiera de las dos.
+- Los GIFs se traen bajo demanda y quedan cacheados en el servidor — la primera vez tardan un toque, después son instantáneos incluso sin conexión al origen.
+
 ### Added
 
 - **Dataset externo `data/exercises-dataset.json`** (1.324 ejercicios, generado por `scripts/build-exercises-dataset.php` a partir de [hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset), MIT): por entrada, `id`, `name`/`name_es`, `category`, `body_part`, `equipment`, `target`, `muscle_group`, `secondary_muscles`, `image`/`gif_url` (paths relativos al repo origen), `attribution`, `instructions_es`/`instruction_steps_es`. `name_es` sale de `scripts/lib/translate-exercise-name.php`, un traductor EN→ES por plantillas (diccionario de equipo/modificador/frase de movimiento + recomposición "{movimiento} {modificadores} con {equipo}") — si después de sacar equipo/movimiento/modificadores queda texto en inglés sin mapear, la traducción se descarta entera (nunca se mezclan idiomas) y `name_es` queda `null`; el frontend cae a `name` en ese caso. Cobertura real: ~24% de las 1.324 con traducción limpia.
@@ -105,6 +160,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - **Ajustes → "Fuente de nombres de ejercicios"**: radio "Personalizada (la mía)" / "Dataset (1.324 ejercicios, con GIF)" que decide qué lista alimenta el `<datalist>` de autocompletar (`renderLibraryDatalist()`, ahora async y bifurcada por `EXERCISE_SOURCE`). Es una preferencia del dispositivo, no una regla de negocio — se guarda en `localStorage` (`bitacora.exerciseSource`), no pasa por `api/settings.php` (que solo valida enteros por rango). Default `'custom'`, no cambia el comportamiento de nadie que no toque el toggle.
 
 ## [1.45.0] - 2026-08-14 — Timer del día como íconos, y changelog colapsado en Perfil
+
+### En la app: Timer del día como íconos, y changelog colapsado en Perfil
+
+- La card "Iniciar/Finalizar entrenamiento" ahora es un ícono de play/stop en rojo, en vez de un botón de texto — entra en la misma fila que Hora inicio/Hora fin/Duración incluso en un celular angosto.
+- Si el día cargado en "Hoy" es literalmente hoy, esa card se mueve arriba, entre el riel de días y las 4 cards de resumen — cualquier otro día la deja donde siempre vivió.
+- Changelog en Perfil colapsado por defecto: ahora solo se ve "Changelog / Versión actual: X.X.X", y se despliega la lista completa al tocarlo.
+- Corregido: la fecha de cada versión del changelog quedaba descolgada cuando el título ocupaba 2 líneas — ahora versión/fecha/chevron siempre van en su propia fila, con el título suelto debajo.
 
 ### Changed
 
@@ -117,6 +179,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - **Fecha de cada entrada del changelog descolgada con títulos largos**: `.changelog-entry summary` era una sola fila (`justify-content:space-between`) con la fecha y el chevron centrados verticalmente contra un bloque de versión+título apilados — con un título de 2 líneas, la fecha quedaba flotando a la mitad en vez de alineada arriba. Reestructurado a dos filas: `.changelog-entry-top` (versión + fecha + chevron, siempre una sola línea) arriba, `.changelog-entry-title` suelto debajo — así nada se desalinea sea cual sea el largo del título. Verificado capturando las ~30 entradas reales del changelog.
 
 ## [1.44.0] - 2026-08-14 — Resumen semanal: card al 50%, días en blanco y rieles a todo el ancho
+
+### En la app: Resumen semanal: card al 50%, días en blanco y rieles a todo el ancho
+
+- La card del resumen semanal sube de 30% a 50% de opacidad — a 30% se notaba demasiado el fondo.
+- Nombre del día y grupo muscular en las cards de Lun-Dom ahora van en blanco (se perdían con el verde de fondo cuando el día estaba completado).
+- Corregido: en celulares más angostos que la imagen exportada, el riel de semanas y el de días quedaban encogidos con un hueco vacío a la derecha en vez de ocupar todo el ancho de la card.
 
 ### Changed
 
@@ -131,6 +199,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 
 ## [1.43.0] - 2026-08-14 — Resumen semanal: card al 30%, texto legible y rieles sin cortes
 
+### En la app: Resumen semanal: card al 30%, texto legible y rieles sin cortes
+
+- La card del resumen semanal pasa de sólida a 30% de opacidad — se sigue notando un poco el fondo detrás.
+- Título, subtítulo y el label "racha actual" ahora van en blanco; el número de racha siempre en verde. Los días completados llevan su verde también al 30%.
+- El riel de semanas ya no corta un pill a la mitad — solo muestra los que entran completos.
+- El riel de días reparte el 100% del ancho entre los tabs que entran, sea cual sea la cantidad (antes asumía siempre 5 y podía perder un tab si el cálculo daba justo en el borde).
+
 ### Changed
 
 - **`.dashboard-share` pasa de sólida a `rgba(20,23,27,0.3)`** (30% de opacidad, mismo tono que `--bg`/#14171B) — probado en real: sólida al 100% tapaba demasiado la foto de fondo al compartir en redes; a medias se sigue leyendo la card y se nota el fondo.
@@ -141,6 +216,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 
 ## [1.42.0] - 2026-08-14 — Resumen semanal: card sólida ("patrón Strava") en vez de fondo transparente
 
+### En la app: Resumen semanal: card sólida en vez de fondo transparente
+
+- El PNG que se copia al portapapeles ("Copiar resumen de la semana") ahora es una sola card sólida y redondeada, no un fondo transparente — se veía mal sobre una foto real al compartir en redes, porque el título y los labels sueltos quedaban sin nada detrás.
+
 ### Changed
 
 - **`.dashboard-share` pasa a ser una card sólida y redondeada** (`background:var(--bg)`, `border:1px solid var(--line)`, `border-radius:22px`) en vez de fondo transparente. Motivo: probado en real compartiendo a redes sociales, el fondo transparente solo se ve bien sobre una superficie oscura y uniforme (un chat) — sobre una foto real, todo lo que no fuera una card interna (título "BITÁCORA", "Registro de entrenamiento", labels de los day-tabs, el borde de "+ Nueva semana") no tenía fondo propio y quedaba prácticamente ilegible.
@@ -148,6 +227,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - `copyElementAsImage()` sigue con `backgroundColor: null` en `html2canvas`, pero ahora solo para que las esquinas redondeadas de la card queden transparentes (si no, html2canvas rellena todo el rectángulo del elemento y las esquinas se ven cuadradas) — ya no para dejar transparente todo el fondo.
 
 ## [1.41.0] - 2026-08-14 — Compartir semana: resumen del dashboard, copiado al portapapeles
+
+### En la app: Compartir semana: resumen del dashboard, copiado al portapapeles
+
+- El botón de calendario junto a "Compartir día" ahora captura el mismo bloque que se ve arriba de "Hoy" (racha, riel de semanas, riel de días, resumen y comparación semanal) en vez de una tabla larga con los 7 días.
+- La imagen sale en PNG con fondo transparente — solo las cards (pills, tabs, chips, la card de comparación) llevan color sólido.
+- Ya no descarga de entrada: la imagen se copia directo al portapapeles, y solo cae a descarga si el navegador no soporta copiar imágenes.
+- Corregido: "+ Nueva semana" salía con una caja blanca de más en la imagen (el date picker invisible perdía su estilo al clonar el DOM).
 
 ### Changed
 
@@ -166,6 +252,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 
 ## [1.40.0] - 2026-08-13 — Horarios de entrenamiento en Perfil
 
+### En la app: Horarios de entrenamiento en Perfil
+
+- Nuevo panel "Horarios de entrenamiento" en Perfil, debajo de Hitos y constancia — sin agregar botón al menú inferior.
+- Filtro por año (Todo / años con sesiones registradas) y por mes (Todos / Ene-Dic, combinables entre sí).
+- Gráfica de duración por sesión (mismo estilo de línea con puntos que Progreso, con zoom/pan) — con año y mes filtrados a la vez se ven los puntos; si alguno queda en "Todo", la línea se adelgaza y los puntos se ocultan para no saturar la vista.
+- Distribución de horas de inicio más frecuentes, como barras horizontales.
+
 ### Added
 
 - **Panel "Horarios de entrenamiento"** (Perfil, `#time-stats-host`/`renderTimeStats()` en `js/app.js`): vive debajo de "Hitos y constancia" a propósito — no se agregó botón al `bottom-nav`, que ya tenía sus 6 fijos. Reemplaza los 5 renglones de texto suelto que antes vivían al final de la lista de Hitos (`computeTimeStats()` ya no se llama desde `computeMilestones()`, ahora es standalone).
@@ -179,12 +272,27 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.39.0] - 2026-08-13 — Heatmap: etiquetas de mes alineadas al corte real
 
+### En la app: Heatmap: etiquetas de mes alineadas al corte real
+
+- Las etiquetas de mes del heatmap anual ahora tienen borde y esquinas redondeadas, igual que las celdas de días.
+- La fila donde cambia el mes ya no queda entera de un lado — se reparte 50/50 entre el mes que termina y el que empieza, sin dejar un hueco sin bordear entre los dos.
+
 ### Changed
 
 - **Etiquetas de mes del heatmap anual** (`renderHeatmap()`, `js/app.js`): borde de 1px y `border-radius:2px` — mismo lenguaje visual que `.heat-cell`. Pasó por tres iteraciones antes de esta versión final: (1) una fila combinada mostrando los dos meses en una sola caja — rechazada, "no crear una nueva combinando dos meses"; (2) cada fila asignada por mayoría de días a un solo mes, sin partir — dejaba un hueco de una fila entera sin bordear entre un mes y el siguiente (ninguno de los dos la reclamaba); (3) intento de recorte con `position:absolute` + `getBoundingClientRect()` — frágil de verdad, no cosmético: se rompía si `renderHeatmap()` corría con la vista todavía oculta (`display:none` devuelve rects en 0) y además corromper la medición de un label al pasar a absoluto a los anteriores en el mismo loop.
 - **Solución final, sin medir nada en JS**: el grid usa 3 "fine-rows" por semana real (mitad de arriba / mitad de abajo / separador fijo de 3px) en vez de una fila + gap uniforme. Cada `.heat-cell` ocupa sus 2 mitades (`grid-row: N / span 2`), saltándose el separador. Cada mes arranca/termina en la línea del medio de su fila de transición con el vecino (`seamRow[mes]` en `renderHeatmap()`) — esa misma línea es a la vez el fin de un mes y el arranque del siguiente, así que los bordes coinciden exacto y el separador de 3px queda reservado solo para semanas realmente distintas, nunca entre las dos mitades de una fila compartida.
 
 ## [1.38.0] - 2026-08-13 — Reordenar ejercicios, exportar semana, zoom en Progreso y más
+
+### En la app: Reordenar ejercicios, exportar semana, zoom en Progreso y más
+
+- Reordenar ejercicios arrastrando dentro de un día (handle dedicado, mouse y touch).
+- Nuevo botón "Compartir semana completa" junto al de compartir día, con los 7 días en una sola imagen.
+- Zoom y pan en el gráfico de Progreso (rueda, pellizco o arrastre) — doble click/tap para volver al zoom original.
+- El heatmap anual ahora tiene etiquetas de mes al costado y sus celdas son clickeables (te llevan directo a ese día).
+- Ir a un día desde Calendario o Historial ahora centra el riel de semanas en la semana correcta.
+- "Nueva semana" ya no deja crear más de una semana hacia el futuro.
+- Botón "Eliminar esta semana" al final de "Hoy", con doble confirmación antes de borrar.
 
 ### Added
 
@@ -196,6 +304,12 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 - **Botón "Eliminar esta semana"** al final de "Hoy", con doble confirmación (`deleteWeek(key, {doubleConfirm:true})`) — la X chica del riel de semanas se queda con su confirmación simple de siempre.
 
 ## [1.37.0] - 2026-08-13 — Hora de inicio, fin y duración por día
+
+### En la app: Hora de inicio, fin y duración por día
+
+- Nueva card "Iniciar/Finalizar entrenamiento" debajo del panel del día: un botón guarda la hora actual al arrancar y al terminar, y calcula la duración solo.
+- Hora de inicio y fin también se pueden corregir a mano — útil para cargar un horario importado de Garmin.
+- Exportar/Importar datos ahora incluye estos horarios por día (compatible con backups viejos, que no los tenían).
 
 ### Added
 
@@ -210,6 +324,12 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.36.0] - 2026-08-13 — Badge de racha a un costado, recap hasta hoy, reps solo sin comparar
 
+### En la app: Badge de racha a un costado, recap hasta hoy, reps solo sin comparar
+
+- El badge de racha se mueve al costado del número, en vez de arriba.
+- El recap semanal ahora compara "hasta hoy" contra la semana pasada, no la semana completa contra una a medio andar.
+- La línea de reps en Progreso ya no aparece al comparar dos ejercicios.
+
 ### Changed
 
 - **Badge de racha**: pasa de arriba del número a un costado izquierdo, verticalmente centrado junto a "N días" + "racha actual" (`.streak` de columna a fila) — a pedido del usuario viendo una captura, quedaba muy separado del texto apilado arriba.
@@ -222,6 +342,12 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.35.0] - 2026-08-12 — Progreso: comparar ejercicios, línea de reps, mini-dashboard
 
+### En la app: Progreso: comparar ejercicios, línea de reps, mini-dashboard
+
+- Nuevo buscador "Comparar con…" en Progreso para ver dos ejercicios superpuestos en el mismo gráfico.
+- Toggle para agregar una línea de repeticiones (azul) al gráfico de un ejercicio.
+- Cuando no hay ningún ejercicio buscado, ahora se ve un mini-dashboard con la tendencia de todos los ejercicios de tu librería que tienen historial.
+
 ### Added
 
 - **Comparar dos ejercicios a la vez** en Progreso: segundo buscador opcional ("Comparar con…") que superpone una segunda línea (verde, `--ok`) sobre el mismo gráfico. Dos ejercicios rara vez se entrenaron los mismos días, así que el eje X se arma con la unión de fechas de ambos históricos (`buildUnifiedIsoDates()`, ordenada por ISO — `YYYY-MM-DD` ordena igual como string que como fecha) y cada dataset se alinea contra ese eje con `null` en los huecos (`alignField()`/`alignPoints()`); `spanGaps:true` conecta la línea saltando esos huecos en vez de cortarla. La leyenda de Chart.js, oculta hasta ahora por haber una sola serie, se activa sola cuando hay más de un dataset.
@@ -232,11 +358,19 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.34.0] - 2026-08-12 — Recap semanal en "Hoy"
 
+### En la app: Recap semanal en "Hoy"
+
+- Nueva card que compara el volumen y la adherencia de esta semana contra la semana pasada.
+
 ### Added
 
 - **Recap semanal**: card nueva debajo de la tira de resumen de "Hoy" que compara volumen (kg×reps×series, `computeWeekVolume()` — suma `computeDayVolume()` de lun a sáb sin tocar esa función) y adherencia (días cumplidos sobre días con contenido, `computeWeekAdherence()`) de la semana activa contra la semana calendario inmediatamente anterior. Solo se muestra cuando esa semana anterior existe y es realmente adyacente — el lunes cae exactamente 7 días antes, no solo la entrada previa en `state.order` (que puede saltar un hueco de meses sin ninguna semana creada, típico del histórico importado de Garmin) — si no, la card se oculta en vez de comparar contra una semana que no es realmente "la pasada".
 
 ## [1.33.0] - 2026-08-12 — Buscar por ejercicio en Historial
+
+### En la app: Buscar por ejercicio en Historial
+
+- Nuevo buscador en Historial para filtrar las semanas por nombre de ejercicio, combinable con el filtro de mes.
 
 ### Added
 
@@ -244,11 +378,19 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.32.0] - 2026-08-12 — Badges de racha (7/30/100 días)
 
+### En la app: Badges de racha (7/30/100 días)
+
+- Nuevos íconos de bronce/plata/oro junto a la racha actual del header al llegar a 7, 30 y 100 días.
+
 ### Added
 
 - **Badges de racha** junto al número de racha actual del header: bronce a partir de 7 días, plata desde 30, oro desde 100 — reutiliza los mismos íconos/colores (`fa-medal`/`fa-trophy`, `.milestone-ico.gold/.silver/.bronze`) que ya usa el medallero de "Tus periodos de mayor constancia" en Hitos. A pedido del usuario, se muestran **todos** los tiers alcanzados a la vez (ej. a los 120 días se ven bronce+plata+oro juntos), no solo el más alto — distinto del medallero de Hitos, que sí es exclusivo por ranking. `computeStreakDetail()`/`computeStreaks()` no se tocan; `renderStreakBadges()` es puramente de presentación sobre el `current` ya calculado.
 
 ## [1.31.0] - 2026-08-12 — Snackbar "Deshacer" al borrar un ejercicio
+
+### En la app: Deshacer al borrar un ejercicio
+
+- Borrar un ejercicio ya no pide confirmación — se borra al toque y aparece un botón "Deshacer" por 5 segundos antes de confirmarlo de verdad.
 
 ### Added
 
@@ -261,6 +403,10 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.30.0] - 2026-08-12 — Carga inicial en una sola petición
 
+### En la app: Carga inicial en una sola petición
+
+- La app arrancaba pidiendo cada semana en una petición HTTP aparte, todas al mismo tiempo — en cuentas con muchas semanas eso disparaba decenas de peticiones simultáneas. Ahora se traen todas juntas en un solo pedido.
+
 ### Fixed
 
 - **Bug real encontrado en producción**: `loadAppData()` pedía cada semana con una petición HTTP separada (`Promise.all(state.order.map(key => Api.get(...)))`) — con las semanas suficientes de una cuenta real, eso disparaba decenas de peticiones simultáneas al loguearse. En el hosting compartido de producción eso agotó el cupo de procesos PHP y/o el lock del archivo de sesión, produciendo una mezcla de `504 Gateway Timeout` y `401 Unauthorized` (una sesión recién creada dejando de reconocerse en medio de la ráfaga) — el usuario podía loguearse pero no veía sus datos, y a veces la sesión se caía sola. No pasaba en local (73 semanas alcanzaban para notarlo recién en producción, con probablemente más semanas y menos cupo de procesos que en desarrollo).
@@ -268,11 +414,19 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.29.0] - 2026-08-12 — Más espacio entre "Ver progreso" y "Semana pasada"
 
+### En la app: Más espacio entre "Ver progreso" y "Semana pasada"
+
+- El label "Semana pasada:" del detalle expandido deja de quedar pegado al botón "Ver progreso" — ahora se reparte el espacio disponible entre los dos.
+
 ### Changed
 
 - `.ex-detail-head-left` pasa de `gap:10px` a `justify-content:space-between` — el botón "Ver progreso" y el label "Semana pasada:" quedaban muy pegados entre sí (a pedido del usuario viendo una captura); ahora se reparten el ancho disponible de las columnas 1-2 del grid en vez de agruparse al principio.
 
 ## [1.28.0] - 2026-08-12 — Label "Semana pasada" en dos líneas
+
+### En la app: Label "Semana pasada" en dos líneas
+
+- El label "Semana pasada:" del detalle expandido pasa a "Semana / pasada:" en dos líneas, para ocupar menos ancho junto al botón "Ver progreso".
 
 ### Changed
 
@@ -280,11 +434,19 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.27.0] - 2026-08-12 — Detalle de un ejercicio alineado con la fila
 
+### En la app: Detalle de un ejercicio alineado con la fila
+
+- Los valores de "semana pasada" (Kg/Rep/Ser) ahora quedan exactamente debajo de las columnas Kg/Rep/Ser de la fila del ejercicio, en vez de con su propio espaciado suelto.
+
 ### Changed
 
 - `.ex-detail` pasa de un `flex` con su propio espaciado a usar el mismo `grid-template-columns` que `.ex-row` (`22px 1fr 38px 30px 30px 18px 18px`, mismo `gap` y mismo padding horizontal de 12px) — así el grid de "semana pasada" (Kg/Rep/Ser) queda exactamente debajo de las columnas Kg/Rep/Ser de la fila del ejercicio arriba, en vez de con un espaciado (`gap:18px`) que no correspondía a los anchos reales de esas columnas. `.ex-detail-head-left` (botón "Ver progreso" + label "Semana pasada:") ocupa las columnas 1-2 (check + nombre) de esa misma fila del grid; `.ex-detail-suggestion` sigue como fila aparte, ahora expandida a todo el ancho (`grid-column:1/-1`). Verificado con `getBoundingClientRect()` que los tres pares de columnas (kg, rep, ser) coinciden en píxeles exactos entre la fila y el detalle.
 
 ## [1.26.0] - 2026-08-12 — Heatmap anual sin rojo
+
+### En la app: Heatmap anual sin rojo
+
+- El heatmap anual deja de pintar rojo — un día sin pintar ya se lee como "no cumplido", sin necesitar un color de más entre 365 celdas.
 
 ### Changed
 
@@ -292,11 +454,20 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.25.0] - 2026-08-12 — Detalle de un ejercicio: todo en una fila
 
+### En la app: Detalle de un ejercicio: todo en una fila
+
+- "Ver progreso", "Semana pasada:" y los valores Kg/Rep/Ser vuelven a quedar en una sola fila (como pidió el usuario viendo una captura) en vez de apilados verticalmente.
+
 ### Changed
 
 - El apilado vertical de 1.24.0 (botón, label, grid cada uno en su propia línea) no era lo que se pidió — el usuario lo aclaró con una captura: quería los tres en una sola fila, con el grid alineado a la derecha, como estaba de hecho más cerca del diseño original. Reestructurado con dos contenedores flex anidados: `.ex-detail-head` (fila completa, `justify-content:space-between`) con `.ex-detail-head-left` (botón + label, agrupados con poco espacio entre sí) a la izquierda y `.ex-detail-grid` a la derecha. Mismo cambio en la rama "sin datos de la semana pasada" (mensaje + botón en la misma fila). Verificado con capturas de pantalla que coincide con lo pedido, y que Calendario (que comparte `computeDayTier()` con el heatmap) no se vio afectado por el ajuste del heatmap de la versión anterior.
 
 ## [1.24.0] - 2026-08-12 — Ajustes al heatmap y al detalle de un ejercicio
+
+### En la app: Ajustes al heatmap y al detalle de un ejercicio
+
+- El heatmap anual ya no pinta rojo un día sin ningún ejercicio registrado — el rojo queda solo para cuando sí hubo ejercicios pero ninguno se marcó.
+- En el detalle expandido de un ejercicio, "Ver progreso" pasa a estar primero, arriba del label "Semana pasada:".
 
 ### Changed
 
@@ -304,6 +475,10 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 - **Detalle expandido de un ejercicio**: el botón "Ver progreso" pasa a ir primero (antes del label), seguido de "Semana pasada:" (con dos puntos, antes sin) y recién después el grid de comparación — se quita el contenedor `.ex-detail-head` que los ponía lado a lado.
 
 ## [1.23.0] - 2026-08-12 — Protección contra fuerza bruta en login
+
+### En la app: Protección contra fuerza bruta en login
+
+- 5 intentos fallidos seguidos bloquean el login 15 minutos — antes no había ningún límite.
 
 ### Added
 
@@ -313,11 +488,19 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.22.0] - 2026-08-12 — Backups descargables desde Perfil
 
+### En la app: Backups descargables desde Perfil
+
+- Nuevo panel en Perfil que lista los backups automáticos del servidor con fecha y tamaño, cada uno descargable con un click — antes había que bajarlos por FTP.
+
 ### Added
 
 - **Pantalla de backups** en Perfil: nuevo endpoint `api/backups.php` (autenticado, `require_login()` igual que el resto de la API) con dos acciones — sin parámetros (o `?action=list`) lista los backups de `api/db/backups/` (`glob('backup-*.json')`, orden descendente por nombre, que ya es cronológico) devolviendo fecha y tamaño vía el `respond_ok()` de siempre; `?action=download&file=<nombre>` sirve el archivo crudo con `Content-Disposition: attachment`, saltándose el sobre `{ok,data}` porque acá el cliente necesita el JSON tal cual, no envuelto — por eso la descarga va por un `<a href>` normal en vez de por `Api.get()` (que siempre espera `{ok,data}`). El nombre de archivo se valida contra el mismo patrón exacto que genera `backup_export.php` antes de tocar el filesystem, para no abrir una ruta de path traversal siendo el único dato que manda el cliente en este endpoint — verificado que `../../config.local.php` y nombres con caracteres extra devuelven 422 en vez de leer nada. El `.htaccess` (`Require all denied`) de `api/db/backups/` sigue intacto — este endpoint vive fuera de esa carpeta y lee los archivos del lado del servidor, no depende de acceso directo por navegador a esa ruta. Verificado también que list y download devuelven 401 sin sesión. Cierra el hueco que ya documentaba el README ("bajarlos requiere FTP, no hay pantalla en la app para eso todavía").
 
 ## [1.21.0] - 2026-08-12 — Botón "Ver progreso" en el detalle de un ejercicio
+
+### En la app: Botón Ver progreso en el detalle de un ejercicio
+
+- Al expandir un ejercicio en "Hoy" (chevron de "semana pasada"), un botón nuevo "Ver progreso" te lleva directo a la gráfica de ese ejercicio en Progreso, con el buscador ya cargado.
 
 ### Added
 
@@ -325,17 +508,31 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.20.0] - 2026-08-12 — Heatmap anual con niveles rojo/amarillo/verde
 
+### En la app: Heatmap anual con niveles rojo/amarillo/verde
+
+- El heatmap anual de Calendario ya no solo pinta verde: ahora usa el mismo criterio rojo/amarillo/verde que la vista de mes, así que se ven también los días fallados y los flojos, no solo los cumplidos.
+
 ### Changed
 
 - **Heatmap anual** (Calendario): pasa de pintar un único tono (verde en los días cumplidos, gris/transparente en el resto) a usar `computeDayTier()` — la misma función que ya pinta rojo/amarillo/verde en la vista de mes (0 ejercicios marcados / 1–5 / 6+) — en vez de derivar un booleano "completado" desde `buildChronoDays()`. Antes un día fallado y un día sin semana creada se veían exactamente igual (ambos sin pintar); ahora se distinguen: rojo si hubo semana pero 0 ejercicios marcados, sin pintar si directamente no había semana esa fecha. Mismos 3 tokens de color que ya usaba Calendario (`--danger`/`--pending`/`--ok`), sin agregar ninguno nuevo. Verificado que los colores del heatmap coinciden pixel a pixel con los de la vista de mes para el mismo criterio.
 
 ## [1.19.0] - 2026-08-12 — Auto-bump de caché del service worker
 
+### En la app: Auto-bump de caché del service worker
+
+- Ya no hace falta acordarse de subir el número de caché de la PWA a mano en cada cambio — se recalcula solo a partir del contenido, así que un navegador con la app instalada siempre agarra la versión nueva.
+
 ### Added
 
 - **Auto-bump de `CACHE_NAME`**: nuevo `scripts/bump-sw-cache.php`, corrido automáticamente por un hook de git (`.githooks/pre-commit`) en cada commit — hashea el contenido de `index.html`, `css/styles.css`, `js/app.js`, `js/api.js` y `js/offline-queue.js` (`sha1`, primeros 10 caracteres) y reescribe `CACHE_NAME` en `sw.js` (`bitacora-shell-<hash>`) solo si alguno de esos archivos cambió respecto al último bump — un commit que no toca el app shell no vuelve a tocar `sw.js`. Reemplaza el bump manual (`v2` → `v15` a mano en 15+ commits), que el propio equipo se olvidó de hacer varias veces durante el desarrollo, dejando navegadores con la PWA instalada sirviendo el shell viejo desde caché sin avisar. Requiere activar el hook una sola vez por clon del repo: `git config core.hooksPath .githooks` (documentado en el README). Sin dependencias nuevas — usa PHP CLI, que el proyecto ya requiere para correr localmente; no se introdujo Node/npm solo para esto.
 
 ## [1.18.0] - 2026-08-12 — Menor constancia por días reales
+
+### En la app: Menor constancia por días reales
+
+- Los períodos de "menor constancia" ahora se miden en días reales entre un entrenamiento y el siguiente, no en semanas — más precisos, sin fechas repetidas raras.
+- "Hueco más largo sin entrenar" ahora muestra el año.
+- Se quita la regla "Días/semana máximos para semana floja" de Ajustes — ya no se usa.
 
 ### Changed
 
@@ -344,17 +541,32 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.17.0] - 2026-08-12 — Racha e Hitos: huecos reales
 
+### En la app: Racha e Hitos: huecos reales
+
+- Un mes entero sin ninguna semana creada ahora cuenta como "0 días cumplidos" en vez de quedar invisible — Hitos ya muestra los huecos reales de meses, no solo huecos chicos entre semanas que sí existían.
+
 ### Changed
 
 - **Racha e Hitos**: `computeStreakDetail()` y `computeMilestones()` caminaban solo las semanas que existen como fila en `weeks` — una semana sin fila (mes entero sin crear ninguna, típico del histórico importado de Garmin 2022-2025) quedaba invisible en vez de contar como "0 días cumplidos". Nuevo helper `fullWeekRange()` genera todas las claves de semana desde la primera con datos hasta hoy sin saltos; una semana faltante ahora se trata igual que una semana con 0 días. Efecto: "menor constancia" pasa de reportar huecos de 2-3 semanas a los huecos reales de varios meses (ej. "Enero a Septiembre 2024 — 37 semanas", que coincide con el hueco visible en el heatmap anual); "mayor constancia" ya no puede puentear dos semanas activas separadas por meses de nada como si fueran consecutivas. "Mejor racha" no cambió con los datos actuales, pero quedó protegida contra el mismo bug hacia adelante. Encontrado revisando por qué los períodos de "menor constancia" no coincidían con los huecos visibles en el heatmap anual.
 
 ## [1.16.0] - 2026-08-12 — Conversor kg / lbs
 
+### En la app: Conversor kg / lbs
+
+- Nuevo conversor en "Hoy", debajo de la nota de la semana — escribí en kg o en lbs y el otro campo se actualiza solo.
+
 ### Added
 
 - **Conversor kg / lbs** en "Hoy", debajo de la nota de la semana: dos inputs enlazados (`#conv-kg`/`#conv-lbs`) — escribir en uno recalcula el otro al instante (`kg * 2.20462`). Es una calculadora suelta, no un dato de la app: no se guarda en ningún lado, no depende de `state` ni de la semana/día activo, así que no necesitó tocar el backend.
 
 ## [1.15.0] - 2026-08-12 — Ajustes de UI y fix de Ajustes
+
+### En la app: Ajustes de UI y fix de Ajustes
+
+- Heatmap anual de Calendario ahora es vertical (Lun–Dom en columnas, una fila por semana) y muestra todos los años con datos, no solo 2023–2026.
+- Hitos: el rango de fecha de cada período se separa en mes/año y día/fecha, en vez de una sola línea larga.
+- Nota de la semana pasa al final de "Hoy"; Balance por grupo muscular pasa al final de Historial.
+- Fix: el botón "Guardar reglas" en Ajustes ya no se salía del margen del panel.
 
 ### Changed
 
@@ -366,11 +578,20 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.14.0] - 2026-08-12 — Edición offline
 
+### En la app: Edición offline
+
+- Marcar/editar/borrar un ejercicio o la nota de una semana ya no se pierde si se corta la conexión — se guarda y sincroniza solo al reconectar.
+- Alcance acotado: crear semana, agregar ejercicio, migrar día, copiar semana pasada, importar datos y la librería siguen necesitando conexión.
+
 ### Added
 
 - **Edición offline** (alcance acotado): si se pierde la conexión mientras se edita un ejercicio ya existente (marcar hecho, cambiar nombre/kg/reps/series/nota, borrar) o la nota de una semana, el cambio se guarda en una cola local (`js/offline-queue.js`, IndexedDB) en vez de perderse, y se reintenta solo al reconectar (`window.addEventListener('online', ...)`, más un intento al abrir la app por si quedó una cola de una sesión anterior cerrada offline). Conflictos se resuelven con **last-write-wins** por timestamp: `exercises.updated_at` (columna nueva) + `client_time` en la mutación reproducida — si el registro ya tiene un cambio más nuevo que el que se está reproduciendo, se descarta en vez de pisarlo (`api/exercises.php`, verificado con un caso real de conflicto). **Bug encontrado y corregido durante la implementación**: comparar los timestamps directo con `strtotime()` en PHP fallaba porque PHP corre en UTC y MySQL en una zona 6 horas atrás en este entorno — la comparación se rehizo como una duración ("hace cuántos segundos fue client_time") evaluada contra el propio `NOW()` de MySQL, no contra `updated_at` re-parseado por PHP. Un banner fijo arriba de la app muestra "Sin conexión" y cuántos cambios están pendientes; al sincronizar, un toast resume cuántos se aplicaron y cuántos se descartaron por viejos. **Alcance explícitamente recortado**: quedan fuera de la cola (siguen fallando con el error de siempre si no hay conexión) crear semana, agregar ejercicio, migrar día, copiar semana pasada, importar datos y la librería de ejercicios — todas dependen de que el servidor resuelva IDs nuevos o lógica no trivial (la cadena de "Migrar día", la validación transaccional de importar), fingir eso sin servidor era más riesgo que valor para esta tanda.
 
 ## [1.13.0] - 2026-08-12 — Backup automático
+
+### En la app: Backup automático
+
+- Script para respaldar todas tus semanas automáticamente por cron — configuración en el README, sección "Backup automático (cron)".
 
 ### Added
 
@@ -378,11 +599,19 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.12.0] - 2026-08-12 — Progresión sugerida
 
+### En la app: Progresión sugerida
+
+- Al expandir un ejercicio que la semana pasada se marcó como hecho, aparece un peso sugerido para esta semana.
+
 ### Added
 
 - **Progresión sugerida**: en el detalle expandido de un ejercicio (el que ya compara contra la semana pasada), si esa semana se marcó como hecha y su kg es numérico, se agrega una línea "Sugerido esta semana" con ese kg + un incremento fijo (`PROGRESSION_INCREMENT_KG = 2.5`, constante en `js/app.js`, no editable desde Ajustes — ver el comentario en el código sobre por qué no se sumó a `RULES`/`app_settings`: ese endpoint fuerza todas las reglas a entero). Es solo una referencia visual, nunca precarga el input — no pisa lo que el usuario ya haya escrito.
 
 ## [1.11.0] - 2026-08-12 — Nota libre por semana
+
+### En la app: Nota libre por semana
+
+- Nuevo campo en "Hoy" para anotar cómo fue la semana completa (lesiones, ajustes) — se guarda solo, separado de las notas por ejercicio.
 
 ### Added
 
@@ -390,11 +619,19 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.10.0] - 2026-08-12 — Balance por grupo muscular
 
+### En la app: Balance por grupo muscular
+
+- Nuevo panel en Historial con cuántos días cumplidos tuvo cada grupo muscular en el período filtrado.
+
 ### Added
 
 - **Balance por grupo muscular** en Historial: panel nuevo con una barra por grupo (`day.group`) mostrando cuántos días "cumplidos" tuvo cada uno, en el mismo período que ya filtra el riel de meses existente arriba (reutiliza el `keys` que `renderHistorial()` ya calcula, sin duplicar el filtro). Barras hechas con CSS puro (`width` proporcional al grupo con más días), sin agregar una librería de gráficos nueva solo para esto.
 
 ## [1.9.0] - 2026-08-12 — PR automático
+
+### En la app: PR automático
+
+- Al marcar un ejercicio como hecho con un kg mayor a tu mejor registro histórico para ese ejercicio, aparece un aviso de nuevo récord.
 
 ### Added
 
@@ -402,17 +639,32 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.8.0] - 2026-08-12 — Compartir como imagen
 
+### En la app: Compartir como imagen
+
+- Nuevo botón para compartir el día activo o una semana de Historial como imagen (PNG) — comparte directo desde el celular o la descarga.
+
 ### Added
 
 - **Compartir día/semana como imagen**: botón nuevo (ícono compartir) en el panel del día activo y en cada tarjeta de Historial — captura el elemento con [html2canvas](https://html2canvas.hertzen.com/) 1.4.1 (CDN) y usa `navigator.share()` si el navegador lo soporta (celular, comparte el PNG directo a otra app), o cae a una descarga normal (`bitacora-<semana>-<día>.png` / `bitacora-semana-<semana>.png`). El botón de la tarjeta de Historial necesitó un guard explícito en el listener de click de la tarjeta completa (`if(e.target.closest('[data-action="share-week"]')) return;`) — un `stopPropagation()` en el listener delegado no alcanza porque el listener de la tarjeta, al estar más cerca del botón en el árbol, ya se dispara antes en la fase de bubbling. Nota: html2canvas tira un warning de consola no bloqueante ("Unable to find element in cloned iframe") en algunos capturas — la imagen generada sale íntegra igual, es un quirk conocido de la librería al intentar inlinear las fuentes web (Google Fonts/Font Awesome) durante el clonado interno.
 
 ## [1.7.0] - 2026-08-12 — Volumen del día
 
+### En la app: Volumen del día
+
+- Nuevo chip "Volumen" en la tira de resumen de Hoy — kg x reps x series sumado de los ejercicios marcados como hechos.
+
 ### Added
 
 - **Volumen del día**: cuarto chip en la tira de resumen de "Hoy" (`computeDayVolume()`) con kg × reps × series sumado de los ejercicios marcados como hechos del día activo. Mismo criterio de tolerancia que el resto de la app: si algún campo no es numérico, ese ejercicio se descarta del total en vez de contar como cero. La tira de resumen de "Hoy" pasa a 4 columnas (`.summary-strip.cols-4`); la de Progreso, que reutiliza la misma clase base con solo 3 chips, queda sin tocar.
 
 ## [1.6.0] - 2026-08-12 — Reglas editables y heatmap anual
+
+### En la app: Reglas editables y heatmap anual
+
+- Ajustes: sección "Reglas" — los mínimos de racha, día cumplido y Hitos ahora se editan desde la app y afectan el cálculo real al instante.
+- Calendario: card de heatmap anual (365 días, filtro por año) y botón "Volver a hoy" con swipe entre meses.
+- Hitos: los períodos muestran el rango real de entrenamiento ("Lunes 23 de Marzo al Viernes 05 de Junio") en vez de meses calendario.
+- Ajustes de espaciado, orden de "Migrar día" y el riel de días en móvil.
 
 ### Added
 
@@ -433,6 +685,10 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.5.0] - 2026-08-11 — Hitos y constancia
 
+### En la app: Hitos y constancia
+
+- Nueva sección en Perfil con tus períodos de mayor y menor constancia, y una lista de hitos: primera sesión, mejor racha, mejor mes, hueco más largo sin entrenar y año más productivo.
+
 ### Added
 
 - Histórico 2022–2025 importado desde el export de Garmin Connect (113 sesiones de fuerza, 41 semanas nuevas), para enriquecer "Hitos y constancia" con la línea completa en vez de solo 2026. Garmin no guarda ejercicios individuales de esa época (solo categorías agregadas por sesión, ej. `BENCH_PRESS: 6 sets, 72 reps`) ni peso (`maxWeight` no existe en el export antes de 2025), así que se importó como relleno de bajo esfuerzo, no reconstrucción precisa: una fila `Garmin: <CATEGORÍA>` por categoría real (se descartan `CARDIO`/`MOVE`/`WARM_UP`), con `kg` vacío, `reps`/`series` estandarizados a 12/4 (los totales crudos de Garmin no son confiables — sesiones que se quedaban corriendo sin cortar inflaban los números), y relleno con `Garmin: UNKNOWN EXERCISE N` hasta completar 6 filas por día para que alcance el mínimo de "día cumplido" ya existente. Grupo muscular fijo "Entrenamiento funcional" para todos estos días vía `week_day_overrides` (el mismo mecanismo de "Migrar día", con `migrated_from: null` — no hizo falta tocar el esquema). Validado cruzando contra un análisis previo de este mismo historial: el hueco más largo sin entrenar y la mejor racha coinciden.
@@ -449,6 +705,11 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.4.0] - 2026-08-11 — Racha semanal y calendario clicable
 
+### En la app: Racha semanal y calendario clicable
+
+- La racha ya no se rompe día por día: una semana necesita 5 o más días cumplidos para no cortarla.
+- Tocar un día en el Calendario navega directo a ese día para verlo o editarlo.
+
 ### Added
 
 - Calendario: tocar un día que pertenece a una semana ya creada navega a "Hoy" con ese día seleccionado (mismo patrón que Historial) — `data-date` en cada celda, día calculado con `DAY_ORDER[(date.getDay()+6)%7]` para que domingo también sea navegable aunque no pinte línea. Días sin semana no son clicables (`.cal-day.clickable` solo se agrega si `state.weeks[monday]` existe).
@@ -463,6 +724,11 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 - `sw.js`: durante el desarrollo de esta tanda de cambios, el service worker siguió sirviendo `js/app.js` cacheado (versión vieja) después de editarlo, ocultando el fix de arriba hasta darse cuenta y subir `CACHE_NAME`. Ver la nota en el README sobre bumpear la versión del cache en cada deploy que toque el shell.
 
 ## [1.3.0] - 2026-08-11 — Sábado, domingo y Migrar día
+
+### En la app: Sábado, domingo y Migrar día
+
+- El riel de días crece a 7 (Lun–Dom) — sábado y domingo quedan revelados al hacer scroll horizontal.
+- Nueva función "Migrar día": mueve el set completo de ejercicios de un día a otro dentro de la misma semana, recorriendo en cadena si el destino ya tiene contenido.
 
 ### Added
 
@@ -486,6 +752,12 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.2.0] - 2026-08-11 — Historial, Progreso y respaldo de datos
 
+### En la app: Historial, Progreso y respaldo de datos
+
+- Vista Historial con una tarjeta por semana, filtrable por mes.
+- Vista Progreso con gráfica de carga por ejercicio (Chart.js).
+- Exportar e importar todos tus datos como JSON desde Perfil.
+
 ### Added
 
 - Vista y tab **Historial**: tarjeta por semana (más reciente primero) con 5 indicadores de día y total de ejercicios marcados/total; riel de meses arriba (reutiliza `.week-rail`/`.week-pill` de "Hoy") como filtro, con "Todas" por defecto. Tocar un día específico de la tarjeta selecciona esa semana y ese día y navega a "Hoy" (nuevo helper `switchToView()`, extraído del handler de nav para reutilizarlo desde el click de la tarjeta); tocar el resto de la tarjeta cae en lunes. Todo calculado del lado del cliente desde `state.weeks` ya cargado, sin llamadas nuevas a la API.
@@ -508,6 +780,12 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 
 ## [1.1.0] - 2026-08-11 — PWA instalable y sesión persistente
 
+### En la app: PWA instalable y sesión persistente
+
+- La app se puede instalar como PWA (manifest + service worker).
+- Sesión persistente de 30 días — ya no hay que iniciar sesión cada vez.
+- Nuevas vistas Perfil y Calendario.
+
 ### Added
 
 - PWA real: `manifest.json` (rutas relativas, instalable en Android/desktop/iOS), `sw.js` (cachea el app shell estático; nunca `api/`, sin sincronización offline de datos), íconos propios `icons/icon-192.png` / `icons/icon-512.png` (mancuerna en `--accent` sobre `--bg`, generados con Pillow). Registro del service worker en `js/app.js`, tags de manifest/íconos/meta iOS en `index.html`.
@@ -527,6 +805,11 @@ Se probaron y descartaron dos alternativas antes de esta versión: (1) colorear 
 - `.day-tab` pasa de un ancho fijo de 88px (calibrado para el preview de escritorio de 520px) a `calc((100% - 24px) / 5)`, para que Lun–Vie siempre llenen el ancho real del `.day-rack` en cualquier celular en vez de solo mostrar 3-4 tabs completos.
 
 ## [1.0.0] - 2026-08-11 — Conectada a base de datos real
+
+### En la app: Conectada a base de datos real
+
+- El frontend deja de usar datos de ejemplo en memoria y se conecta a la API real: login, semanas y ejercicios persistentes.
+- Importador de rutinas históricas desde JSON.
 
 ### Added
 
