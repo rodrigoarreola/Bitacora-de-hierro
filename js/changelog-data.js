@@ -2,6 +2,14 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.50.3",
+        "date": "2026-09-21",
+        "title": "Sin cambios visibles (orden interno)",
+        "items": [
+            "La app se ve y funciona igual: por dentro, las separaciones entre elementos ahora salen de una escala común en vez de números sueltos."
+        ]
+    },
+    {
         "version": "1.50.2",
         "date": "2026-09-21",
         "title": "Sin cambios visibles (orden interno)",

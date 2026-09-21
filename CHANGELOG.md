@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.50.3] - 2026-09-21 — Espaciado con tokens
+
+### En la app: Sin cambios visibles (orden interno)
+
+- La app se ve y funciona igual: por dentro, las separaciones entre elementos ahora salen de una escala común en vez de números sueltos.
+
+### Changed
+
+- **Escala de espaciado completa en `css/tokens.css`**, en unidades de 4 px como Tailwind (`--sp-1` = 4 px, `--sp-2` = 8 px…) y con pasos de 2 px porque la interfaz ya los usaba: `--sp-0-5` (2), `--sp-1` (4), `--sp-1-5` (6), `--sp-2` (8), `--sp-2-5` (10), `--sp-3` (12), `--sp-3-5` (14), `--sp-4` (16), `--sp-4-5` (18), `--sp-5` (20), `--sp-6` (24). `--pad-card` y `--pad-card-sm` ahora se apoyan en ella.
+- **216 valores de `margin`, `padding` y `gap` pasan de px sueltos a tokens** en `base.css`, `components.css` y las 7 vistas. Se saltan las declaraciones con `calc()`/`env()` (padding del `body`, márgenes del sheet de info) y `.heatmap-grid { column-gap: 3px }`, que iguala el separador fijo de 3 px entre semanas.
+- **Siguen literales**: los impares (3, 5, 7, 9, 11 px) y los >24 px de pantallas sueltas (login, estados vacíos). Los impares se ajustan en la versión siguiente porque sí mueven el diseño 1 px.
+
+### Verificado
+
+- Hash de todas las propiedades computadas de cada elemento del DOM (unos 3.700) en 3 estados, antes y después: **0 diferencias**.
+- Nota del método: `getComputedStyle` de Chrome enumera también las variables CSS (66), así que añadir tokens al `:root` cambia el hash de todos los elementos. El hash ahora ignora las propiedades `--*`; el valor real que usan los elementos sí cuenta.
+
 ## [1.50.2] - 2026-09-21 — CSS por vistas
 
 ### En la app: Sin cambios visibles (orden interno)

@@ -32,4 +32,6 @@ tenía tokens. Cada cambio de estilo había que hacerlo en muchos sitios.
 - `styles.css` se partió después en `base.css` y `css/views/*.css` (una hoja por
   pantalla), con lo compartido en `components.css`. Un selector vive en un solo
   archivo, así el orden de carga no cambia el resultado.
-- Pendiente: extender `--sp-*` a márgenes y gaps.
+- El espaciado (`margin`, `padding`, `gap`) sale de la escala `--sp-*` de `tokens.css`,
+  en unidades de 4px con pasos de 2px. Los impares (3, 5, 7, 9, 11px) y los >24px de
+  pantallas sueltas siguen literales hasta ajustarlos.

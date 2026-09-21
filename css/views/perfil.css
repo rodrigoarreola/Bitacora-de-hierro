@@ -2,22 +2,22 @@
    Se carga después de tokens.css, components.css y base.css. */
 
 /* ---------- Logout ---------- */
-.logout-btn{ background:var(--surface); color:var(--text-dim); margin-top:var(--sp-4); margin-bottom:14px; }
+.logout-btn{ background:var(--surface); color:var(--text-dim); margin-top:var(--sp-4); margin-bottom:var(--sp-3-5); }
 .logout-btn:hover{ color:var(--danger); }
 
 /* ---------- Perfil: datos ---------- */
 .perfil-panel{ padding:var(--pad-card); margin-top:var(--sp-4); }
-.perfil-panel .lib-sub{ margin-bottom:14px; }
-.perfil-btn{ margin-top:10px; }
+.perfil-panel .lib-sub{ margin-bottom:var(--sp-3-5); }
+.perfil-btn{ margin-top:var(--sp-2-5); }
 
 /* ---------- Perfil: backups automáticos ---------- */
 .backup-row{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2-5);
   background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md);
-  padding:10px 14px; margin-top:10px; text-decoration:none; color:var(--text);
+  padding:var(--sp-2-5) var(--sp-3-5); margin-top:var(--sp-2-5); text-decoration:none; color:var(--text);
 }
 .backup-row:hover{ border-color:var(--accent-dim); }
-.backup-row-info{ display:flex; flex-direction:column; gap:2px; }
+.backup-row-info{ display:flex; flex-direction:column; gap:var(--sp-0-5); }
 .backup-row-date{ font-size:var(--fs-md); font-weight:600; }
 .backup-row-size{ font-size:var(--fs-sm); color:var(--text-faint); font-family:var(--font-mono); }
 .backup-row .icon{ font-size:var(--fs-lg); color:var(--text-faint); }
@@ -25,25 +25,25 @@
 
 /* ---------- Perfil: hitos y constancia ---------- */
 .milestones-panel{ padding:var(--pad-card); margin-top:var(--sp-4); }
-.milestones-panel .lib-sub{ margin-bottom:2px; }
-.milestone-block{ margin-top:18px; }
+.milestones-panel .lib-sub{ margin-bottom:var(--sp-0-5); }
+.milestone-block{ margin-top:var(--sp-4-5); }
 .milestone-block-title{
   font-family:var(--font-display); font-size:var(--fs-lg); font-weight:700; text-transform:uppercase;
-  letter-spacing:.01em; color:var(--text); margin-bottom:8px;
+  letter-spacing:.01em; color:var(--text); margin-bottom:var(--sp-2);
 }
-.milestone-row{ display:flex; gap:12px; padding:10px 0; }
-.milestone-ico{ font-size:17px; flex-shrink:0; margin-top:2px; width:20px; text-align:center; }
+.milestone-row{ display:flex; gap:var(--sp-3); padding:var(--sp-2-5) 0; }
+.milestone-ico{ font-size:17px; flex-shrink:0; margin-top:var(--sp-0-5); width:20px; text-align:center; }
 .milestone-ico.ok{ color:var(--ok); }
 .milestone-ico.danger{ color:var(--danger); }
 .milestone-ico.gold{ color:var(--gold); }
 .milestone-ico.silver{ color:var(--silver); }
 .milestone-ico.bronze{ color:var(--bronze); }
 .milestone-period{ font-size:var(--fs-lg); font-weight:700; color:var(--text); }
-.milestone-daterange{ font-size:var(--fs-sm); color:var(--text-dim); margin-top:2px; }
+.milestone-daterange{ font-size:var(--fs-sm); color:var(--text-dim); margin-top:var(--sp-0-5); }
 .milestone-desc{ font-size:var(--fs-md); color:var(--text-dim); margin:3px 0 0; line-height:1.5; }
 .milestone-divider{ border-top:1px solid var(--line); }
-.milestone-empty{ font-size:var(--fs-md); color:var(--text-faint); padding:8px 0; line-height:1.5; }
-.milestone-list{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:8px; }
+.milestone-empty{ font-size:var(--fs-md); color:var(--text-faint); padding:var(--sp-2) 0; line-height:1.5; }
+.milestone-list{ margin:0; padding-left:var(--sp-4-5); display:flex; flex-direction:column; gap:var(--sp-2); }
 .milestone-list li{ font-size:var(--fs-md); color:var(--text-dim); line-height:1.5; }
 .milestone-list strong{ color:var(--text); }
 
@@ -51,18 +51,18 @@
 /* Anidado dentro de .milestones-panel (fondo --surface), así que cada
    nivel siguiente sube un tono para distinguirse: chip/card en
    --surface-2, y el track del bar-chart de horas vuelve a --bg. */
-.time-stats-panel .week-rail{ margin-bottom:10px; }
-.time-summary{ margin-top:14px; margin-bottom:0; }
+.time-stats-panel .week-rail{ margin-bottom:var(--sp-2-5); }
+.time-summary{ margin-top:var(--sp-3-5); margin-bottom:0; }
 .time-summary .sum-chip{ background:var(--surface-2); }
-.time-chart-card{ padding:14px 14px 10px; margin-top:12px; }
+.time-chart-card{ padding:var(--sp-3-5) var(--sp-3-5) var(--sp-2-5); margin-top:var(--sp-3); }
 .time-chart-title{
   font-family:var(--font-display); font-size:var(--fs-lg); font-weight:700; text-transform:uppercase; letter-spacing:.01em;
-  color:var(--text); display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px;
+  color:var(--text); display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp-2); margin-bottom:var(--sp-2);
 }
 .time-chart-title .sub{ font-family:var(--font-body); font-size:var(--fs-xs); font-weight:600; text-transform:none; color:var(--text-faint); }
 .time-canvas-wrap{ position:relative; height:170px; }
 .hour-list{ display:flex; flex-direction:column; gap:9px; }
-.hour-row{ display:grid; grid-template-columns:66px 1fr 24px; align-items:center; gap:10px; }
+.hour-row{ display:grid; grid-template-columns:66px 1fr 24px; align-items:center; gap:var(--sp-2-5); }
 .hour-label{ font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-dim); white-space:nowrap; }
 .hour-bar-track{ height:8px; background:var(--bg); border-radius:var(--r-xs); overflow:hidden; }
 .hour-bar-fill{ height:100%; background:var(--info); border-radius:var(--r-xs); }
@@ -77,16 +77,16 @@
    <details> plegable adentro, como antes). */
 .changelog-panel{ margin-top:var(--sp-4); overflow:hidden; }
 .changelog-panel > summary{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2-5);
   padding:var(--pad-card); cursor:pointer; list-style:none;
 }
 .changelog-panel > summary::-webkit-details-marker{ display:none; }
 .changelog-panel > summary .chev{ font-size:var(--fs-lg); color:var(--text-faint); transition:transform .18s ease; flex-shrink:0; }
 .changelog-panel[open] > summary .chev{ transform:rotate(180deg); }
-.changelog-panel #changelog-list{ padding:0 18px 16px; }
-.changelog-version{ font-size:var(--fs-md); color:var(--text-dim); margin:4px 0 0; }
+.changelog-panel #changelog-list{ padding:0 var(--sp-4-5) var(--sp-4); }
+.changelog-version{ font-size:var(--fs-md); color:var(--text-dim); margin:var(--sp-1) 0 0; }
 .changelog-version strong{ color:var(--accent); font-family:var(--font-mono); }
-.changelog-entry{ border:1px solid var(--line); border-radius:var(--r-md); margin-bottom:8px; overflow:hidden; }
+.changelog-entry{ border:1px solid var(--line); border-radius:var(--r-md); margin-bottom:var(--sp-2); overflow:hidden; }
 .changelog-entry:last-child{ margin-bottom:0; }
 /* Dos filas en vez de una (versión+título a la izquierda, fecha a la
    derecha, todo en la misma línea): con títulos largos que ocupan 2
@@ -96,16 +96,16 @@
    título va suelto debajo, así que nada se desalinea sea cual sea el
    largo del título. */
 .changelog-entry summary{
-  display:flex; flex-direction:column; gap:4px;
-  padding:11px 14px; cursor:pointer; list-style:none; background:var(--surface-2);
+  display:flex; flex-direction:column; gap:var(--sp-1);
+  padding:11px var(--sp-3-5); cursor:pointer; list-style:none; background:var(--surface-2);
 }
 .changelog-entry summary::-webkit-details-marker{ display:none; }
-.changelog-entry-top{ display:flex; align-items:center; gap:8px; }
+.changelog-entry-top{ display:flex; align-items:center; gap:var(--sp-2); }
 .changelog-entry-top .chev{ font-size:var(--fs-sm); color:var(--text-faint); transition:transform .18s ease; flex-shrink:0; margin-left:auto; }
 .changelog-entry[open] .changelog-entry-top .chev{ transform:rotate(180deg); }
 .changelog-entry-version{ font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--accent); font-weight:700; flex-shrink:0; }
 .changelog-entry-date{ font-size:var(--fs-sm); color:var(--text-faint); }
 .changelog-entry-title{ font-size:var(--fs-lg); font-weight:700; color:var(--text); }
-.changelog-entry-body{ padding:4px 14px 12px; }
-.changelog-entry-body ul{ margin:0; padding-left:16px; display:flex; flex-direction:column; gap:6px; }
+.changelog-entry-body{ padding:var(--sp-1) var(--sp-3-5) var(--sp-3); }
+.changelog-entry-body ul{ margin:0; padding-left:var(--sp-4); display:flex; flex-direction:column; gap:var(--sp-1-5); }
 .changelog-entry-body li{ font-size:var(--fs-md); color:var(--text-dim); line-height:1.5; }
