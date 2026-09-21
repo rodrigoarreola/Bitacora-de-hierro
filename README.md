@@ -173,6 +173,24 @@ Destino: `tu-dominio.com/bitacora`, vía FTP/SFTP. Como todas las rutas del proy
 
 `.htaccess` no necesita ajustes para la subcarpeta: la regla de HTTPS usa `%{HTTP_HOST}%{REQUEST_URI}` (no una ruta fija) y el bloqueo de `config.local.php`/`*.sql` es por nombre de archivo.
 
+### Armar el paquete de producción
+
+Cada versión se empaqueta desde su **tag** (no desde el directorio de trabajo, para que no se cuele nada sin commitear) en `producción/bitacora-vX.Y.Z-AAAA-MM-DD/` más su `.zip` (la carpeta `producción/` está en `.gitignore`):
+
+```bash
+VER=X.Y.Z; DEST="producción/bitacora-v$VER-$(date +%F)"
+mkdir -p "$DEST"
+git -c core.autocrlf=false -c core.eol=lf archive --format=tar "v$VER" | tar -x -C "$DEST"
+rm -rf "$DEST"/{.githooks,.gitignore,docs,scripts,README.md,CHANGELOG.md}   # no hacen falta en el servidor
+python -c "import zipfile,os,sys; d=sys.argv[1]; z=zipfile.ZipFile(d+'.zip','w',zipfile.ZIP_DEFLATED); [z.write(os.path.join(r,f), os.path.relpath(os.path.join(r,f),d)) for r,_,fs in os.walk(d) for f in fs]" "$DEST"
+```
+
+- **`-c core.autocrlf=false` es obligatorio en Windows**: con `core.autocrlf=true`, `git archive` convierte todo a CRLF y el paquete deja de coincidir byte a byte con lo commiteado.
+- El `.zip` queda con los archivos en la raíz (sin la carpeta contenedora) y con `/` como separador, listo para descomprimir en `/bitacora` desde cPanel.
+- **No incluye** `api/config.local.php` (nunca está en git; el del servidor se conserva) ni `api/db/backups/` ni `api/media_cache/` (ignorados).
+
+**Antes de subirlo**, comprobar: que `git status` esté limpio y el tag apunte a `HEAD`; sintaxis (`node --check js/*.js sw.js`, `php -l` a cada `.php`); `php scripts/bump-sw-cache.php` y `php scripts/build-changelog.php` sin cambios; que todo lo de `SHELL_ASSETS` y lo que carga `index.html` exista en el paquete; que cada archivo del paquete sea idéntico a `git show vX.Y.Z:<archivo>`; que no haya `config.local.php`, `DEV_AUTOLOGIN` activo ni contraseñas; y que las revisiones de esquema SQL pendientes (abajo) ya estén corridas si el cambio las requiere.
+
 ### Backup automático (cron)
 
 `api/db/backup_export.php` vuelca todas las semanas a un JSON (mismo formato que exportar desde Perfil) en `api/db/backups/`, protegida por su propio `.htaccess` (`Require all denied` — no es accesible por navegador; el script además se niega a correr fuera de CLI). Guarda solo los últimos 14 backups, borra el resto solo.

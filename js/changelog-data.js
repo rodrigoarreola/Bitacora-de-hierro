@@ -2,6 +2,14 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.55.1",
+        "date": "2026-09-21",
+        "title": "Sin cambios visibles (preparación para producción)",
+        "items": [
+            "No cambia nada de lo que ves ni de cómo funciona: es un ajuste interno para que las actualizaciones de la app se detecten igual desde cualquier computadora."
+        ]
+    },
+    {
         "version": "1.55.0",
         "date": "2026-09-21",
         "title": "Editar la nota de un ejercicio dentro de la app",

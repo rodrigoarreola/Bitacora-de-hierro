@@ -57,7 +57,14 @@ foreach ($shellFiles as $relPath) {
         fwrite(STDERR, "bump-sw-cache: no se encontró $relPath\n");
         exit(1);
     }
-    $hashInput .= file_get_contents($fullPath);
+    $content = file_get_contents($fullPath);
+    // Los saltos de línea no cuentan: con core.autocrlf=true (Windows) el directorio
+    // de trabajo puede tener CRLF y un clon en Linux o un `git archive` tiene LF, y el
+    // hash tiene que salir igual. Los binarios (íconos) se hashean tal cual.
+    if (!preg_match('/\.(png|jpe?g|gif|ico|woff2?)$/i', $relPath)) {
+        $content = str_replace("\r\n", "\n", $content);
+    }
+    $hashInput .= $content;
 }
 
 $hash = substr(sha1($hashInput), 0, 10);

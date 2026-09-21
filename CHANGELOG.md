@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.55.1] - 2026-09-21 — Hash del caché independiente de los saltos de línea
+
+### En la app: Sin cambios visibles (preparación para producción)
+
+- No cambia nada de lo que ves ni de cómo funciona: es un ajuste interno para que las actualizaciones de la app se detecten igual desde cualquier computadora.
+
+### Fixed
+
+- **`CACHE_NAME` dependía de los saltos de línea de cada máquina.** `scripts/bump-sw-cache.php` hasheaba los bytes del directorio de trabajo, y con `core.autocrlf=true` (Windows) esos archivos pueden tener CRLF mientras que un clon en Linux o un `git archive` los tiene en LF: el mismo contenido daba hashes distintos (`d9fffcf696` con dos CSS en CRLF frente a `20a1e956af` con todo en LF). Ahora los archivos de texto se normalizan a LF antes de hashear; los binarios (íconos) se hashean tal cual. Detectado al verificar el paquete de producción contra el tag.
+
+### Added
+
+- **README → "Armar el paquete de producción"**: cómo generar la carpeta y el `.zip` desde un tag, qué se deja fuera y la lista de verificaciones previas. Incluye la trampa de `git archive` con `core.autocrlf=true` (convierte a CRLF; hay que pasarle `-c core.autocrlf=false`).
+
 ## [1.55.0] - 2026-09-21 — La nota del ejercicio con un diálogo propio
 
 ### En la app: Editar la nota de un ejercicio dentro de la app
