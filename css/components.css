@@ -1,0 +1,33 @@
+/* Componentes base reutilizables: tarjeta (.card) y botón (.btn). Las vistas
+   los combinan con su clase propia (ej. class="card lib-panel"), que solo
+   aporta lo específico (padding, margen, overflow). Se carga después de
+   tokens.css y antes de styles.css, así una regla de vista con la misma
+   especificidad siempre puede afinar un componente. */
+
+/* ---------- Tarjeta ---------- */
+.card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-xl); }
+.card--compact{ border-radius:var(--r-lg); }   /* tarjetas chicas: chips, resumen, historial */
+.card--raised{ background:var(--surface-2); }  /* tarjeta dentro de otra tarjeta */
+.card--dashed{ border-style:dashed; }          /* estado vacío / placeholder */
+
+/* ---------- Botón ---------- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  font-family:var(--font-body); font-size:var(--fs-md); font-weight:600;
+  background:var(--surface-2); color:var(--text); border:1px solid var(--line);
+  border-radius:var(--r-md); padding:11px 14px; cursor:pointer;
+}
+.btn .icon{ font-size:var(--fs-lg); }
+.btn:hover{ border-color:var(--accent-dim); color:var(--accent); }
+.btn:disabled{ opacity:.4; cursor:default; pointer-events:none; }
+
+.btn--primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.btn--primary:hover{ background:var(--accent-dim); border-color:var(--accent-dim); color:var(--accent-ink); }
+.btn--ghost{ background:none; color:var(--text-dim); }
+.btn--danger{ background:none; color:var(--danger); }
+.btn--danger:hover{ border-color:var(--danger); color:var(--danger); }
+
+.btn--block{ display:flex; width:100%; }
+.btn--sm{ font-size:var(--fs-md); padding:7px 12px; border-radius:var(--r-sm); }
+.btn--sm .icon{ font-size:var(--fs-sm); }
+.btn--icon{ width:30px; height:30px; padding:0; flex-shrink:0; border-radius:var(--r-sm); color:var(--text-dim); }

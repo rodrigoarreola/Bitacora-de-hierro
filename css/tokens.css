@@ -1,0 +1,61 @@
+/* Design tokens de Bitácora de Hierro. Todo valor que se repita en más de un
+   componente vive acá; components.css y styles.css solo lo consumen con var().
+   Se carga antes que ellos (ver index.html, sw.js y scripts/bump-sw-cache.php). */
+:root{
+  /* ---------- Color ---------- */
+  --bg:#14171B; --surface:#1B1F26; --surface-2:#242A33; --line:#2E3540;
+  --accent:#D9481F; --accent-dim:#B13C1A; --accent-ink:#2A0C04;
+  --steel:#6F8FA8; --steel-dim:#3E4E5C;
+  --text:#EEF1F5; --text-dim:#8B93A1; --text-faint:#5B6270;
+  --ok:#5FBF77; --pending:#C9974A; --danger:#E2574C; --info:#4C8FDB;
+  --gold:#E5C158; --silver:#B8C0CC; --bronze:#C97D4A;
+  --white:#fff;
+  --on-ok:#0E1710; /* tinta oscura sobre fondos --ok / --info */
+
+  /* Colores con transparencia. Son rgba literales (no color-mix) a propósito:
+     html2canvas 1.4.1, que genera las imágenes de "Compartir", no entiende
+     color-mix() ni los espacios de color nuevos. */
+  --accent-soft:rgba(217,72,31,0.10);
+  --accent-faint:rgba(217,72,31,0.06);
+  --ok-faint:rgba(95,191,119,0.10);
+  --ok-soft:rgba(95,191,119,0.15);
+  --ok-strong:rgba(95,191,119,0.30);
+  --pending-faint:rgba(201,151,74,0.05);
+  --danger-soft:rgba(226,87,76,0.12);
+  --ink-soft:rgba(42,12,4,0.18);
+  --wash:rgba(255,255,255,0.02);
+  --scrim:rgba(10,12,15,0.72);
+  --bg-glass:rgba(20,23,27,0.5);
+  --shadow:rgba(0,0,0,0.35);
+
+  /* ---------- Radios ---------- */
+  --r-xs:4px;   /* barras, celdas chicas */
+  --r-sm:8px;   /* pills, botones de ícono */
+  --r-md:10px;  /* botones, inputs, filas */
+  --r-lg:12px;  /* tarjetas compactas, chips */
+  --r-xl:16px;  /* tarjetas y paneles */
+  --r-full:50%;
+
+  /* ---------- Tipografía ---------- */
+  --font-display:"Big Shoulders Display", sans-serif;
+  --font-body:"Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:"JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  /* Escala de texto de interfaz. Los títulos en fuente display (15–24 px)
+     siguen con su tamaño propio en cada componente. */
+  --fs-xxs:9px;   /* etiquetas en mayúsculas, micro-texto */
+  --fs-xs:10px;
+  --fs-sm:11px;
+  --fs-md:12px;   /* texto base de controles y contenido */
+  --fs-lg:13px;
+  --fs-xl:15px;   /* valores destacados */
+
+  /* ---------- Espaciado ---------- */
+  --sp-1:4px;
+  --sp-2:8px;
+  --sp-3:12px;
+  --sp-4:16px;    /* separación entre bloques de una vista */
+  --sp-5:20px;
+  --sp-6:24px;
+  --pad-card:16px 18px;      /* panel */
+  --pad-card-sm:12px 14px;   /* tarjeta compacta */
+}

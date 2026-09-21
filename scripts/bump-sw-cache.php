@@ -10,6 +10,8 @@ declare(strict_types=1);
 $repoRoot = dirname(__DIR__);
 $shellFiles = [
     'index.html',
+    'css/tokens.css',
+    'css/components.css',
     'css/styles.css',
     'js/app.js',
     'js/api.js',

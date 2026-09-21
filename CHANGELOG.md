@@ -2,6 +2,31 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.49.0] - 2026-09-21 — Design tokens y componentes base (`.card`, `.btn`)
+
+### Added
+
+- **`css/tokens.css`**: el `:root` de colores movido desde `styles.css` más escalas nuevas — radios (`--r-xs/sm/md/lg/xl/full`: 4/8/10/12/16/50%), tamaños de texto de interfaz (`--fs-xxs…xl`: 9/10/11/12/13/15 px), espaciado (`--sp-1…6`, `--pad-card`, `--pad-card-sm`) y los colores con transparencia que estaban sueltos como `rgba(...)` (`--accent-soft`, `--ok-faint`, `--scrim`, `--bg-glass`, etc.), más `--white` y `--on-ok`. Los `rgba` son literales, no `color-mix()`, porque html2canvas 1.4.1 (Compartir) no lo entiende.
+- **`css/components.css`**: `.card` (`--compact` radio 12, `--raised` fondo `--surface-2`, `--dashed`) y `.btn` (`--primary`, `--ghost`, `--danger`, `--block`, `--sm`, `--icon`).
+
+### Changed
+
+- **14 variantes de tarjeta copiadas → `.card`**: `day-panel`, `lib-panel`, `perfil-panel`, `milestones-panel`, `heatmap-panel`, `cal-panel`, `changelog-panel`, `login-card`, `prog-chart-card`, `recap-card`, `week-note-panel`, `day-session-panel`, `converter-panel`, `hist-card`, `prog-spark-card`, `sum-chip`, `time-chart-card`, `placeholder`. Cada clase de vista conserva solo lo propio (padding, margen, overflow).
+- **Botones → `.btn`**: copiar semana, agregar ejercicio, migrar (confirmar/cancelar), eliminar semana, exportar/importar/guardar reglas, cerrar sesión, "Volver a hoy", compartir, navegación del calendario, cerrar info de ejercicio, alternar reps, agregar a la librería y entrar. `.day-session-toggle`, `.week-pill`, `.add-week`, la barra inferior y `.ex-progress-btn` no se tocan (son otros patrones).
+- **Radios y tamaños de texto colapsados a la escala**: 9→10 px y 14→12 px de radio; 8/8.5/9→9, 9.5/10→10, 10.5/11→11, 11.5/12→12, 12.5/13/13.5→13, 14/14.5/15→15 px de texto. Los títulos en fuente display siguen con su tamaño propio.
+- Sin `rgba(...)` ni hex sueltos en `styles.css` (los `rgba` del bloque pasaron a tokens).
+
+### Diferencias visibles (verificadas a 375 px comparando estilos calculados y alturas antes/después)
+
+- Botones migrados: borde de 1 px y padding unificados (los que antes no tenían borde crecen 2 px); "Volver a hoy" pasa de 11 a 12 px de texto.
+- Texto de 0.5 px más grande en varias etiquetas; las vistas crecen 3–47 px de alto en total (Progreso y Perfil las que más, por más líneas en párrafos).
+- Excepciones a la escala, con comentario en el CSS: `.sum-chip .k/.v` (8.5/14.5 px) y los botones de la barra inferior (9.5 px) — con 4 chips o 6 botones en 375 px, el tamaño de la escala parte "MEJOR RACHA"/"40 días" en dos líneas o hace desbordar "CALENDARIO".
+
+### Pendiente de este paso
+
+- Partir `styles.css` en `css/views/*.css` (Hoy, Historial, Progreso, Calendario, Perfil, Ajustes). No se hizo aquí: el paso 4 reescribe el HTML de las vistas y conviene partir el CSS junto con eso.
+- El espaciado (`--sp-*`) solo se aplicó a los valores repetidos de 16 px y a los paddings de tarjeta; el resto de márgenes y gaps siguen en px.
+
 ## [1.48.0] - 2026-09-21 — Caché versionado y aviso de versión nueva
 
 ### Fixed

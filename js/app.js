@@ -45,6 +45,10 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.49.0', date: '2026-09-21', title: 'Estilos unificados', items: [
+      'Tarjetas, botones y tamaños de texto ahora salen de un mismo sistema de estilos, así los botones y paneles se ven consistentes en toda la app.',
+      'Algunos textos pequeños se ven medio punto más grandes y unas esquinas cambian 1-2 px de redondeo; el resto se ve igual.',
+    ]},
     { version: '1.48.0', date: '2026-09-21', title: 'Aviso de versión nueva', items: [
       'Cuando hay una versión nueva de la app, aparece un aviso "Hay una versión nueva — Actualizar" y se aplica cuando tú quieras, sin que la pantalla cambie a la mitad de lo que estás haciendo.',
       'Corregido: tras una actualización podía mezclarse una pantalla nueva con código viejo hasta recargar un par de veces. Ahora toda la app se sirve de la misma versión.',
@@ -368,7 +372,7 @@
           <div class="ex-info-title">${escapeHtml(ex.name)}</div>
           <div class="ex-info-subtitle">${escapeHtml(entry.name_es || entry.name)}</div>
         </div>
-        <button type="button" class="ex-info-close" data-action="close-exercise-info" aria-label="Cerrar"><i class="icon fa-solid fa-xmark"></i></button>
+        <button type="button" class="btn btn--icon ex-info-close" data-action="close-exercise-info" aria-label="Cerrar"><i class="icon fa-solid fa-xmark"></i></button>
       </div>
       <div class="ex-info-media" id="ex-info-media">
         <div class="ex-info-media-loading">Cargando GIF…</div>
@@ -1000,14 +1004,14 @@
 
     const chipsHtml = `
       <div class="summary-strip cols-4 time-summary">
-        <div class="sum-chip"><div class="k">Tiempo total</div><div class="v accent">${fmtDurationLabel(stats.totalMin)}</div></div>
-        <div class="sum-chip"><div class="k">Promedio</div><div class="v">${fmtDurationLabel(Math.round(stats.avgMin))}</div></div>
-        <div class="sum-chip"><div class="k">Más larga</div><div class="v">${fmtDurationLabel(stats.longest.durationMin)}</div></div>
-        <div class="sum-chip"><div class="k">Hora frecuente</div><div class="v">${stats.commonHour !== null ? fmtHourLabel(stats.commonHour) : '—'}</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Tiempo total</div><div class="v accent">${fmtDurationLabel(stats.totalMin)}</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Promedio</div><div class="v">${fmtDurationLabel(Math.round(stats.avgMin))}</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Más larga</div><div class="v">${fmtDurationLabel(stats.longest.durationMin)}</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Hora frecuente</div><div class="v">${stats.commonHour !== null ? fmtHourLabel(stats.commonHour) : '—'}</div></div>
       </div>`;
 
     const chartHtml = `
-      <div class="time-chart-card">
+      <div class="card card--compact card--raised time-chart-card">
         <div class="time-chart-title">Duración por sesión <span class="sub">${stats.sessionCount} sesión${stats.sessionCount === 1 ? '' : 'es'}</span></div>
         <div class="time-canvas-wrap"><canvas id="time-duration-canvas"></canvas></div>
       </div>`;
@@ -1022,7 +1026,7 @@
         </div>`).join('')
       : `<p class="milestone-empty">Ninguna de estas sesiones tiene hora de inicio registrada.</p>`;
     const hourHtml = `
-      <div class="time-chart-card">
+      <div class="card card--compact card--raised time-chart-card">
         <div class="time-chart-title">¿A qué hora sueles entrenar?</div>
         <div class="hour-list">${hourListHtml}</div>
       </div>`;
@@ -1292,11 +1296,11 @@
     if(!state.activeWeek){
       renderDaySession();
       host.innerHTML = `
-        <div class="day-panel">
+        <div class="card day-panel">
           <div class="day-empty">
             <p>Todavía no has creado ninguna semana.</p>
             <div class="day-empty-actions">
-              <button class="btn-copy-week" type="button" data-action="first-week">+ Nueva semana</button>
+              <button class="btn btn--primary" type="button" data-action="first-week">+ Nueva semana</button>
             </div>
           </div>
         </div>`;
@@ -1318,8 +1322,8 @@
         <div class="day-empty">
           <p>Todavía no hay ejercicios para este día.</p>
           <div class="day-empty-actions">
-            ${prevKey ? `<button class="btn-copy-week" type="button" data-action="copy-week">Copiar semana pasada</button>` : ''}
-            <button class="btn-add-ex" type="button" data-action="add-ex">+ Agregar ejercicio</button>
+            ${prevKey ? `<button class="btn btn--primary" type="button" data-action="copy-week">Copiar semana pasada</button>` : ''}
+            <button class="btn" type="button" data-action="add-ex">+ Agregar ejercicio</button>
           </div>
         </div>`;
     } else {
@@ -1349,27 +1353,27 @@
         migrateHtml = `
           <div class="migrate-row open">
             <select id="migrate-target">${options}</select>
-            <button class="btn-migrate-confirm" type="button" data-action="migrate-confirm">Migrar</button>
-            <button class="btn-migrate-cancel" type="button" data-action="migrate-cancel" aria-label="Cancelar"><i class="icon fa-solid fa-xmark"></i></button>
+            <button class="btn btn--primary btn--sm" type="button" data-action="migrate-confirm">Migrar</button>
+            <button class="btn btn--ghost btn--icon btn-migrate-cancel" type="button" data-action="migrate-cancel" aria-label="Cancelar"><i class="icon fa-solid fa-xmark"></i></button>
           </div>`;
       } else {
         migrateHtml = `
           <div class="migrate-row">
-            <button class="btn-migrate" type="button" data-action="migrate-open"><i class="icon fa-solid fa-right-left"></i>Migrar día</button>
+            <button class="btn btn--ghost btn--sm" type="button" data-action="migrate-open"><i class="icon fa-solid fa-right-left"></i>Migrar día</button>
           </div>`;
       }
     }
 
     host.innerHTML = `
-      <div class="day-panel">
+      <div class="card day-panel">
         <div class="day-panel-head">
           <div>
             <div class="grp">${day.group}</div>
             <div class="day-of">${DAY_NAMES[state.activeDay]} · ${fmtShortDate(d)}</div>
           </div>
           <div class="day-panel-head-actions">
-            <button class="share-btn" type="button" data-action="share-day" aria-label="Compartir día"><i class="icon fa-solid fa-share-nodes"></i></button>
-            <button class="share-btn" type="button" data-action="share-dashboard" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-calendar-week"></i></button>
+            <button class="btn btn--icon share-btn" type="button" data-action="share-day" aria-label="Compartir día"><i class="icon fa-solid fa-share-nodes"></i></button>
+            <button class="btn btn--icon share-btn" type="button" data-action="share-dashboard" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-calendar-week"></i></button>
             <div class="progress-ring ${ringTier}">
               <svg width="40" height="40" viewBox="0 0 40 40">
                 <circle class="bgc" cx="20" cy="20" r="16"></circle>
@@ -2566,12 +2570,12 @@
       }).join('');
 
       return `
-        <div class="hist-card" data-week="${key}">
+        <div class="card card--compact hist-card" data-week="${key}">
           <div class="hist-card-head">
             <span class="hist-card-label">${weekLabel(key)}</span>
             <div class="hist-card-head-right">
               <span class="hist-card-total">${totalDone}/${totalEx}</span>
-              <button class="share-btn" type="button" data-action="share-week" aria-label="Compartir semana"><i class="icon fa-solid fa-share-nodes"></i></button>
+              <button class="btn btn--icon share-btn" type="button" data-action="share-week" aria-label="Compartir semana"><i class="icon fa-solid fa-share-nodes"></i></button>
             </div>
           </div>
           <div class="hist-card-days">${dayDots}</div>
@@ -2917,7 +2921,7 @@
     const points1 = collectExerciseHistory(progExercise);
     if(points1.length === 0){
       contentEl.innerHTML = `
-        <div class="placeholder">
+        <div class="card card--dashed placeholder">
           <i class="icon fa-solid fa-chart-line"></i>
           <span>Progreso</span>
           <p>No hay registros marcados como hechos para "${escapeHtml(progExercise)}" todavía.</p>
@@ -2937,11 +2941,11 @@
 
     contentEl.innerHTML = `
       <div class="summary-strip">
-        <div class="sum-chip"><div class="k">Último</div><div class="v accent">${last} kg</div></div>
-        <div class="sum-chip"><div class="k">Mejor</div><div class="v">${best} kg</div></div>
-        <div class="sum-chip"><div class="k">Cambio</div><div class="v" style="color:${deltaColor}">${deltaSign}${delta.toFixed(1)} kg</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Último</div><div class="v accent">${last} kg</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Mejor</div><div class="v">${best} kg</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Cambio</div><div class="v" style="color:${deltaColor}">${deltaSign}${delta.toFixed(1)} kg</div></div>
       </div>
-      <div class="prog-chart-card">
+      <div class="card prog-chart-card">
         <div class="prog-ex-name">${escapeHtml(progExercise)}${progExercise2 ? `<span class="prog-ex-vs">vs</span>${escapeHtml(progExercise2)}` : ''}</div>
         <div class="prog-canvas-wrap"><canvas id="prog-canvas"></canvas></div>
       </div>`;
@@ -3042,7 +3046,7 @@
 
     if(candidates.length === 0){
       contentEl.innerHTML = `
-        <div class="placeholder">
+        <div class="card card--dashed placeholder">
           <i class="icon fa-solid fa-chart-line"></i>
           <span>Progreso</span>
           <p>Busca un ejercicio arriba para ver su progreso.</p>
@@ -3060,7 +3064,7 @@
           const trendIco = delta > 0 ? 'fa-arrow-trend-up' : delta < 0 ? 'fa-arrow-trend-down' : 'fa-minus';
           const trendClass = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
           return `
-          <div class="prog-spark-card" data-idx="${i}">
+          <div class="card card--compact prog-spark-card" data-idx="${i}">
             <div class="prog-spark-head">
               <span class="prog-spark-name">${escapeHtml(c.name)}</span>
               <i class="icon prog-spark-trend ${trendClass} fa-solid ${trendIco}"></i>

@@ -32,7 +32,9 @@ El frontend (`index.html` + `css/styles.css` + `js/app.js` + `js/api.js`) está 
 │   ├── icon-192.png                Ícono de la PWA (mancuerna --accent sobre --bg)
 │   └── icon-512.png
 ├── css/
-│   └── styles.css                 Todos los estilos, incluyendo login/logout
+│   ├── tokens.css                 Design tokens: colores (y con transparencia), radios, tamaños de texto, espaciado
+│   ├── components.css             Componentes base: .card (+ --compact/--raised/--dashed) y .btn (+ --primary/--ghost/--danger/--block/--sm/--icon)
+│   └── styles.css                 Estilos por vista, incluyendo login/logout
 ├── js/
 │   ├── offline-queue.js           Cola de mutaciones pendientes en IndexedDB (edición offline)
 │   ├── api.js                     Cliente fetch (apiGet/Post/Put/Delete), maneja 401 y encola mutaciones sin conexión
@@ -115,7 +117,7 @@ Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único us
 
 **Estrategia de caché:** todo el shell (incluido `index.html`) sale de un único caché versionado, así nunca se mezcla un HTML nuevo con un JS viejo. Una versión nueva se instala en segundo plano y **espera**: la app muestra "Hay una versión nueva de la app — Actualizar" y, al aceptar, se activa y se recarga. El navegador busca un `sw.js` nuevo al navegar y también cada vez que la app vuelve a primer plano. Consecuencia en desarrollo: como el shell sale del caché, un cambio en `index.html`/`css`/`js` no se ve hasta que cambie `CACHE_NAME` (al commitear) y se acepte la actualización — en DevTools → Application → Service Workers, marca *Update on reload* o *Bypass for network*, o ejecuta `php scripts/bump-sw-cache.php`.
 
-`CACHE_NAME` de `sw.js` se recalcula solo: un git hook (`.githooks/pre-commit` → `scripts/bump-sw-cache.php`) hashea el contenido de `index.html`/`css/styles.css`/`js/app.js`/`js/api.js`/`js/offline-queue.js`/`js/snapshot.js` en cada commit y reescribe `CACHE_NAME` (`bitacora-shell-<hash10>`) solo si alguno cambió — ya no hace falta acordarse de bumpearlo a mano, que era la causa de que varias veces durante el desarrollo local de este proyecto un navegador con la PWA instalada siguiera sirviendo el shell viejo desde caché. **Activar el hook una sola vez por clon del repo**: `git config core.hooksPath .githooks`.
+`CACHE_NAME` de `sw.js` se recalcula solo: un git hook (`.githooks/pre-commit` → `scripts/bump-sw-cache.php`) hashea el contenido de `index.html`/`css/tokens.css`/`css/components.css`/`css/styles.css`/`js/app.js`/`js/api.js`/`js/offline-queue.js`/`js/snapshot.js` en cada commit y reescribe `CACHE_NAME` (`bitacora-shell-<hash10>`) solo si alguno cambió — ya no hace falta acordarse de bumpearlo a mano, que era la causa de que varias veces durante el desarrollo local de este proyecto un navegador con la PWA instalada siguiera sirviendo el shell viejo desde caché. **Activar el hook una sola vez por clon del repo**: `git config core.hooksPath .githooks`.
 
 ## Pendiente
 
