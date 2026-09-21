@@ -1,9 +1,15 @@
-// Service worker del app shell. Nunca cachea nada bajo api/: esta app no
-// tiene sincronización offline, así que servir una respuesta vieja de la
-// API sería mostrar datos incorrectos sin avisar. Solo acelera/permite
-// instalar el shell estático (HTML/CSS/JS/íconos).
+// Service worker del app shell. Nunca intercepta nada bajo api/ (las
+// respuestas de la API siempre van a la red; la edición sin conexión la
+// resuelve la cola de js/offline-queue.js y la copia de js/snapshot.js).
+//
+// Estrategia: TODO el shell (HTML, CSS, JS, íconos) sale de un único caché
+// versionado (CACHE_NAME, que scripts/bump-sw-cache.php recalcula en cada
+// commit según el contenido del shell). Así nunca se mezclan un HTML nuevo
+// con un JS viejo. Una versión nueva se instala en segundo plano y ESPERA:
+// la página muestra "Hay una versión nueva — Actualizar" y, al aceptar, le
+// pide al SW que se active (mensaje SKIP_WAITING) y se recarga.
 
-const CACHE_NAME = 'bitacora-shell-558f07a3b6';
+const CACHE_NAME = 'bitacora-shell-86c7aa279d';
 const SHELL_ASSETS = [
   './',
   'index.html',
@@ -19,9 +25,11 @@ const SHELL_ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) =>
+      // cache:'reload' salta la caché HTTP del navegador/hosting: si no, un
+      // sw.js nuevo podría guardar en su caché archivos viejos.
+      Promise.all(SHELL_ASSETS.map((url) => cache.add(new Request(url, { cache: 'reload' }))))
+    )
   );
 });
 
@@ -29,8 +37,15 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      // Solo tiene efecto en la primera instalación (toma el control de la
+      // página ya abierta) o tras aceptar una actualización.
       .then(() => self.clients.claim())
   );
+});
+
+// La página pide activar la versión que está esperando.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -43,9 +58,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (event.request.mode === 'navigate') {
-    // network-first: un deploy nuevo se ve de inmediato; si no hay red, cae al shell cacheado.
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('index.html'))
+      caches.match('index.html').then((cached) => cached || fetch(event.request))
     );
     return;
   }

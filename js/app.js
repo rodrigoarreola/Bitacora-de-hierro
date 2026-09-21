@@ -45,6 +45,11 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.48.0', date: '2026-09-21', title: 'Aviso de versión nueva', items: [
+      'Cuando hay una versión nueva de la app, aparece un aviso "Hay una versión nueva — Actualizar" y se aplica cuando tú quieras, sin que la pantalla cambie a la mitad de lo que estás haciendo.',
+      'Corregido: tras una actualización podía mezclarse una pantalla nueva con código viejo hasta recargar un par de veces. Ahora toda la app se sirve de la misma versión.',
+      'La app también busca actualizaciones cada vez que vuelves a ella, aunque la tengas instalada y abierta por días.',
+    ]},
     { version: '1.47.0', date: '2026-09-21', title: 'Abrir la app sin conexión', items: [
       'Si abres la app sin internet, ya no te manda al inicio de sesión: abre con tus últimos datos guardados y un aviso "Sin conexión". Al volver la red se actualiza sola.',
       'Si no hay datos guardados y no hay conexión, ves una pantalla con "Reintentar" en vez del login.',
@@ -3387,9 +3392,49 @@
 
   // ============================================================
   // Service worker (PWA): cachea el app shell, no depende de la sesión.
+  // Una versión nueva espera hasta que el usuario acepta "Actualizar".
   // ============================================================
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('sw.js').catch(()=>{ /* PWA es un extra, no bloquea la app si falla */ });
+    // Solo se recarga tras aceptar una actualización: en la primera
+    // instalación el SW también toma el control (controllerchange) y no hay
+    // nada que recargar.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloadingForUpdate = false;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(!hadController || reloadingForUpdate) return;
+      reloadingForUpdate = true;
+      location.reload();
+    });
+
+    function offerUpdate(worker){
+      showToast('Hay una versión nueva de la app.', {
+        actionLabel: 'Actualizar',
+        duration: 30000,
+        onAction: ()=> worker.postMessage({ type: 'SKIP_WAITING' }),
+      });
+    }
+
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      // Ya había una versión esperando (se instaló en una visita anterior).
+      if(reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+
+      reg.addEventListener('updatefound', ()=>{
+        const worker = reg.installing;
+        if(!worker) return;
+        worker.addEventListener('statechange', ()=>{
+          if(worker.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(worker);
+        });
+      });
+
+      // Una PWA instalada puede pasar días abierta sin navegar de nuevo, que es
+      // cuando el navegador busca un sw.js nuevo: se busca también al volver a
+      // primer plano, y se vuelve a ofrecer la actualización si sigue pendiente.
+      document.addEventListener('visibilitychange', ()=>{
+        if(document.visibilityState !== 'visible') return;
+        reg.update().catch(()=>{});
+        if(reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+      });
+    }).catch(()=>{ /* PWA es un extra, no bloquea la app si falla */ });
   }
 
   // ============================================================

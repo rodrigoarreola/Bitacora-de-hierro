@@ -2,6 +2,26 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.48.0] - 2026-09-21 — Caché versionado y aviso de versión nueva
+
+### Fixed
+
+- **HTML nuevo con JS/CSS viejo tras un deploy**: la navegación iba a la red primero pero `css/js` salían del caché primero, así que se podía mostrar un `index.html` nuevo con un `app.js` viejo hasta la recarga siguiente (visto en vivo al agregar `#boot-screen`). Ahora todo el shell, `index.html` incluido, sale del mismo caché versionado.
+
+### Added
+
+- **Aviso "Hay una versión nueva de la app — Actualizar"** (`updatefound` / `registration.waiting`, reutiliza `showToast` con acción). Al aceptar se manda `SKIP_WAITING` al SW y la página se recarga en `controllerchange`. Solo se recarga si ya había un SW controlando la página, así la primera instalación no recarga de más.
+- **Búsqueda de actualizaciones al volver a primer plano** (`visibilitychange` → `registration.update()`), para PWAs instaladas que pasan días abiertas sin navegar; si ya hay una versión esperando, se vuelve a ofrecer.
+
+### Changed
+
+- **`sw.js`**: se quita el `skipWaiting()` automático del `install` (la versión nueva espera hasta que se acepte); se mantiene `clients.claim()` para que la primera instalación tome el control de la página. El precache usa `Request(url, {cache:'reload'})` para no guardar archivos viejos de la caché HTTP. La navegación sale de `caches.match('index.html')`.
+- Corregido el comentario de `sw.js` que decía que la app no tenía sincronización offline.
+
+### Nota para desarrollo
+
+- Como `index.html` ya no va a la red primero, en local un cambio no se ve hasta que cambie `CACHE_NAME` (al commitear) y se acepte la actualización, o hasta usar *Update on reload* / *Bypass for network* en DevTools, o correr `php scripts/bump-sw-cache.php`. Detalle en el README.
+
 ## [1.47.0] - 2026-09-21 — Arranque en frío sin conexión
 
 ### Added
