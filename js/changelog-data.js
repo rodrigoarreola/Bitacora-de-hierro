@@ -2,6 +2,15 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.53.0",
+        "date": "2026-09-21",
+        "title": "Confirmaciones dentro de la app y atajos en el ícono",
+        "items": [
+            "Al eliminar una semana, quitar un ejercicio de la librería o importar datos, ahora ves un aviso propio de la app, con el detalle de lo que vas a hacer (por ejemplo, qué semana se elimina) y un botón rojo cuando la acción borra datos. Puedes cancelar con el botón, tocando afuera o con Escape.",
+            "Si instalas la app, al mantener presionado su ícono aparecen atajos a Progreso, Historial y Calendario."
+        ]
+    },
+    {
         "version": "1.52.0",
         "date": "2026-09-21",
         "title": "Íconos, gráficas y tipografías también sin internet",

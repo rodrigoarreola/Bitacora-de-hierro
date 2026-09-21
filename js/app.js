@@ -210,6 +210,66 @@
     document.getElementById('exercise-info-overlay').classList.add('hidden');
   }
 
+  // ============================================================
+  // Diálogo de confirmación: reemplaza a window.confirm() (que se ve fuera de
+  // la app, sin estilo ni contexto). confirmDialog() devuelve una promesa con
+  // true/false, así que se usa igual que confirm() pero con await. Es un
+  // bottom sheet (.sheet) con role="alertdialog": el foco cae en Cancelar (Enter
+  // no borra nada por accidente), Tab se queda dentro del diálogo, Escape o
+  // tocar el fondo cancelan, y al cerrar el foco vuelve a donde estaba.
+  // ============================================================
+  const confirmOverlay = document.getElementById('confirm-overlay');
+  const confirmTitleEl = document.getElementById('confirm-title');
+  const confirmMsgEl = document.getElementById('confirm-msg');
+  const confirmOkBtn = document.getElementById('confirm-ok');
+  const confirmCancelBtn = document.getElementById('confirm-cancel');
+  let confirmResolve = null;
+  let confirmReturnFocus = null;
+
+  function closeConfirm(result){
+    if(!confirmResolve) return;
+    const resolve = confirmResolve;
+    confirmResolve = null;
+    confirmOverlay.classList.add('hidden');
+    document.removeEventListener('keydown', onConfirmKeydown, true);
+    const back = confirmReturnFocus;
+    confirmReturnFocus = null;
+    if(back && document.contains(back)) back.focus();
+    resolve(result);
+  }
+
+  function onConfirmKeydown(e){
+    if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeConfirm(false); return; }
+    if(e.key !== 'Tab') return;
+    const order = [confirmCancelBtn, confirmOkBtn];
+    const i = order.indexOf(document.activeElement);
+    e.preventDefault();
+    order[e.shiftKey ? (i <= 0 ? order.length - 1 : i - 1) : (i === order.length - 1 ? 0 : i + 1)].focus();
+  }
+
+  // opts: { title, message, confirmLabel, cancelLabel, danger }. `danger` pinta
+  // el botón de acción en rojo (para acciones que borran o reemplazan datos).
+  function confirmDialog({ title = '', message = '', confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false } = {}){
+    if(confirmResolve) closeConfirm(false); // de a uno: uno nuevo cancela el anterior
+    return new Promise(resolve=>{
+      confirmResolve = resolve;
+      confirmReturnFocus = document.activeElement;
+      confirmTitleEl.textContent = title;
+      confirmMsgEl.textContent = message;
+      confirmOkBtn.textContent = confirmLabel;
+      confirmCancelBtn.textContent = cancelLabel;
+      confirmOkBtn.classList.toggle('btn--danger-solid', danger);
+      confirmOkBtn.classList.toggle('btn--primary', !danger);
+      confirmOverlay.classList.remove('hidden');
+      document.addEventListener('keydown', onConfirmKeydown, true);
+      confirmCancelBtn.focus();
+    });
+  }
+
+  confirmOverlay.addEventListener('click', (e)=>{ if(e.target === confirmOverlay) closeConfirm(false); });
+  confirmCancelBtn.addEventListener('click', ()=> closeConfirm(false));
+  confirmOkBtn.addEventListener('click', ()=> closeConfirm(true));
+
   async function addToLibrary(name){
     const trimmed = (name || '').trim();
     if(!trimmed) return;
@@ -968,14 +1028,14 @@
   }
 
   // doubleConfirm: el botón chico (X) del riel de semanas se queda con un
-  // solo confirm() — ya requiere abrir el riel y apuntarle a un ícono
+  // solo diálogo — ya requiere abrir el riel y apuntarle a un ícono
   // pequeño. El botón grande al final de "Hoy" es mucho más fácil de tocar
   // sin querer, así que pide dos confirmaciones seguidas en vez de una.
   async function deleteWeek(key, { doubleConfirm = false } = {}){
     if(pendingDelete) finalizePendingDelete(); // evita resucitar un ejercicio en una semana que está por desaparecer
     if(state.order.length <= 1){ showToast('Debe quedar al menos una semana.'); return; }
-    if(!confirm('¿Eliminar esta semana? Se perderán sus registros.')) return;
-    if(doubleConfirm && !confirm('¿Seguro? Esta acción no se puede deshacer.')) return;
+    if(!await confirmDialog({ title: '¿Eliminar esta semana?', message: `Se perderán todos los registros de la semana ${weekLabel(key)}.`, confirmLabel: 'Eliminar', danger: true })) return;
+    if(doubleConfirm && !await confirmDialog({ title: '¿Seguro?', message: 'Esta acción no se puede deshacer.', confirmLabel: 'Sí, eliminar', danger: true })) return;
     try{ await Api.del(`api/weeks.php?date=${encodeURIComponent(key)}`); }
     catch(err){ showToast(err.message); return; }
     delete state.weeks[key];
@@ -1840,12 +1900,13 @@
   // ============================================================
   // Librería: eventos de la vista Ajustes
   // ============================================================
-  document.getElementById('lib-list').addEventListener('click', (e)=>{
+  document.getElementById('lib-list').addEventListener('click', async (e)=>{
     const btn = e.target.closest('[data-action="lib-del"]');
     if(!btn) return;
     const row = btn.closest('.lib-row');
-    const ex = EXERCISE_LIBRARY.find(x => String(x.id) === row.dataset.id);
-    if(ex && confirm(`¿Quitar "${ex.name}" de la librería?`)) removeFromLibrary(row.dataset.id);
+    const id = row.dataset.id;
+    const ex = EXERCISE_LIBRARY.find(x => String(x.id) === id);
+    if(ex && await confirmDialog({ title: '¿Quitar de la librería?', message: `Se quitará "${ex.name}" de la lista de autocompletar. Tus ejercicios ya registrados no cambian.`, confirmLabel: 'Quitar', danger: true })) removeFromLibrary(id);
   });
   document.getElementById('lib-search').addEventListener('input', renderLibraryView);
   document.getElementById('lib-add-btn').addEventListener('click', ()=>{
@@ -3038,8 +3099,8 @@
     const existing = payload.filter(w => state.weeks[w.monday_date]).length;
     const nuevas = payload.length - existing;
     const msg = `Vas a importar ${payload.length} semana${payload.length === 1 ? '' : 's'}: `
-      + `${existing} ya existen y se van a reemplazar, ${nuevas} son nuevas. ¿Continuar?`;
-    if(!confirm(msg)) return;
+      + `${existing} ya existen y se van a reemplazar, ${nuevas} son nuevas.`;
+    if(!await confirmDialog({ title: '¿Importar datos?', message: msg, confirmLabel: 'Importar', danger: existing > 0 })) return;
 
     let result;
     try{

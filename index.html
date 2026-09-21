@@ -320,8 +320,20 @@
     <button type="button" class="toast-action hidden" id="toast-action"></button>
   </div>
 
-  <div class="ex-info-overlay hidden" id="exercise-info-overlay">
-    <div class="ex-info-panel" id="exercise-info-panel"></div>
+  <div class="sheet-overlay ex-info-overlay hidden" id="exercise-info-overlay">
+    <div class="sheet ex-info-panel" id="exercise-info-panel"></div>
+  </div>
+
+  <!-- Diálogo de confirmación (reemplaza a window.confirm) — ver confirmDialog() en js/app.js -->
+  <div class="sheet-overlay hidden" id="confirm-overlay">
+    <div class="sheet confirm-sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-msg">
+      <div class="confirm-title" id="confirm-title"></div>
+      <p class="confirm-msg" id="confirm-msg"></p>
+      <div class="confirm-actions">
+        <button type="button" class="btn" id="confirm-cancel">Cancelar</button>
+        <button type="button" class="btn btn--primary" id="confirm-ok">Confirmar</button>
+      </div>
+    </div>
   </div>
 
   </div>

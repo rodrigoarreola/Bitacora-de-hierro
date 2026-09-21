@@ -37,6 +37,7 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 | Perfil | Dashboard + datos | `#/perfil` | semanas en memoria, `api/backups.php`, `api/import.php` | V ✓ · C ~ · E ✓ · O ~ |
 | Ajustes | Ajustes | `#/ajustes` | `api/settings.php`, `api/library.php`, `data/exercises-dataset.json` | V ~ · C ~ · E ~ · O ✗ |
 | Info de ejercicio | Detalle (bottom sheet) | `#exercise-info-overlay` (sin ruta) | `data/exercises-dataset.json`, `api/exercise_media.php` | V ✓ · C ✓ · E ✓ · O ✗ |
+| Confirmación | Diálogo (bottom sheet) | `#confirm-overlay` (sin ruta) | — | n/a |
 
 **Leyenda:** V = vacío, C = cargando, E = error, O = sin conexión.
 ✓ manejado · ~ parcial · ✗ falta · n/a no aplica.

@@ -2,6 +2,38 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.53.0] - 2026-09-21 — Diálogo de confirmación propio y manifest ampliado
+
+### En la app: Confirmaciones dentro de la app y atajos en el ícono
+
+- Al eliminar una semana, quitar un ejercicio de la librería o importar datos, ahora ves un aviso propio de la app, con el detalle de lo que vas a hacer (por ejemplo, qué semana se elimina) y un botón rojo cuando la acción borra datos. Puedes cancelar con el botón, tocando afuera o con Escape.
+- Si instalas la app, al mantener presionado su ícono aparecen atajos a Progreso, Historial y Calendario.
+
+### Added
+
+- **`confirmDialog({ title, message, confirmLabel, cancelLabel, danger })`** (`js/app.js`): promesa con `true`/`false`, así se usa como `confirm()` pero con `await`. Bottom sheet `#confirm-overlay` con `role="alertdialog"` y `aria-modal`; el foco cae en Cancelar (Enter no borra nada por accidente) y vuelve al elemento que lo abrió; Tab/Shift+Tab se quedan dentro; Escape o tocar el fondo cancelan; abrir otro cancela el anterior. Ver [ADR 0008](docs/adr/0008-dialogo-de-confirmacion.md).
+- **`.btn--danger-solid`** (`css/components.css`): botón de acción en rojo relleno.
+- **Manifest**: `id`, `categories` (`fitness`, `health`) y tres `shortcuts` (Progreso, Historial, Calendario) que abren esa pantalla por su URL de hash.
+
+### Changed
+
+- **Los 4 `confirm()` nativos pasan a `confirmDialog()`**: eliminar semana (`deleteWeek()`; desde el botón grande de Hoy siguen siendo dos diálogos seguidos, ahora con el rango de la semana en el mensaje), quitar de la librería e importar datos (en rojo solo si reemplaza semanas existentes).
+- **`.sheet-overlay` / `.sheet` pasan a `css/components.css`** como componente reutilizable, extraídos del panel de info de ejercicio (que conserva sus clases `ex-info-*` como ganchos). Verificado idéntico: hash de los estilos calculados de ~3.700 elementos en 3 estados, 0 diferencias.
+- **Íconos del manifest declarados por separado como `any` y `maskable`** (antes `"any maskable"` juntos, que Chrome desaconseja). Es el mismo PNG: el fondo llena todo el cuadro y la mancuerna queda a un 31 % del centro, dentro de la zona segura de 40 %, así que no hicieron falta archivos nuevos.
+- **`scripts/bump-sw-cache.php`**: `manifest.json` y los íconos entran al hash del shell; antes un cambio solo en el manifest no invalidaba el caché.
+
+### Verificado (Navegador integrado)
+
+- Diálogo: foco en Cancelar, `role`/`aria-modal`, Tab y Shift+Tab dentro, Escape y fondo cancelan y devuelven el foco, tocar dentro de la card no cierra, la doble confirmación encadena el segundo diálogo y cancelarlo no borra la semana (78 semanas antes y después).
+- Camino de confirmar: agregué una entrada de librería de prueba, el diálogo pidió confirmación, al aceptar se quitó (54 entradas antes y después).
+- Manifest: JSON válido, se sirve y se cachea igual, atajos dentro del `scope`, sin avisos en consola.
+
+### Límites conocidos
+
+- El diálogo de **importar** no se probó con un archivo real.
+- La nota de un ejercicio aún usa el `prompt()` del navegador.
+- Sin `screenshots` en el manifest: requieren imágenes reales de la app.
+
 ## [1.52.0] - 2026-09-21 — Librerías de CDN sin conexión
 
 ### En la app: Íconos, gráficas y tipografías también sin internet

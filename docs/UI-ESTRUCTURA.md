@@ -63,6 +63,14 @@ volver la red.
 Mensaje breve inferior, con botón de acción opcional (se usa para
 **Deshacer** al borrar un ejercicio). Dura ~2.4 s.
 
+### Diálogo de confirmación
+Bottom sheet (`#confirm-overlay`, componente `.sheet`) que reemplaza al
+`confirm()` del navegador. Título, mensaje con el contexto (ej. la semana que se
+va a eliminar) y dos botones: **Cancelar** (con el foco por defecto) y la acción,
+en rojo cuando borra o reemplaza datos. Escape o tocar el fondo cancelan. Lo usan:
+eliminar semana (dos diálogos seguidos desde el botón grande de Hoy), quitar de la
+librería e importar datos.
+
 ### Overlay "Info del ejercicio"
 Panel modal que se abre con el ícono de ojo de un ejercicio (solo si el
 nombre coincide con el dataset). Contiene: nombre (tuyo y en español del
@@ -227,8 +235,9 @@ semana" con botón "+ Nueva semana".
   imagen (html2canvas).
 - **Gestos:** deslizar entre días, arrastrar para reordenar ejercicios,
   doble clic en gráficas para resetear zoom.
-- **Confirmaciones nativas** (`confirm()`): eliminar semana, quitar de la
-  librería, importar datos.
+- **Confirmaciones:** diálogo propio (`confirmDialog()`): eliminar semana, quitar
+  de la librería, importar datos. La nota de un ejercicio aún usa el `prompt()`
+  del navegador.
 - **PWA / offline:** instalable, shell cacheado, cola de cambios offline.
 
 ---
@@ -243,8 +252,8 @@ Observaciones de la estructura actual (candidatos, no decisiones):
   "Eliminar semana" están al final, lejos de donde se usan.
 - ~~6 ítems en la nav inferior~~ — resuelto: quedan 5 y Ajustes pasó a un
   ícono en el header (1.50.0).
-- **Acciones destructivas** con `confirm()` del navegador; sin estilo ni
-  contexto propio (excepto borrar ejercicio, que sí tiene deshacer).
+- ~~Acciones destructivas con `confirm()` del navegador~~ — resuelto (1.53.0):
+  diálogo propio con contexto y botón rojo. Queda el `prompt()` de la nota.
 - **Fila de ejercicio muy cargada:** check, nombre, ojo, nota, 3 inputs,
   papelera, chevron y asa — 9 controles en ~520 px.
 - **"Mejor racha"** vive en la tira del día aunque no es del día; la

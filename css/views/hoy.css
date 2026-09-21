@@ -285,18 +285,7 @@
 
 
 /* ---------- Panel de info de ejercicio (ícono de ojo) ---------- */
-/* Bottom sheet, no modal centrado — mismo lenguaje "mobile-first" que el
-   resto de la app (no hay overlay/modal reutilizable previo, ver
-   ESTRUCTURA.md). Fondo oscuro fijo + card anclada abajo, scrollable. */
-.ex-info-overlay{
-  position:fixed; inset:0; background:var(--scrim); z-index:50;
-  display:flex; align-items:flex-end; justify-content:center;
-}
-.ex-info-panel{
-  width:100%; max-width:520px; max-height:85vh; overflow-y:auto;
-  background:var(--surface); border:1px solid var(--line); border-bottom:none;
-  border-radius:20px 20px 0 0; padding:16px 18px calc(20px + env(safe-area-inset-bottom));
-}
+/* El overlay y la card son el componente .sheet-overlay / .sheet (components.css). */
 .ex-info-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp-2-5); margin-bottom:var(--sp-3); }
 .ex-info-title{ font-family:var(--font-display); font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; color:var(--text); line-height:1.2; }
 .ex-info-subtitle{ font-size:var(--fs-sm); color:var(--text-faint); margin-top:var(--sp-1); text-transform:capitalize; }

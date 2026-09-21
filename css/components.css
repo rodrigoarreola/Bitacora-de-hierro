@@ -26,6 +26,8 @@
 .btn--ghost{ background:none; color:var(--text-dim); }
 .btn--danger{ background:none; color:var(--danger); }
 .btn--danger:hover{ border-color:var(--danger); color:var(--danger); }
+.btn--danger-solid{ background:var(--danger); border-color:var(--danger); color:var(--white); }
+.btn--danger-solid:hover{ background:var(--danger); border-color:var(--danger); color:var(--white); filter:brightness(1.1); }
 
 .btn--block{ display:flex; width:100%; }
 .btn--sm{ font-size:var(--fs-md); padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm); }
@@ -79,3 +81,23 @@
   padding:var(--sp-3) var(--sp-3-5); color:var(--text); font-size:var(--fs-lg); font-family:var(--font-body); margin-bottom:var(--sp-3-5);
 }
 .prog-search:focus{ outline:none; border-color:var(--accent-dim); }
+
+/* ---------- Bottom sheet (panel de info de ejercicio, diálogo de confirmación) ---------- */
+/* Bottom sheet, no modal centrado — mismo lenguaje "mobile-first" que el resto de
+   la app. Fondo oscuro fijo + card anclada abajo, scrollable. */
+.sheet-overlay{
+  position:fixed; inset:0; background:var(--scrim); z-index:50;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.sheet{
+  width:100%; max-width:520px; max-height:85vh; overflow-y:auto;
+  background:var(--surface); border:1px solid var(--line); border-bottom:none;
+  border-radius:20px 20px 0 0; padding:16px 18px calc(20px + env(safe-area-inset-bottom));
+}
+
+/* Diálogo de confirmación: el título y el mensaje van sobre la card .sheet; los
+   botones ocupan el mismo ancho (Cancelar a la izquierda, la acción a la derecha). */
+.confirm-title{ font-family:var(--font-display); font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; color:var(--text); line-height:1.2; }
+.confirm-msg{ font-size:var(--fs-lg); color:var(--text-dim); line-height:1.5; margin:var(--sp-2) 0 var(--sp-4); }
+.confirm-actions{ display:flex; gap:var(--sp-2-5); }
+.confirm-actions .btn{ flex:1; }
