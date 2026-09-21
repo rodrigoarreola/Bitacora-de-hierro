@@ -33,5 +33,7 @@ tenía tokens. Cada cambio de estilo había que hacerlo en muchos sitios.
   pantalla), con lo compartido en `components.css`. Un selector vive en un solo
   archivo, así el orden de carga no cambia el resultado.
 - El espaciado (`margin`, `padding`, `gap`) sale de la escala `--sp-*` de `tokens.css`,
-  en unidades de 4px con pasos de 2px. Los impares (3, 5, 7, 9, 11px) y los >24px de
-  pantallas sueltas siguen literales hasta ajustarlos.
+  en unidades de 4px con pasos de 2px. Los impares (3, 5, 7, 9, 11px) se redondean al
+  par siguiente (los controles ganan ~2px de alto, mejor blanco táctil); los >24px de
+  pantallas sueltas siguen literales. Excepciones: el padding de `.sum-chip` (con 4 chips
+  en 375px, uno más ancho parte "40 días") y el `column-gap:3px` del heatmap.

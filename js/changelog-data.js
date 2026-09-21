@@ -2,6 +2,15 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.51.0",
+        "date": "2026-09-21",
+        "title": "Botones y separaciones más parejos",
+        "items": [
+            "Botones y campos quedan unos 2 píxeles más altos, así son más fáciles de tocar, y las separaciones entre elementos siguen ahora una misma escala.",
+            "Las pantallas crecen unos pocos píxeles (entre 3 y 36 según la pantalla); todo lo demás se ve igual."
+        ]
+    },
+    {
         "version": "1.50.3",
         "date": "2026-09-21",
         "title": "Sin cambios visibles (orden interno)",

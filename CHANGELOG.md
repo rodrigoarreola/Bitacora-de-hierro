@@ -2,6 +2,24 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.51.0] - 2026-09-21 — Espaciado a la escala (impares al par siguiente)
+
+### En la app: Botones y separaciones más parejos
+
+- Botones y campos quedan unos 2 píxeles más altos, así son más fáciles de tocar, y las separaciones entre elementos siguen ahora una misma escala.
+- Las pantallas crecen unos pocos píxeles (entre 3 y 36 según la pantalla); todo lo demás se ve igual.
+
+### Changed
+
+- **45 valores impares de `margin`/`padding`/`gap` pasan al par siguiente y a su token**: 3→4 px (13), 5→6 px (8), 7→8 px (8), 9→10 px (6), 11→12 px (10). Con esto todo el espaciado de la interfaz sale de la escala `--sp-*`; solo quedan literales los >24 px de pantallas sueltas (login, estados vacíos: 22/26/28/40 px) y las excepciones de abajo.
+- **Excepciones, comentadas en el CSS**: el padding de `.sum-chip` (11/9 px) — con 4 chips en 375 px, 12/10 px deja 62 px útiles y "40 días" se parte en dos líneas (el chip pasaba de 66 a 88 px de alto) — y `.heatmap-grid { column-gap: 3px }`, que iguala el separador fijo de 3 px entre semanas.
+
+### Efecto en el diseño (375 px, comparado con la versión anterior)
+
+- **Botones y campos +2 px de alto** (39→41 px: `.btn`, `.perfil-btn`, `.logout-btn`, `.btn-delete-week`, "Volver a hoy", píldoras de semana, buscadores).
+- **Barra inferior +3 px** (52→55 px) y **header +1 px**.
+- **Alto total de cada vista**: Hoy +12, Perfil +36 (muchas filas de Hitos +1 px), Ajustes +7, Calendario +5, Historial +5, Progreso +3. Sin desbordes horizontales; las filas de ejercicio conservan sus 2 líneas de nombre.
+
 ## [1.50.3] - 2026-09-21 — Espaciado con tokens
 
 ### En la app: Sin cambios visibles (orden interno)

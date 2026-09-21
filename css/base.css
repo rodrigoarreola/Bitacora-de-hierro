@@ -26,13 +26,13 @@ header.app-head{ display:flex; align-items:flex-end; justify-content:space-betwe
 }
 .brand-mark .icon{ font-size:17px; }
 h1{ font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:.01em; text-transform:uppercase; color:var(--text); margin:0; line-height:1; }
-.sub{ font-size:var(--fs-md); color:var(--text-dim); margin:3px 0 0; }
+.sub{ font-size:var(--fs-md); color:var(--text-dim); margin:var(--sp-1) 0 0; }
 /* La racha y el engranaje no se parten: si falta ancho, se encoge la marca de la izquierda (su subtítulo ya envuelve a 2 líneas). */
 .head-right{ display:flex; align-items:center; gap:var(--sp-2); flex-shrink:0; }
 .streak-text{ white-space:nowrap; }
 .head-settings{ text-decoration:none; }
 .head-settings.active{ color:var(--accent); border-color:var(--accent-dim); }
-.streak{ display:flex; align-items:stretch; justify-content:flex-end; gap:7px; }
+.streak{ display:flex; align-items:stretch; justify-content:flex-end; gap:var(--sp-2); }
 .streak-text{ text-align:right; }
 .streak .n{ font-family:var(--font-mono); font-size:19px; font-weight:600; color:var(--text-faint); line-height:1; transition:color .2s ease; }
 .streak .n.complete{ color:var(--ok); }
@@ -44,7 +44,7 @@ h1{ font-family:var(--font-display); font-size:23px; font-weight:800; letter-spa
 .toast{
   position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(12px);
   background:var(--surface-2); border:1px solid var(--line); color:var(--text);
-  font-size:var(--fs-md); padding:9px var(--sp-3-5); border-radius:var(--r-md); opacity:0; pointer-events:none;
+  font-size:var(--fs-md); padding:var(--sp-2-5) var(--sp-3-5); border-radius:var(--r-md); opacity:0; pointer-events:none;
   transition:opacity .25s ease, transform .25s ease; z-index:20; max-width:88vw;
   display:flex; align-items:center; gap:var(--sp-2-5);
 }
@@ -70,8 +70,8 @@ nav.bottom-nav{
 }
 nav.bottom-nav button{
   flex:1; background:none; border:none; color:var(--text-faint);
-  padding:11px var(--sp-1) 9px; font-size:9.5px; /* fuera de escala: 5 botones en 360-375px, "CALENDARIO" (10px) casi no entra */ cursor:pointer;
-  display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:var(--sp-3) var(--sp-1) var(--sp-2-5); font-size:9.5px; /* fuera de escala: 5 botones en 360-375px, "CALENDARIO" (10px) casi no entra */ cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-1-5);
   font-family:var(--font-body); font-weight:600; text-transform:uppercase; letter-spacing:.02em;
 }
 nav.bottom-nav button .icon{ font-size:16px; margin:0; }
@@ -82,7 +82,7 @@ nav.bottom-nav button.active{ color:var(--accent); }
   position:fixed; top:0; left:0; right:0; z-index:30;
   background:var(--pending); color:var(--accent-ink);
   font-size:var(--fs-sm); font-weight:600; text-align:center;
-  padding:7px var(--sp-2-5); max-width:520px; margin-inline:auto;
+  padding:var(--sp-2) var(--sp-2-5); max-width:520px; margin-inline:auto;
 }
 
 /* ---------- Utilidad ---------- */

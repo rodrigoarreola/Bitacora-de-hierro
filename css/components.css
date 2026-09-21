@@ -15,7 +15,7 @@
   display:inline-flex; align-items:center; justify-content:center; gap:var(--sp-2);
   font-family:var(--font-body); font-size:var(--fs-md); font-weight:600;
   background:var(--surface-2); color:var(--text); border:1px solid var(--line);
-  border-radius:var(--r-md); padding:11px var(--sp-3-5); cursor:pointer;
+  border-radius:var(--r-md); padding:var(--sp-3) var(--sp-3-5); cursor:pointer;
 }
 .btn .icon{ font-size:var(--fs-lg); }
 .btn:hover{ border-color:var(--accent-dim); color:var(--accent); }
@@ -28,28 +28,28 @@
 .btn--danger:hover{ border-color:var(--danger); color:var(--danger); }
 
 .btn--block{ display:flex; width:100%; }
-.btn--sm{ font-size:var(--fs-md); padding:7px var(--sp-3); border-radius:var(--r-sm); }
+.btn--sm{ font-size:var(--fs-md); padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm); }
 .btn--sm .icon{ font-size:var(--fs-sm); }
 .btn--icon{ width:30px; height:30px; padding:0; flex-shrink:0; border-radius:var(--r-sm); color:var(--text-dim); }
 
 /* ---------- Riel de píldoras (semanas, meses, años; se usa en Hoy, Historial, Calendario y Perfil) ---------- */
-.week-rail{ display:flex; gap:7px; overflow-x:auto; padding-bottom:var(--sp-1); margin-bottom:var(--sp-4); scrollbar-width:none; align-items:center; }
+.week-rail{ display:flex; gap:var(--sp-2); overflow-x:auto; padding-bottom:var(--sp-1); margin-bottom:var(--sp-4); scrollbar-width:none; align-items:center; }
 .week-rail::-webkit-scrollbar{ display:none; }
 .week-pill{
   flex-shrink:0; display:flex; align-items:center; gap:var(--sp-1-5);
   font-family:var(--font-mono); font-size:var(--fs-md); font-weight:500;
   color:var(--text-dim); background:var(--surface); border:1px solid var(--line);
-  border-radius:var(--r-sm); padding:7px var(--sp-2-5); white-space:nowrap; cursor:pointer;
+  border-radius:var(--r-sm); padding:var(--sp-2) var(--sp-2-5); white-space:nowrap; cursor:pointer;
 }
 .week-pill.active{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
 .wp-del{ display:flex; align-items:center; justify-content:center; background:var(--ink-soft); border:none; border-radius:5px; color:var(--accent-ink); width:16px; height:16px; padding:0; cursor:pointer; }
 .wp-del .icon{ font-size:var(--fs-xs); }
 
 .add-week{
-  position:relative; flex-shrink:0; display:flex; align-items:center; gap:5px;
+  position:relative; flex-shrink:0; display:flex; align-items:center; gap:var(--sp-1-5);
   font-family:var(--font-mono); font-size:var(--fs-sm); font-weight:600;
   color:var(--accent); background:transparent; border:1px dashed var(--steel-dim);
-  border-radius:var(--r-sm); padding:7px 11px 7px 9px; white-space:nowrap; cursor:pointer;
+  border-radius:var(--r-sm); padding:var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-2-5); white-space:nowrap; cursor:pointer;
 }
 .add-week .icon{ font-size:var(--fs-md); }
 .add-week:active{ background:var(--accent-faint); }
@@ -60,11 +60,11 @@
 /* ---------- Chips de resumen (Hoy, Perfil y Progreso) ---------- */
 .summary-strip{ display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--sp-1-5); margin-bottom:var(--sp-4); }
 .summary-strip.cols-4{ grid-template-columns:repeat(4, 1fr); }
-.sum-chip{ padding:11px 9px; }
+.sum-chip{ padding:11px 9px; } /* literal a propósito: con 4 chips en 375px un padding más ancho deja 62px útiles y "40 días" se parte */
 /* Tamaños fuera de la escala a propósito: con 4 chips en 375px quedan ~62px
    útiles y "MEJOR RACHA" (9px) / "40 días" (15px) ya se parten en 2 líneas. */
 .sum-chip .k{ font-size:8.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; font-weight:600; }
-.sum-chip .v{ font-family:var(--font-mono); font-size:14.5px; font-weight:600; color:var(--text); margin-top:3px; }
+.sum-chip .v{ font-family:var(--font-mono); font-size:14.5px; font-weight:600; color:var(--text); margin-top:var(--sp-1); }
 .sum-chip .v.accent{ color:var(--accent); }
 
 /* ---------- Panel con encabezado (Historial, Calendario, Perfil y Ajustes) ---------- */
@@ -76,6 +76,6 @@
 /* ---------- Campo de búsqueda (Historial y Progreso) ---------- */
 .prog-search{
   width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md);
-  padding:11px var(--sp-3-5); color:var(--text); font-size:var(--fs-lg); font-family:var(--font-body); margin-bottom:var(--sp-3-5);
+  padding:var(--sp-3) var(--sp-3-5); color:var(--text); font-size:var(--fs-lg); font-family:var(--font-body); margin-bottom:var(--sp-3-5);
 }
 .prog-search:focus{ outline:none; border-color:var(--accent-dim); }

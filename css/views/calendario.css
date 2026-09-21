@@ -27,7 +27,7 @@
 .cal-line.tier-yellow{ background:var(--pending); }
 .cal-line.tier-green{ background:var(--ok); }
 .cal-legend{ display:flex; flex-wrap:wrap; gap:var(--sp-2-5) var(--sp-3-5); margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid var(--line); }
-.cal-legend-item{ display:flex; align-items:center; gap:5px; font-size:var(--fs-xs); color:var(--text-faint); }
+.cal-legend-item{ display:flex; align-items:center; gap:var(--sp-1-5); font-size:var(--fs-xs); color:var(--text-faint); }
 .cal-dot{ width:8px; height:8px; border-radius:var(--r-full); flex-shrink:0; }
 
 /* ---------- Calendario: heatmap anual (primera versión) ---------- */
