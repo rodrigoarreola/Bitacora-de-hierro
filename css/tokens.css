@@ -27,6 +27,7 @@
   --scrim:rgba(10,12,15,0.72);
   --bg-glass:rgba(20,23,27,0.5);
   --shadow:rgba(0,0,0,0.35);
+  --shimmer:rgba(255,255,255,0.05);
 
   /* ---------- Radios ---------- */
   --r-xs:4px;   /* barras, celdas chicas */

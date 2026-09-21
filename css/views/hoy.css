@@ -307,3 +307,13 @@
 .ex-info-steps li{ font-size:var(--fs-lg); color:var(--text-dim); line-height:1.5; }
 .ex-info-empty{ font-size:var(--fs-md); color:var(--text-faint); margin:0 0 var(--sp-4); }
 .ex-info-attribution{ font-size:var(--fs-xs); color:var(--text-faint); line-height:1.4; border-top:1px solid var(--line); padding-top:var(--sp-2-5); }
+
+/* Primera carga de datos (#app-shell.is-loading): nada de crear/borrar semanas sobre una lista que todavía no llegó. */
+.is-loading .add-week{ pointer-events:none; opacity:.5; }
+.is-loading .btn-delete-week{ visibility:hidden; }
+/* La racha y los chips todavía no tienen datos: en vez de un "0" que parece real, un bloque gris. */
+.is-loading .streak .n,
+.is-loading .sum-chip .v{ color:transparent; background:var(--surface-2); border-radius:var(--r-xs); }
+.is-loading .sum-chip .v{ width:60%; }
+/* La cabecera del panel ya es --surface-2: sus esqueletos van un tono más claro para verse. */
+.day-panel-head .skeleton{ background:var(--line); }

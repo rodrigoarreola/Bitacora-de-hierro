@@ -2,6 +2,41 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.54.0] - 2026-09-21 — Estados de carga
+
+### En la app: La app muestra que está cargando, y avisa si algo falla
+
+- Al abrir la app o iniciar sesión, en vez de ver pantallas vacías con ceros mientras llegan tus datos, ves marcadores grises con un suave brillo donde van a aparecer; y mientras tanto no se puede crear ni borrar semanas por error.
+- Si tus datos no se pueden cargar, ahora te lo dice con un botón "Reintentar" (antes, después de iniciar sesión, te quedabas viendo la app en blanco sin ningún mensaje).
+- Si las gráficas no se pueden cargar (por ejemplo, la primera vez sin internet), Progreso y Horarios lo avisan con un botón "Recargar" en vez de fallar. La lista de backups también muestra "Cargando…" y "Reintentar".
+
+### Added
+
+- **Esqueletos de carga** (`renderSkeletons()`, `setAppLoading()`): en la primera carga de datos (`dataLoadedOnce`) se rellenan los huecos de Hoy (pastillas de semana, riel de días, panel del día), Historial, Progreso, Calendario, Perfil (Hitos y Horarios) y Ajustes (librería), y `#app-shell` queda con la clase `is-loading` y `aria-busy="true"` hasta que `applyAppData()` pinta encima. Estilos en `css/components.css` (`.skeleton`, `.skeleton-line`, `.skeleton-row`, `.skeleton-card`…), con el brillo animado y `@media (prefers-reduced-motion: reduce)` que lo deja quieto. Token nuevo `--shimmer`.
+- **`chartsAvailable()` y `chartUnavailableHtml()`**: si Chart.js no llegó a cargar, Progreso muestra "Gráfica no disponible" con Recargar y Horarios sustituye solo la gráfica (los chips y las barras de hora siguen). Antes lanzaba un `ReferenceError`.
+- **Backups**: "Cargando…" la primera vez (sin parpadeo en las siguientes) y `Reintentar` si falla (`data-action="retry-backups"`).
+- **ADR 0009** con la decisión y las alternativas.
+
+### Changed
+
+- **Mientras `is-loading`**: "Nueva semana" queda atenuada y sin clic, "Eliminar esta semana" se oculta, y la racha y los chips de resumen muestran un bloque gris en vez de "0".
+- **Login**: el botón dice "Entrando…" mientras espera. Si la sesión se inicia pero la carga de datos falla, el error va a la pantalla de Arranque con Reintentar. Antes `showApp()` y `loadAppData()` compartían el `try` del login y el mensaje se escribía en `#login-error`, ya oculto.
+- `loadAppData()` marca la primera carga y limpia el estado de carga en un `finally`; las recargas posteriores (sincronizar al volver la red) no usan esqueletos.
+
+### Verificado (Navegador integrado, con un retraso/500 temporal en `api/weeks.php`, ya revertido)
+
+- Con la carga retrasada: 91 esqueletos repartidos por las 9 zonas, `is-loading` y `aria-busy="true"`, "Nueva semana" sin clic, "Eliminar" oculto, sin el texto engañoso "Todavía no has creado ninguna semana". Al llegar los datos: 0 esqueletos, `aria-busy="false"`, 78 semanas.
+- Servidor en 500 sin copia local: pantalla de Arranque con "No se pudieron cargar tus datos" y Reintentar; al quitar el fallo y pulsarlo, carga completa.
+- Login (POST simulado para no tocar la sesión): "Entrando…" y botón deshabilitado; con la carga fallando, pantalla de Arranque con Reintentar, botón restaurado y sin texto en el login oculto; Reintentar recupera.
+- Chart.js ausente (borrado a propósito): Progreso muestra el aviso con Recargar; Horarios conserva 4 chips y 15 barras de hora.
+- Backups con error simulado: aviso + Reintentar; al reintentar se limpia.
+
+### Límites conocidos
+
+- No se comprobó el `prefers-reduced-motion` en pantalla (el panel no permite emular esa preferencia); la regla está en el CSS.
+- Los estados **vacíos** (Calendario sin semanas, librería vacía) no cambian.
+- Los esqueletos son marcado de `renderSkeletons()`: una vista nueva que cargue datos debe agregar el suyo.
+
 ## [1.53.0] - 2026-09-21 — Diálogo de confirmación propio y manifest ampliado
 
 ### En la app: Confirmaciones dentro de la app y atajos en el ícono

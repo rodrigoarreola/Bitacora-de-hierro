@@ -2,6 +2,16 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.54.0",
+        "date": "2026-09-21",
+        "title": "La app muestra que está cargando, y avisa si algo falla",
+        "items": [
+            "Al abrir la app o iniciar sesión, en vez de ver pantallas vacías con ceros mientras llegan tus datos, ves marcadores grises con un suave brillo donde van a aparecer; y mientras tanto no se puede crear ni borrar semanas por error.",
+            "Si tus datos no se pueden cargar, ahora te lo dice con un botón \"Reintentar\" (antes, después de iniciar sesión, te quedabas viendo la app en blanco sin ningún mensaje).",
+            "Si las gráficas no se pueden cargar (por ejemplo, la primera vez sin internet), Progreso y Horarios lo avisan con un botón \"Recargar\" en vez de fallar. La lista de backups también muestra \"Cargando…\" y \"Reintentar\"."
+        ]
+    },
+    {
         "version": "1.53.0",
         "date": "2026-09-21",
         "title": "Confirmaciones dentro de la app y atajos en el ícono",

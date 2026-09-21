@@ -885,6 +885,12 @@
 
     host.innerHTML = filtersHtml + chipsHtml + chartHtml + hourHtml;
 
+    if(!chartsAvailable()){
+      const wrap = host.querySelector('.time-canvas-wrap');
+      if(wrap) wrap.innerHTML = '<p class="milestone-empty">No se pudo cargar la librería de gráficas. Revisa tu conexión y recarga.</p>';
+      return;
+    }
+
     const chartColor = cssVar('--info');
     const line = cssVar('--line');
     const textFaint = cssVar('--text-faint');
@@ -2787,6 +2793,21 @@
     return unifiedIso.map(iso => byIso.get(iso) || null);
   }
 
+  // Chart.js viene de un CDN (con caché del service worker): si nunca pudo
+  // cargarse (primera visita sin red), las gráficas se sustituyen por un aviso
+  // con Recargar en vez de romper el render con un ReferenceError.
+  function chartsAvailable(){ return typeof Chart !== 'undefined'; }
+
+  function chartUnavailableHtml(){
+    return `
+      <div class="card card--dashed placeholder">
+        <i class="icon fa-solid fa-chart-line"></i>
+        <span>Gráfica no disponible</span>
+        <p>No se pudo cargar la librería de gráficas. Revisa tu conexión y recarga.</p>
+        <button type="button" class="btn" data-action="reload-app"><i class="icon fa-solid fa-rotate-right"></i>Recargar</button>
+      </div>`;
+  }
+
   function renderProgreso(){
     const contentEl = document.getElementById('prog-content');
     if(!contentEl) return;
@@ -2798,6 +2819,8 @@
     if(progSparkCharts.length){ progSparkCharts.forEach(c=>c.destroy()); progSparkCharts = []; }
 
     syncProgToolbar();
+
+    if(!chartsAvailable()){ contentEl.innerHTML = chartUnavailableHtml(); return; }
 
     if(!progExercise){ renderProgDashboard(contentEl); return; }
     renderProgDetail(contentEl);
@@ -3123,11 +3146,15 @@
   async function loadBackupsList(){
     const hostEl = document.getElementById('backups-list');
     if(!hostEl) return;
+    // "Cargando…" solo la primera vez: en las visitas siguientes se conserva la lista anterior hasta que llega la nueva, sin parpadeo.
+    if(!hostEl.children.length) hostEl.innerHTML = `<p class="lib-sub" role="status">Cargando…</p>`;
     let backups;
     try{
       backups = await Api.get('api/backups.php');
     }catch(err){
-      hostEl.innerHTML = `<p class="lib-sub">No se pudo cargar la lista de backups.</p>`;
+      hostEl.innerHTML = `
+        <p class="lib-sub">No se pudo cargar la lista de backups.</p>
+        <button type="button" class="btn btn--block" data-action="retry-backups"><i class="icon fa-solid fa-rotate-right"></i>Reintentar</button>`;
       return;
     }
     if(!backups.length){
@@ -3208,6 +3235,58 @@
     renderRulesPanel();
     renderExerciseSourceSetting();
     renderAll();
+    dataLoadedOnce = true;
+  }
+
+  // Recargar (sin librería de gráficas) y Reintentar (lista de backups).
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action="reload-app"], [data-action="retry-backups"]');
+    if(!btn) return;
+    if(btn.dataset.action === 'reload-app') location.reload();
+    else loadBackupsList();
+  });
+
+  // ============================================================
+  // Estado de carga: la primera vez que se piden los datos (tras el login o al
+  // abrir la app), el shell ya está visible pero vacío. Se rellenan los huecos
+  // con esqueletos (.skeleton) y #app-shell queda con aria-busy hasta que llegan.
+  // applyAppData() pinta todo encima. Las recargas posteriores (sincronizar al
+  // volver la red) no los usan: ya hay datos en pantalla.
+  // ============================================================
+  let dataLoadedOnce = false;
+
+  function setAppLoading(on){
+    appShell.classList.toggle('is-loading', on);
+    appShell.setAttribute('aria-busy', String(on));
+  }
+
+  function renderSkeletons(){
+    const set = (id, html)=>{ const el = document.getElementById(id); if(el) el.innerHTML = html; };
+    const box = (cls)=> `<div class="skeleton ${cls}" aria-hidden="true"></div>`;
+    const line = (cls)=> box(`skeleton-line ${cls}`);
+    const many = (n, html)=> Array(n).fill(html).join('');
+
+    // Hoy
+    set('week-pills', many(4, box('skeleton-pill')));
+    set('day-rack', many(5, box('skeleton-daytab')));
+    set('day-panel-host', `
+      <div class="card day-panel" aria-hidden="true">
+        <div class="day-panel-head">
+          <div class="skeleton-stack">${line('h-lg w-m')}${line('w-s')}</div>
+          ${box('skeleton-ring')}
+        </div>
+        ${many(4, `<div class="skeleton-row">${box('skeleton-box')}<div class="skeleton-stack">${line('w-l')}${line('w-s')}</div></div>`)}
+      </div>`);
+    // Historial y Progreso
+    set('hist-list', many(3, `<div class="card card--compact skeleton-card" aria-hidden="true">${line('h-lg w-m')}${line('w-l')}</div>`));
+    set('prog-content', `<div class="prog-dash-grid">${many(4, `<div class="card card--compact skeleton-card" aria-hidden="true">${line('w-m')}${box('skeleton-spark')}${line('w-s')}</div>`)}</div>`);
+    // Calendario
+    set('cal-grid', many(35, box('cal-day')));
+    // Perfil
+    set('milestones-host', many(3, `<div class="skeleton-card" aria-hidden="true">${line('h-lg w-m')}${line('w-l')}</div>`));
+    set('time-stats-host', `<div class="skeleton-card" aria-hidden="true">${line('w-l')}${line('w-m')}${line('w-l')}</div>`);
+    // Ajustes
+    set('lib-list', many(5, `<div class="skeleton-row" aria-hidden="true"><div class="skeleton-stack">${line('w-m')}</div></div>`));
   }
 
   async function loadAppData(){
@@ -3217,17 +3296,23 @@
     // semanas disparaba decenas de requests simultáneas y saturaba el
     // hosting compartido justo después de loguearse (mezcla de 504 y 401
     // encontrada en producción).
-    const [bulk, library, settings] = await Promise.all([
-      Api.get('api/weeks.php'),
-      Api.get('api/library.php'),
-      Api.get('api/settings.php').catch(()=> null), // si falla, se queda con los defaults de RULES
-      loadNameMapping(), // liviano (~40 entradas) — decide cuándo mostrar el ícono de ojo
-    ]);
+    const firstLoad = !dataLoadedOnce;
+    if(firstLoad){ renderSkeletons(); setAppLoading(true); }
+    try{
+      const [bulk, library, settings] = await Promise.all([
+        Api.get('api/weeks.php'),
+        Api.get('api/library.php'),
+        Api.get('api/settings.php').catch(()=> null), // si falla, se queda con los defaults de RULES
+        loadNameMapping(), // liviano (~40 entradas) — decide cuándo mostrar el ícono de ojo
+      ]);
 
-    applyAppData({ bulk, library, settings });
-    showingSnapshot = false;
-    if(window.Snapshot) window.Snapshot.save({ bulk, library, settings });
-    await refreshOfflineBanner();
+      applyAppData({ bulk, library, settings });
+      showingSnapshot = false;
+      if(window.Snapshot) window.Snapshot.save({ bulk, library, settings });
+      await refreshOfflineBanner();
+    } finally {
+      if(firstLoad) setAppLoading(false);
+    }
   }
 
   // ============================================================
@@ -3276,15 +3361,25 @@
     e.preventDefault();
     loginError.textContent = '';
     loginSubmit.disabled = true;
+    loginSubmit.textContent = 'Entrando…';
     try{
       await Api.post('api/login.php', { username: loginUsername.value.trim(), password: loginPassword.value });
       loginPassword.value = '';
-      showApp();
-      await loadAppData();
     }catch(err){
       loginError.textContent = err.message || 'No se pudo iniciar sesión.';
+      return;
     }finally{
       loginSubmit.disabled = false;
+      loginSubmit.textContent = 'Entrar';
+    }
+    // Sesión iniciada. Si la carga de datos falla, el error va a la pantalla de
+    // arranque (con Reintentar): el login ya está oculto y ahí nadie lo vería.
+    showApp();
+    try{
+      await loadAppData();
+    }catch(err){
+      if(err.status === 401) return; // sesión perdida: onUnauthorized ya mostró el login
+      showBoot('No se pudieron cargar tus datos.', { retry: true });
     }
   });
 

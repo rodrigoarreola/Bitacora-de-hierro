@@ -85,6 +85,7 @@ Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único us
 
 ### Funcionalidad implementada
 
+- **Estados de carga**: la primera vez que se piden los datos, el shell muestra esqueletos (`.skeleton`, con `prefers-reduced-motion` respetado) y `aria-busy`; si la carga falla, pantalla de Arranque con Reintentar; la lista de backups muestra "Cargando…" y Reintentar; sin Chart.js, Progreso y Horarios avisan con Recargar en vez de romperse.
 - **Navegación**: barra inferior de 5 destinos (Hoy, Historial, Progreso, Calendario, Perfil) y **Ajustes** como ícono de engranaje en el header. Cada vista tiene URL por hash (`#/hoy`, `#/historial`, `#/progreso`, `#/calendario`, `#/perfil`, `#/ajustes`): el botón atrás recorre las vistas visitadas, un enlace directo abre esa vista y recargar te deja en la misma.
 - **Header**: racha actual y mejor racha, en días (día "cumplido" = ejercicios marcados ≥ una regla editable en Ajustes, 3 por defecto). El corte ya no es día por día: una semana (lun–sáb, domingo nunca cuenta) necesita **al menos N días cumplidos** (otra regla editable, 5 por defecto) para no romper la racha — si los alcanza, todos sus días cumplidos suman normal; si no, la racha se corta ahí aunque algún día suelto sí haya llegado al mínimo. La semana en curso nunca se juzga como "rota" hasta que termine.
 - **Riel de semanas**: semanas ordenadas de más reciente a más antigua, con botón "Nueva semana" (date picker restringido a lunes — ajusta automáticamente si se elige otro día).

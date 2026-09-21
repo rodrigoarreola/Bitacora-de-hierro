@@ -101,3 +101,31 @@
 .confirm-msg{ font-size:var(--fs-lg); color:var(--text-dim); line-height:1.5; margin:var(--sp-2) 0 var(--sp-4); }
 .confirm-actions{ display:flex; gap:var(--sp-2-5); }
 .confirm-actions .btn{ flex:1; }
+
+/* ---------- Esqueletos (estado de carga) ---------- */
+/* Bloques grises con un brillo que los recorre, en el lugar de lo que va a
+   aparecer. Se pintan desde renderSkeletons() (js/app.js) solo en la primera
+   carga de datos y los reemplaza el contenido real. Con "reducir movimiento"
+   quedan quietos. */
+.skeleton{ position:relative; overflow:hidden; background:var(--surface-2); border-radius:var(--r-sm); }
+.skeleton::after{
+  content:""; position:absolute; inset:0; transform:translateX(-100%);
+  background:linear-gradient(90deg, transparent, var(--shimmer), transparent);
+  animation:skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer{ to{ transform:translateX(100%); } }
+@media (prefers-reduced-motion: reduce){ .skeleton::after{ animation:none; } }
+
+.skeleton-line{ height:var(--sp-3); border-radius:var(--r-xs); }
+.skeleton-line.h-lg{ height:18px; }
+.skeleton-line.w-s{ width:30%; }
+.skeleton-line.w-m{ width:55%; }
+.skeleton-line.w-l{ width:80%; }
+.skeleton-stack{ flex:1; display:flex; flex-direction:column; gap:var(--sp-1-5); }
+.skeleton-row{ display:flex; align-items:center; gap:var(--sp-3); padding:var(--sp-3); border-top:1px solid var(--line); }
+.skeleton-row .skeleton-box{ width:20px; height:20px; flex-shrink:0; border-radius:var(--r-xs); }
+.skeleton-card{ padding:var(--sp-3-5) var(--sp-4); display:flex; flex-direction:column; gap:var(--sp-2-5); }
+.skeleton-pill{ flex-shrink:0; width:76px; height:32px; }
+.skeleton-daytab{ flex:0 0 calc((100% - 24px) / 5); height:76px; border-radius:var(--r-lg); }
+.skeleton-ring{ width:40px; height:40px; border-radius:var(--r-full); flex-shrink:0; }
+.skeleton-spark{ height:38px; }

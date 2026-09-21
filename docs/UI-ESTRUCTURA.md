@@ -262,7 +262,9 @@ Observaciones de la estructura actual (candidatos, no decisiones):
   backups, sesión, changelog).
 - **Progreso** sin ejercicio depende de un buscador vacío; el dashboard de
   sparklines es más útil como estado inicial que como fallback.
-- **Estados vacíos** y errores de carga (backups, GIF) son texto plano
-  sin acción sugerida.
+- ~~Errores de carga en texto plano~~ — resuelto (1.54.0): esqueletos en la
+  primera carga, Reintentar en el arranque y en backups, y aviso con Recargar
+  si no cargó Chart.js. Los estados **vacíos** (Calendario, librería) siguen
+  siendo texto plano sin acción sugerida.
 - **Consistencia:** los rieles de píldoras se usan para semanas, meses y
   años con el mismo estilo aunque su jerarquía difiere.
