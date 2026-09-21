@@ -69,7 +69,8 @@ usuario, auth por sesión PHP.
 ### `index.html`
 Markup estático de toda la app: pantalla de login + `#app-shell` con
 header, 6 vistas (`#view-hoy`, `#view-historial`, `#view-progreso`,
-`#view-calendario`, `#view-perfil`, `#view-ajustes`), nav inferior y
+`#view-calendario`, `#view-perfil`, `#view-ajustes`), nav inferior (5
+destinos; Ajustes es el ícono de engranaje del header) y
 banner offline. No tiene lógica — todo el comportamiento vive en
 `js/app.js` vía `id`/`data-*` que el JS engancha.
 
@@ -148,7 +149,7 @@ bloque en el archivo real):
 
 **Reordenar ejercicios arrastrando**: `pointerdown`/`pointermove` sobre `.ex-drag-handle` (1785/1808, técnica de placeholder), `finishExerciseDrag` (1824 — persiste el nuevo orden vía `POST exercises.php?action=reorder`).
 
-**Navegación / Toast**: `switchToView` (1914), `goToProgress` (1925), `showToast`/`hideToast` (1950-1968).
+**Navegación / Toast**: routing por hash — `routeFromHash`, `showView` (solo muestra), `switchToView` (muestra + `pushState`), `applyInitialRoute` (se llama desde `showApp`), listener `hashchange`; `goToProgress`, `goToProgress` (1925), `showToast`/`hideToast` (1950-1968).
 
 **Nueva semana**: handler de `#new-week-date` (1976), `maxNewWeekKey` (1983 — tope de 1 semana en el futuro).
 

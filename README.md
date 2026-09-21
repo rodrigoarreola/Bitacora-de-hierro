@@ -75,6 +75,7 @@ Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único us
 
 ### Funcionalidad implementada
 
+- **Navegación**: barra inferior de 5 destinos (Hoy, Historial, Progreso, Calendario, Perfil) y **Ajustes** como ícono de engranaje en el header. Cada vista tiene URL por hash (`#/hoy`, `#/historial`, `#/progreso`, `#/calendario`, `#/perfil`, `#/ajustes`): el botón atrás recorre las vistas visitadas, un enlace directo abre esa vista y recargar te deja en la misma.
 - **Header**: racha actual y mejor racha, en días (día "cumplido" = ejercicios marcados ≥ una regla editable en Ajustes, 3 por defecto). El corte ya no es día por día: una semana (lun–sáb, domingo nunca cuenta) necesita **al menos N días cumplidos** (otra regla editable, 5 por defecto) para no romper la racha — si los alcanza, todos sus días cumplidos suman normal; si no, la racha se corta ahí aunque algún día suelto sí haya llegado al mínimo. La semana en curso nunca se juzga como "rota" hasta que termine.
 - **Riel de semanas**: semanas ordenadas de más reciente a más antigua, con botón "Nueva semana" (date picker restringido a lunes — ajusta automáticamente si se elige otro día).
 - **7 tabs de día** (Lun–Dom): Lun–Vie llenan el ancho real del riel en cualquier celular (`calc()` en vez de un ancho fijo); Sáb/Dom quedan revelados solo al hacer scroll horizontal. Se pintan en verde cuando el día está "cumplido". Un día que recibió contenido migrado de otro muestra un pequeño ícono con el día de origen.

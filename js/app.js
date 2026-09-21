@@ -45,6 +45,11 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.50.0', date: '2026-09-21', title: 'Cada pantalla con su enlace, y Ajustes en el header', items: [
+      'Ajustes ahora es un ícono de engranaje arriba a la derecha, junto a tu racha. La barra inferior queda con 5 destinos: Hoy, Historial, Progreso, Calendario y Perfil.',
+      'Cada pantalla tiene su propia dirección (#/hoy, #/perfil…): el botón atrás te regresa a la pantalla anterior, y si recargas o abres un enlace directo te quedas en la misma pantalla.',
+      'El subtítulo "Registro de entrenamiento" del header ahora ocupa dos líneas para dejar lugar al engranaje.',
+    ]},
     { version: '1.49.0', date: '2026-09-21', title: 'Estilos unificados', items: [
       'Tarjetas, botones y tamaños de texto ahora salen de un mismo sistema de estilos, así los botones y paneles se ven consistentes en toda la app.',
       'Algunos textos pequeños se ven medio punto más grandes y unas esquinas cambian 1-2 px de redondeo; el resto se ve igual.',
@@ -2124,10 +2129,53 @@
   // ============================================================
   // Navegación: tabs inferiores
   // ============================================================
-  function switchToView(name){
-    document.querySelectorAll('nav.bottom-nav button').forEach(b=>b.classList.toggle('active', b.dataset.view === name));
+  // Routing por hash (#/hoy, #/historial, #/progreso, #/calendario, #/perfil,
+  // #/ajustes): cada vista tiene URL propia, el botón atrás recorre las
+  // vistas visitadas y un enlace directo abre esa vista. showView() solo
+  // muestra la vista; switchToView() además registra la entrada en el
+  // historial (pushState no dispara hashchange, así que no hay bucle) y es la
+  // que usan la barra, el header y los atajos (goToDate, goToProgress…). Sigue
+  // siendo síncrona a propósito: goToProgress() necesita la vista visible
+  // antes de dibujar el gráfico.
+  const VIEWS = ['hoy', 'historial', 'progreso', 'calendario', 'perfil', 'ajustes'];
+
+  function routeFromHash(){
+    const m = /^#\/([a-z]+)/.exec(location.hash);
+    return m && VIEWS.includes(m[1]) ? m[1] : null;
+  }
+
+  function showView(name){
+    document.querySelectorAll('[data-view]').forEach(b=>{
+      const on = b.dataset.view === name;
+      b.classList.toggle('active', on);
+      if(on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.getElementById('view-' + name).classList.add('active');
+    if(name === 'perfil') loadBackupsList(); // la lista de backups se pide de nuevo cada vez que se abre Perfil
+  }
+
+  function switchToView(name){
+    showView(name);
+    const target = '#/' + name;
+    if(location.hash === target) return;
+    try{ history.pushState(null, '', target); }
+    catch(err){ location.hash = target; } // sin History API: hashchange vuelve a llamar a showView(), es idempotente
+  }
+
+  // Atrás/adelante del navegador o un hash editado a mano.
+  window.addEventListener('hashchange', ()=>{
+    const name = routeFromHash();
+    if(name) showView(name);
+  });
+
+  // Al mostrar la app: abre la vista del hash actual (enlace directo /
+  // recarga); sin hash válido, fija #/hoy como primera entrada del historial.
+  function applyInitialRoute(){
+    const name = routeFromHash();
+    if(name){ showView(name); return; }
+    showView('hoy');
+    try{ history.replaceState(null, '', '#/hoy'); }catch(err){ /* sin History API: se queda sin hash hasta la primera navegación */ }
   }
 
   // Navega a Progreso con un ejercicio puntual ya cargado (botón "Ver
@@ -2144,10 +2192,11 @@
     renderProgreso();
   }
 
-  document.querySelectorAll('nav.bottom-nav button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      switchToView(btn.dataset.view);
-      if(btn.dataset.view === 'perfil') loadBackupsList();
+  // Barra inferior y ícono de Ajustes del header (ambos con data-view).
+  document.querySelectorAll('[data-view]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.preventDefault(); // el <a href="#/ajustes"> del header: la navegación la hace switchToView()
+      switchToView(el.dataset.view);
     });
   });
 
@@ -2767,7 +2816,9 @@
   function buildDashboardShareContainer(){
     const card = document.createElement('div');
     card.className = 'dashboard-share';
-    card.appendChild(cloneForShare(document.querySelector('header.app-head')));
+    const headerClone = cloneForShare(document.querySelector('header.app-head'));
+    headerClone.querySelector('.head-settings')?.remove(); // el ícono de Ajustes no tiene sentido en una imagen
+    card.appendChild(headerClone);
     const weekRailClone = cloneRailForShare(document.getElementById('week-rail'));
     // El <input type="date"> de "+ Nueva semana" es invisible en la app real
     // gracias a #new-week-date{opacity:0} (selector por id) — como
@@ -3274,6 +3325,7 @@
     bootScreen.classList.add('hidden');
     viewLogin.classList.add('hidden');
     appShell.classList.remove('hidden');
+    applyInitialRoute();
   }
   // Pantalla de arranque: "Cargando…" mientras se verifica la sesión, o un
   // mensaje con "Reintentar" si no se pudo verificar (sin red o error del
@@ -3391,6 +3443,8 @@
   document.getElementById('logout-btn').addEventListener('click', async ()=>{
     try{ await Api.post('api/logout.php'); }catch(err){ /* ya no hay sesión útil de todos modos */ }
     if(window.Snapshot) await window.Snapshot.clear();
+    showView('hoy');
+    try{ history.replaceState(null, '', '#/hoy'); }catch(err){ /* sin History API */ }
     showLogin();
   });
 

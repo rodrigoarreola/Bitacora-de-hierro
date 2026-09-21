@@ -2,6 +2,24 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.50.0] - 2026-09-21 — Hash routing y Ajustes en el header (barra de 5 destinos)
+
+### Added
+
+- **Routing por hash** (`#/hoy`, `#/historial`, `#/progreso`, `#/calendario`, `#/perfil`, `#/ajustes`): cada vista tiene URL propia. `showView()` solo muestra la vista; `switchToView()` la muestra y registra la entrada con `history.pushState` (no dispara `hashchange`, sin bucles) — sigue siendo síncrona, así `goToDate()`, `goToProgress()` y el resto de atajos funcionan sin cambios (y el gráfico de Progreso se dibuja con la vista ya visible). Un listener `hashchange` atiende atrás/adelante y hashes editados a mano; `applyInitialRoute()` (llamada desde `showApp()`) abre la vista del hash al cargar y, sin hash válido, fija `#/hoy` con `replaceState`. Cerrar sesión vuelve a `#/hoy`.
+- **`aria-current="page"`** en el destino activo (barra y engranaje).
+
+### Changed
+
+- **Ajustes sale de la barra inferior** (6 → 5 destinos) y pasa a un ícono de engranaje (`<a class="btn btn--icon head-settings" href="#/ajustes">`) en el header, a la derecha de la racha; se resalta cuando estás en esa vista. El ícono no aparece en la imagen de "Compartir resumen semanal".
+- **Perfil pide la lista de backups al mostrarse** desde cualquier camino (barra, atrás, enlace directo, tras importar), no solo al tocar su botón.
+- El texto de la racha no se parte (`white-space:nowrap`); para dejar lugar al engranaje el subtítulo "Registro de entrenamiento" envuelve a 2 líneas y el header pasa de 40 a 56 px de alto a 375 px.
+
+### Verificado (Navegador integrado, 375 px)
+
+- Hash inicial `#/hoy`; cada destino de la barra cambia el hash y suma una entrada al historial; atrás/adelante recorren las vistas; enlace directo con recarga (`#/ajustes`) abre esa vista con el engranaje resaltado y ningún botón de la barra activo.
+- Atajos: tarjeta de Historial → Hoy (semana correcta), día del Calendario → Hoy, "Ver progreso" → Progreso con el ejercicio cargado y el gráfico visible.
+
 ## [1.49.0] - 2026-09-21 — Design tokens y componentes base (`.card`, `.btn`)
 
 ### Added

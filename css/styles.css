@@ -24,6 +24,11 @@
   .brand-mark .icon{ font-size:17px; }
   h1{ font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:.01em; text-transform:uppercase; color:var(--text); margin:0; line-height:1; }
   .sub{ font-size:var(--fs-md); color:var(--text-dim); margin:3px 0 0; }
+  /* La racha y el engranaje no se parten: si falta ancho, se encoge la marca de la izquierda (su subtítulo ya envuelve a 2 líneas). */
+  .head-right{ display:flex; align-items:center; gap:var(--sp-2); flex-shrink:0; }
+  .streak-text{ white-space:nowrap; }
+  .head-settings{ text-decoration:none; }
+  .head-settings.active{ color:var(--accent); border-color:var(--accent-dim); }
   .streak{ display:flex; align-items:stretch; justify-content:flex-end; gap:7px; }
   .streak-text{ text-align:right; }
   .streak .n{ font-family:var(--font-mono); font-size:19px; font-weight:600; color:var(--text-faint); line-height:1; transition:color .2s ease; }
@@ -436,7 +441,7 @@
   }
   nav.bottom-nav button{
     flex:1; background:none; border:none; color:var(--text-faint);
-    padding:11px 4px 9px; font-size:9.5px; /* fuera de escala: 6 botones en 375px, "CALENDARIO" no entra a 10px */ cursor:pointer;
+    padding:11px 4px 9px; font-size:9.5px; /* fuera de escala: 5 botones en 360-375px, "CALENDARIO" (10px) casi no entra */ cursor:pointer;
     display:flex; flex-direction:column; align-items:center; gap:5px;
     font-family:var(--font-body); font-weight:600; text-transform:uppercase; letter-spacing:.02em;
   }
