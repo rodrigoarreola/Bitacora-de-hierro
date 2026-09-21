@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Los números de versión siguen el mismo semver que `APP_VERSIONS` en `js/app.js` (visible en la app: Perfil → Changelog) — todavía no hay tags de git, es solo un registro de fechas/versiones documentado acá.
 
+## [1.46.1] - 2026-09-21 — El domingo cuenta en racha, Historial y comparación semanal
+
+### Fixed
+
+- **Un día recuperado en domingo no sumaba a la racha**: `buildChronoDays()` descartaba siempre el domingo (`if(dk === 'dom') return;`). Ahora sábado y domingo son días "bonus": solo entran a la lista si tienen ejercicios (vacío = neutral), y un domingo cumplido suma a la racha y a los `week_streak_min_days` de la semana.
+
+### Changed
+
+- **Domingo incluido en el resto de las vistas**: comparación semanal (`renderWeeklyRecap()`, semana cerrada lun-dom; si hoy es domingo se mide completa), balance por grupo muscular (`computeGroupBalance()`), y calendario/heatmap (`computeDayTier()` resuelve el domingo con `|| 'dom'`; vacío queda sin línea, no en rojo). En Historial el punto "D" se muestra siempre y los totales de la semana incluyen el domingo.
+
 ## [1.46.0] - 2026-08-14 — GIFs e info de ejercicios (dataset externo)
 
 ### Added

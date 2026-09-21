@@ -9,8 +9,8 @@
   const DAY_OFFSET = {lun:0, mar:1, mie:2, jue:3, vie:4, sab:5, dom:6};
   const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const MESES_LARGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  // Sin entrada para domingo (0) a propósito: el gimnasio no abre, así
-  // que computeDayTier() debe seguir devolviendo null para ese día.
+  // Sin entrada para domingo (0) a propósito: quien la usa resuelve el
+  // domingo con `|| 'dom'` (día bonus, solo cuenta si tiene ejercicios).
   const WEEKDAY_TO_KEY = {1:'lun', 2:'mar', 3:'mie', 4:'jue', 5:'vie', 6:'sab'};
   const RING_R = 16;
   const RING_C = 2 * Math.PI * RING_R;
@@ -45,6 +45,10 @@
   // La más reciente va primero; CURRENT_VERSION es la [0].
   // ============================================================
   const APP_VERSIONS = [
+    { version: '1.46.1', date: '2026-09-21', title: 'El domingo cuenta en racha, Historial y comparación semanal', items: [
+      'Un día recuperado en domingo ahora suma a la racha (y a los 5 días mínimos de la semana). Un domingo sin ejercicios no cuenta ni corta la racha, igual que el sábado.',
+      'El domingo también se incluye en la comparación semanal, el balance por grupo muscular, el calendario y el heatmap. En Historial, el punto "D" aparece siempre.',
+    ]},
     { version: '1.46.0', date: '2026-08-14', title: 'GIFs e info de ejercicios (dataset externo)', items: [
       'Nuevo ícono de ojo junto al nombre de un ejercicio (cuando hay coincidencia con el dataset externo hasaneyldrm/exercises-dataset): abre un panel con el GIF de demostración, categoría/equipo/músculo objetivo y las instrucciones paso a paso, todo en español.',
       'En Ajustes, "Fuente de nombres de ejercicios": elegir entre tu librería personalizada de siempre o el dataset completo (1.324 ejercicios) para autocompletar al agregar un ejercicio. El ícono de ojo aparece igual con cualquiera de las dos.',
@@ -631,13 +635,13 @@
 
   // ============================================================
   // Racha: días "cumplidos" (3+ ejercicios marcados) consecutivos,
-  // cruzando semanas (lunes a viernes normalmente, ignorando domingo
-  // que siempre está cerrado). Solo cuenta días hasta hoy — los días
+  // cruzando semanas (lunes a viernes normalmente). Solo cuenta días hasta hoy — los días
   // futuros de la semana en curso no cortan la racha por estar
   // simplemente aún sin llegar.
   //
-  // Sábado es un día "bonus": solo entra a la lista si tiene algún
-  // ejercicio esa semana (vacío = neutral, igual que domingo). "Migrar
+  // Sábado y domingo son días "bonus": solo entran a la lista si tienen
+  // algún ejercicio (vacío = neutral; así un día recuperado en domingo
+  // sí suma a la racha, en vez de ignorarse). "Migrar
   // día" puede vaciar cualquier día lun-vie (su contenido se recorrió a
   // otro día posterior, en cadena) — ese día de origen se salta en vez
   // de contar como fallido. Se detecta juntando todos los migratedFrom
@@ -652,12 +656,12 @@
       const week = state.weeks[wk];
       const migratedFromSet = new Set(DAY_ORDER.map(dk => week.days[dk].migratedFrom).filter(Boolean));
       DAY_ORDER.forEach(dk=>{
-        if(dk === 'dom') return;
         const date = dayDate(wk, dk);
         if(date > today) return;
         const total = week.days[dk].exercises.length;
-        if(dk === 'sab' && total === 0) return;
-        if(dk !== 'sab' && total === 0 && migratedFromSet.has(dk)) return;
+        const bonus = dk === 'sab' || dk === 'dom';
+        if(bonus && total === 0) return;
+        if(!bonus && total === 0 && migratedFromSet.has(dk)) return;
         const done = week.days[dk].exercises.filter(e=>e.done).length;
         list.push({ date, completed: done >= RULES.min_done_per_day });
       });
@@ -692,7 +696,7 @@
 
   // La racha se cuenta en días (RULES.min_done_per_day+ ejercicios
   // marcados), pero el corte ya no es día por día — es semanal: una
-  // semana (lun-sáb) necesita al menos RULES.week_streak_min_days días
+  // semana (lun-dom) necesita al menos RULES.week_streak_min_days días
   // cumplidos para no romper la racha. Si los alcanza, todos sus días
   // cumplidos suman normal a la cuenta; si no, la racha se corta ahí
   // (esos días no suman, aunque individualmente hayan llegado al mínimo).
@@ -844,7 +848,7 @@
       if(gap > maxGapDays){ maxGapDays = gap; maxGapStart = trained[i-1].date; maxGapEnd = trained[i].date; }
     }
 
-    // Constancia semanal: días cumplidos por semana (lun-sáb), excluyendo
+    // Constancia semanal: días cumplidos por semana (lun-dom), excluyendo
     // la semana en curso (todavía incompleta, no sirve para detectar
     // tramos). fullWeekRange() recorre TODAS las semanas calendario desde
     // la primera con datos hasta hoy, sin saltos — una semana sin fila en
@@ -1686,14 +1690,14 @@
     // Si la semana activa es la semana en curso, comparar solo hasta hoy
     // (ej. si hoy es miércoles, ambas semanas se miden lun-mié) — sin esto,
     // una semana a mitad de andar siempre se ve "peor" que una ya cerrada.
-    // Una semana pasada y ya terminada se compara completa (lun-sáb),
+    // Una semana pasada y ya terminada se compara completa (lun-dom),
     // porque ahí no hay nada a medio registrar todavía.
-    const allDays = DAY_ORDER.filter(dk => dk !== 'dom');
+    const allDays = DAY_ORDER;
     const isCurrentWeek = curKey === toISO(mondayOfWeek(today));
     let days = allDays;
     if(isCurrentWeek){
       const todayDow = today.getDay(); // 0=domingo..6=sábado
-      const cutoffKey = todayDow === 0 ? 'sab' : WEEKDAY_TO_KEY[todayDow]; // domingo: el gimnasio ya cerró toda la semana
+      const cutoffKey = WEEKDAY_TO_KEY[todayDow] || 'dom';
       days = allDays.slice(0, allDays.indexOf(cutoffKey) + 1);
     }
 
@@ -2220,25 +2224,24 @@
 
   // ============================================================
   // Calendario: mes actual por defecto, navegable. Lunes a domingo.
-  // Sábado se colorea igual que cualquier día lun-vie (WEEKDAY_TO_KEY
-  // lo mapea a 'sab'). Domingo se queda sin línea siempre — no tiene
-  // entrada en WEEKDAY_TO_KEY porque el gimnasio nunca abre ese día.
+  // Sábado y domingo se colorean igual que cualquier día lun-vie; si están
+  // vacíos se quedan sin línea (WEEKDAY_TO_KEY no tiene 'dom', se resuelve
+  // con el respaldo en computeDayTier()).
   // Días futuros y semanas no registradas tampoco llevan línea.
   // ============================================================
   let calMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
   function computeDayTier(date){
     if(date > today) return null; // día futuro, todavía no "pasó" — sin línea
-    const dayKey = WEEKDAY_TO_KEY[date.getDay()];
-    if(!dayKey) return null;
+    const dayKey = WEEKDAY_TO_KEY[date.getDay()] || 'dom';
     const week = state.weeks[toISO(mondayOfWeek(date))];
     if(!week) return null;
     const total = week.days[dayKey].exercises.length;
-    // Sábado no es un día obligatorio como lun-vie: si nunca se usó ese
-    // sábado (0 ejercicios en total, no solo 0 marcados) se deja sin
+    // Sábado y domingo no son días obligatorios como lun-vie: si nunca se
+    // usaron (0 ejercicios en total, no solo 0 marcados) se dejan sin
     // línea en vez de rojo — rojo se reserva para "debía entrenar y no
-    // lo hizo", y un sábado libre no es eso.
-    if(dayKey === 'sab' && total === 0) return null;
+    // lo hizo", y un fin de semana libre no es eso.
+    if((dayKey === 'sab' || dayKey === 'dom') && total === 0) return null;
     const done = week.days[dayKey].exercises.filter(e=>e.done).length;
     if(done === 0) return 'tier-red';
     if(done <= 5) return 'tier-yellow';
@@ -2462,7 +2465,7 @@
     const byGroup = new Map();
     weekKeys.forEach(wk=>{
       const week = state.weeks[wk];
-      DAY_ORDER.filter(dk => dk !== 'dom').forEach(dk=>{
+      DAY_ORDER.forEach(dk=>{
         const date = dayDate(wk, dk);
         if(date > today) return;
         const day = week.days[dk];
@@ -2542,9 +2545,7 @@
     listEl.innerHTML = keys.map(key=>{
       const week = state.weeks[key];
       let totalDone = 0, totalEx = 0;
-      // Domingo se excluye del riel de puntos y de los totales: el
-      // gimnasio nunca abre ese día, así que siempre estaría vacío.
-      const dayDots = DAY_ORDER.filter(dk => dk !== 'dom').map(dk=>{
+      const dayDots = DAY_ORDER.map(dk=>{
         const day = week.days[dk];
         const done = day.exercises.filter(e=>e.done).length;
         totalDone += done;
