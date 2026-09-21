@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // Recalcula CACHE_NAME de sw.js a partir de un hash del contenido del app
-// shell (index.html/css/js). Se llama solo desde .githooks/pre-commit — no
+// shell (index.html, css, js, manifest e íconos). Se llama solo desde .githooks/pre-commit — no
 // hace falta correrlo a mano. Sin esto, CACHE_NAME se bumpeaba a mano en
 // cada commit (bitacora-shell-v2..v15) y varias veces se olvidó, dejando
 // navegadores sirviendo el shell viejo desde caché (ver README → PWA).
@@ -25,6 +25,9 @@ $shellFiles = [
     'js/api.js',
     'js/offline-queue.js',
     'js/snapshot.js',
+    'manifest.json',
+    'icons/icon-192.png',
+    'icons/icon-512.png',
 ];
 
 $swPath = $repoRoot . '/sw.js';
