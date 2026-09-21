@@ -99,6 +99,7 @@
    botones ocupan el mismo ancho (Cancelar a la izquierda, la acción a la derecha). */
 .confirm-title{ font-family:var(--font-display); font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; color:var(--text); line-height:1.2; }
 .confirm-msg{ font-size:var(--fs-lg); color:var(--text-dim); line-height:1.5; margin:var(--sp-2) 0 var(--sp-4); }
+.confirm-input{ margin-bottom:var(--sp-4); }   /* además de .prog-search, que le da el aspecto de campo */
 .confirm-actions{ display:flex; gap:var(--sp-2-5); }
 .confirm-actions .btn{ flex:1; }
 

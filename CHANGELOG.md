@@ -2,6 +2,35 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.55.0] - 2026-09-21 — La nota del ejercicio con un diálogo propio
+
+### En la app: Editar la nota de un ejercicio dentro de la app
+
+- Al tocar "+ nota" (o el texto de una nota) ahora se abre un cuadro de la app, con el nombre del ejercicio, un campo para escribir y el botón Guardar. Enter también guarda, Escape o tocar afuera cancelan, y dejarlo vacío quita la nota. Ya no se usa ningún cuadro del navegador.
+- La nota queda limitada a 200 caracteres, que es lo que acepta la base de datos (antes se podía escribir más y no había aviso).
+
+### Added
+
+- **`promptDialog({ title, message, value, placeholder, maxLength, confirmLabel, cancelLabel })`** (`js/app.js`): promesa con el texto (vacío incluido, para poder borrar) o `null` si se cancela, igual que `prompt()`. Comparte con `confirmDialog()` el nuevo `openDialog()` y el mismo bottom sheet `#confirm-overlay`, que gana un `<input class="prog-search confirm-input">` opcional (`aria-labelledby` al título, `maxlength`). Foco en el campo con el texto seleccionado, Enter guarda, Tab recorre campo → Cancelar → acción, Escape o el fondo cancelan aunque haya texto escrito.
+
+### Changed
+
+- **La nota de un ejercicio** (`data-action="edit-note"`) usa `promptDialog()` con `maxLength: 200` (`exercises.note` es `VARCHAR(200)`) y muestra el nombre del ejercicio; si ya tenía nota, el mensaje avisa que dejarla vacía la quita.
+- `closeConfirm()` resuelve según el tipo de diálogo (booleano en confirmación, texto o `null` en el de texto). `confirmDialog()` no cambia su API.
+- **Ya no queda ningún `confirm()`, `prompt()` ni `alert()` nativo.** ADR 0008 actualizado (ahora cubre ambos).
+
+### Verificado (Navegador integrado)
+
+- Abrir: título, nombre del ejercicio como mensaje, campo visible y enfocado, `placeholder`, `maxLength` 200, `role="alertdialog"`, botón de acción sin rojo.
+- Tab: campo → Cancelar → acción → campo; Shift+Tab en sentido contrario. Escape y tocar el fondo cancelan con texto escrito y la nota no cambia.
+- Guardar con Enter: la nota aparece con su estilo y **llega al servidor** (comprobado contra `api/weeks.php`). Reabrir precarga el texto seleccionado y avisa cómo quitarla; con el campo vacío la nota se borra en pantalla y en el servidor. Probado sobre una nota real y devuelta a su valor original (vacía).
+- `confirmDialog()` intacto tras usar el de texto: sin campo, foco en Cancelar, botón de acción en rojo, 78 semanas antes y después.
+
+### Límites conocidos
+
+- **Teclado virtual sin probar** (requiere un teléfono): un bottom sheet anclado abajo puede quedar tapado por el teclado en algunos navegadores móviles. Si pasa, la salida es anclar este diálogo arriba cuando tiene campo de texto (ADR 0008).
+- El diálogo de importar sigue sin probarse con un archivo real.
+
 ## [1.54.0] - 2026-09-21 — Estados de carga
 
 ### En la app: La app muestra que está cargando, y avisa si algo falla

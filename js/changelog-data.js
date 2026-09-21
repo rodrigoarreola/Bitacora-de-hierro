@@ -2,6 +2,15 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.55.0",
+        "date": "2026-09-21",
+        "title": "Editar la nota de un ejercicio dentro de la app",
+        "items": [
+            "Al tocar \"+ nota\" (o el texto de una nota) ahora se abre un cuadro de la app, con el nombre del ejercicio, un campo para escribir y el botón Guardar. Enter también guarda, Escape o tocar afuera cancelan, y dejarlo vacío quita la nota. Ya no se usa ningún cuadro del navegador.",
+            "La nota queda limitada a 200 caracteres, que es lo que acepta la base de datos (antes se podía escribir más y no había aviso)."
+        ]
+    },
+    {
         "version": "1.54.0",
         "date": "2026-09-21",
         "title": "La app muestra que está cargando, y avisa si algo falla",

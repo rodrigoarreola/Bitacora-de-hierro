@@ -211,59 +211,88 @@
   }
 
   // ============================================================
-  // Diálogo de confirmación: reemplaza a window.confirm() (que se ve fuera de
-  // la app, sin estilo ni contexto). confirmDialog() devuelve una promesa con
-  // true/false, así que se usa igual que confirm() pero con await. Es un
-  // bottom sheet (.sheet) con role="alertdialog": el foco cae en Cancelar (Enter
-  // no borra nada por accidente), Tab se queda dentro del diálogo, Escape o
-  // tocar el fondo cancelan, y al cerrar el foco vuelve a donde estaba.
+  // Diálogos: reemplazan a window.confirm() y window.prompt() (que se ven fuera
+  // de la app, sin estilo ni contexto). Se usan igual que ellos pero con await:
+  //   confirmDialog(opts) -> true | false
+  //   promptDialog(opts)  -> texto (puede ser "") | null si se cancela
+  // Es un bottom sheet (.sheet) con role="alertdialog": en confirmDialog el foco
+  // cae en Cancelar (Enter no borra nada por accidente); en promptDialog, en el
+  // campo, con el texto seleccionado y Enter para guardar. Tab se queda dentro
+  // del diálogo, Escape o tocar el fondo cancelan, y al cerrar el foco vuelve a
+  // donde estaba.
   // ============================================================
   const confirmOverlay = document.getElementById('confirm-overlay');
   const confirmTitleEl = document.getElementById('confirm-title');
   const confirmMsgEl = document.getElementById('confirm-msg');
+  const confirmInputEl = document.getElementById('confirm-input');
   const confirmOkBtn = document.getElementById('confirm-ok');
   const confirmCancelBtn = document.getElementById('confirm-cancel');
   let confirmResolve = null;
   let confirmReturnFocus = null;
+  let confirmHasInput = false;
 
-  function closeConfirm(result){
+  // accepted: true = botón de acción (o Enter en el campo), false = cancelar.
+  function closeConfirm(accepted){
     if(!confirmResolve) return;
     const resolve = confirmResolve;
+    const value = confirmInputEl.value;
+    const hadInput = confirmHasInput;
     confirmResolve = null;
     confirmOverlay.classList.add('hidden');
     document.removeEventListener('keydown', onConfirmKeydown, true);
     const back = confirmReturnFocus;
     confirmReturnFocus = null;
     if(back && document.contains(back)) back.focus();
-    resolve(result);
+    resolve(hadInput ? (accepted ? value : null) : accepted);
   }
 
   function onConfirmKeydown(e){
     if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeConfirm(false); return; }
+    if(e.key === 'Enter' && confirmHasInput && document.activeElement === confirmInputEl){ e.preventDefault(); closeConfirm(true); return; }
     if(e.key !== 'Tab') return;
-    const order = [confirmCancelBtn, confirmOkBtn];
+    const order = confirmHasInput ? [confirmInputEl, confirmCancelBtn, confirmOkBtn] : [confirmCancelBtn, confirmOkBtn];
     const i = order.indexOf(document.activeElement);
     e.preventDefault();
     order[e.shiftKey ? (i <= 0 ? order.length - 1 : i - 1) : (i === order.length - 1 ? 0 : i + 1)].focus();
   }
 
-  // opts: { title, message, confirmLabel, cancelLabel, danger }. `danger` pinta
-  // el botón de acción en rojo (para acciones que borran o reemplazan datos).
-  function confirmDialog({ title = '', message = '', confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false } = {}){
+  // input: null (confirmación) o { value, placeholder, maxLength } (texto).
+  function openDialog({ title, message, confirmLabel, cancelLabel, danger, input }){
     if(confirmResolve) closeConfirm(false); // de a uno: uno nuevo cancela el anterior
     return new Promise(resolve=>{
       confirmResolve = resolve;
       confirmReturnFocus = document.activeElement;
+      confirmHasInput = !!input;
       confirmTitleEl.textContent = title;
       confirmMsgEl.textContent = message;
+      confirmMsgEl.classList.toggle('hidden', !message);
       confirmOkBtn.textContent = confirmLabel;
       confirmCancelBtn.textContent = cancelLabel;
       confirmOkBtn.classList.toggle('btn--danger-solid', danger);
       confirmOkBtn.classList.toggle('btn--primary', !danger);
+      confirmInputEl.classList.toggle('hidden', !input);
+      if(input){
+        confirmInputEl.value = input.value || '';
+        confirmInputEl.placeholder = input.placeholder || '';
+        if(input.maxLength) confirmInputEl.maxLength = input.maxLength; else confirmInputEl.removeAttribute('maxlength');
+      }
       confirmOverlay.classList.remove('hidden');
       document.addEventListener('keydown', onConfirmKeydown, true);
-      confirmCancelBtn.focus();
+      if(input){ confirmInputEl.focus(); confirmInputEl.select(); }
+      else confirmCancelBtn.focus();
     });
+  }
+
+  // opts: { title, message, confirmLabel, cancelLabel, danger }. `danger` pinta
+  // el botón de acción en rojo (para acciones que borran o reemplazan datos).
+  function confirmDialog({ title = '', message = '', confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false } = {}){
+    return openDialog({ title, message, confirmLabel, cancelLabel, danger, input: null });
+  }
+
+  // opts: { title, message, value, placeholder, maxLength, confirmLabel, cancelLabel }.
+  // Devuelve el texto tal cual (vacío incluido, para poder borrar) o null si se cancela.
+  function promptDialog({ title = '', message = '', value = '', placeholder = '', maxLength = 0, confirmLabel = 'Guardar', cancelLabel = 'Cancelar' } = {}){
+    return openDialog({ title, message, confirmLabel, cancelLabel, danger: false, input: { value, placeholder, maxLength } });
   }
 
   confirmOverlay.addEventListener('click', (e)=>{ if(e.target === confirmOverlay) closeConfirm(false); });
@@ -1734,7 +1763,13 @@
       const row = noteEl.closest('.ex-row');
       const ex = findExercise(row.dataset.id);
       if(!ex) return;
-      const val = prompt('Nota para este ejercicio (ej. incluye barra, ×2 la mancuerna):', ex.note || '');
+      const val = await promptDialog({
+        title: 'Nota del ejercicio',
+        message: ex.note ? `${ex.name}. Déjala vacía para quitar la nota.` : ex.name,
+        value: ex.note || '',
+        placeholder: 'Ej. incluye barra, ×2 la mancuerna',
+        maxLength: 200, // exercises.note es VARCHAR(200)
+      });
       if(val === null) return;
       const trimmed = val.trim();
       try{ await Api.put(`api/exercises.php?id=${encodeURIComponent(ex.id)}`, { note: trimmed }); }

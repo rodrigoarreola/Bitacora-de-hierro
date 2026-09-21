@@ -65,11 +65,13 @@ Mensaje breve inferior, con botón de acción opcional (se usa para
 
 ### Diálogo de confirmación
 Bottom sheet (`#confirm-overlay`, componente `.sheet`) que reemplaza al
-`confirm()` del navegador. Título, mensaje con el contexto (ej. la semana que se
-va a eliminar) y dos botones: **Cancelar** (con el foco por defecto) y la acción,
-en rojo cuando borra o reemplaza datos. Escape o tocar el fondo cancelan. Lo usan:
-eliminar semana (dos diálogos seguidos desde el botón grande de Hoy), quitar de la
-librería e importar datos.
+`confirm()` y al `prompt()` del navegador. Título, mensaje con el contexto (ej. la
+semana que se va a eliminar) y dos botones: **Cancelar** y la acción, en rojo
+cuando borra o reemplaza datos. Escape o tocar el fondo cancelan. Como
+confirmación (foco en Cancelar) lo usan: eliminar semana (dos diálogos seguidos
+desde el botón grande de Hoy), quitar de la librería e importar datos. Con un
+**campo de texto** (foco en el campo, Enter guarda, máx. 200 caracteres) lo usa la
+nota de un ejercicio.
 
 ### Overlay "Info del ejercicio"
 Panel modal que se abre con el ícono de ojo de un ejercicio (solo si el
@@ -235,9 +237,9 @@ semana" con botón "+ Nueva semana".
   imagen (html2canvas).
 - **Gestos:** deslizar entre días, arrastrar para reordenar ejercicios,
   doble clic en gráficas para resetear zoom.
-- **Confirmaciones:** diálogo propio (`confirmDialog()`): eliminar semana, quitar
-  de la librería, importar datos. La nota de un ejercicio aún usa el `prompt()`
-  del navegador.
+- **Diálogos:** propios (`confirmDialog()` y `promptDialog()`): eliminar semana,
+  quitar de la librería, importar datos y la nota de un ejercicio. Ya no se usa
+  ningún diálogo nativo del navegador.
 - **PWA / offline:** instalable, shell cacheado, cola de cambios offline.
 
 ---
@@ -253,7 +255,8 @@ Observaciones de la estructura actual (candidatos, no decisiones):
 - ~~6 ítems en la nav inferior~~ — resuelto: quedan 5 y Ajustes pasó a un
   ícono en el header (1.50.0).
 - ~~Acciones destructivas con `confirm()` del navegador~~ — resuelto (1.53.0):
-  diálogo propio con contexto y botón rojo. Queda el `prompt()` de la nota.
+  diálogo propio con contexto y botón rojo. La nota, con `prompt()`, también
+  (1.55.0).
 - **Fila de ejercicio muy cargada:** check, nombre, ojo, nota, 3 inputs,
   papelera, chevron y asa — 9 controles en ~520 px.
 - **"Mejor racha"** vive en la tira del día aunque no es del día; la

@@ -14,7 +14,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0005](0005-ajustes-en-el-header.md) | Barra de 5 destinos y Ajustes como ícono del header | Aceptada |
 | [0006](0006-changelog-fuente-unica.md) | `CHANGELOG.md` como fuente única del changelog de la app | Aceptada |
 | [0007](0007-cache-de-librerias-cdn.md) | Librerías de CDN en un caché propio del service worker | Aceptada |
-| [0008](0008-dialogo-de-confirmacion.md) | Diálogo de confirmación propio en vez de `confirm()` | Aceptada |
+| [0008](0008-dialogo-de-confirmacion.md) | Diálogos propios en vez de `confirm()` y `prompt()` | Aceptada |
 | [0009](0009-estados-de-carga.md) | Esqueletos en la primera carga y Reintentar ante fallos | Aceptada |
 
 ## Formato
