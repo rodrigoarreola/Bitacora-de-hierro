@@ -2,6 +2,26 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.62.0] - 2026-09-22 — Ajustes pierde la caja en el header
+
+### En la app: el ícono de Ajustes se aligera
+
+- El engranaje de Ajustes (arriba a la derecha) pierde el fondo y el borde que lo hacían ver como una caja del mismo peso que el logo — ahora es un ícono suelto, un poco más grande para no perder presencia. El logo/Perfil (izquierda) no cambia: sigue funcionando como el "avatar" de la app.
+
+### Changed
+
+- **`css/base.css`**: `.head-settings` sin `background`/`border` (antes heredados de `.btn`), ícono de 13 a 18px. Mismo tamaño de toque (30px, de `.btn--icon`) y mismo resaltado en naranja cuando Ajustes es la vista activa (ahora solo por color, sin borde).
+
+### Added
+
+- Nota de seguimiento en **ADR 0005** (la decisión original de "Ajustes como ícono del header").
+
+### Verificado (Navegador integrado)
+
+- Sin fondo ni borde visibles en el ícono de Ajustes; tap-target sigue en 30px.
+- Estado activo (dentro de Ajustes) se resalta en naranja, sin caja.
+- Sin errores de consola.
+
 ## [1.61.0] - 2026-09-22 — Resumen primero, una medalla grande, mejoras de teclado
 
 ### En la app: Resumen abre primero, una sola medalla y mejor teclado

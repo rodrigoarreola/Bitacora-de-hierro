@@ -32,3 +32,11 @@ bajando la barra de 5 a 4 destinos. Con la racha afuera, el subtítulo volvió
 a caber en una línea y el header bajó a 42 px — la limitación de espacio que
 esta decisión describía ya no aplica, pero la decisión en sí (Ajustes en el
 header) sigue vigente.
+
+El usuario notó que el ícono de Ajustes, con su caja de fondo/borde
+(`.btn.btn--icon`), pesaba visualmente casi lo mismo que `.brand-mark` (el
+logo, que sí funciona como "avatar" de la app) — una jerarquía no
+intencional entre dos elementos de importancia distinta. Corregido en la
+1.62.0: `.head-settings` pierde el fondo y el borde (queda como ícono
+suelto, un poco más grande — de 13 a 18px — para no perder presencia sin
+la caja), mismo tamaño de toque (30px). El logo no cambió.

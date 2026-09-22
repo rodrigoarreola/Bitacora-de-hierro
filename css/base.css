@@ -33,8 +33,15 @@ header.app-head{ display:flex; align-items:flex-end; justify-content:space-betwe
 h1{ font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:.01em; text-transform:uppercase; color:var(--text); margin:0; line-height:1; }
 .sub{ font-size:var(--fs-md); color:var(--text-dim); margin:var(--sp-1) 0 0; }
 .head-right{ display:flex; align-items:center; gap:var(--sp-2); flex-shrink:0; }
-.head-settings{ text-decoration:none; }
-.head-settings.active{ color:var(--accent); border-color:var(--accent-dim); }
+/* Sin la caja con fondo/borde que sí lleva .brand-mark: Ajustes es la
+   acción más ocasional de las dos (el logo además es la identidad de la
+   app), así que le corresponde menos peso visual — un ícono suelto, no un
+   tile a juego. El tamaño de toque (30px, de .btn--icon) no cambia, solo
+   se vuelve invisible. */
+.head-settings{ text-decoration:none; background:none; border-color:transparent; color:var(--text-dim); }
+.head-settings .icon{ font-size:18px; }
+.head-settings:hover{ border-color:transparent; }
+.head-settings.active{ color:var(--accent); }
 
 
 .toast{

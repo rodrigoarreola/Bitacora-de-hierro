@@ -2,6 +2,14 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.62.0",
+        "date": "2026-09-22",
+        "title": "el ícono de Ajustes se aligera",
+        "items": [
+            "El engranaje de Ajustes (arriba a la derecha) pierde el fondo y el borde que lo hacían ver como una caja del mismo peso que el logo — ahora es un ícono suelto, un poco más grande para no perder presencia. El logo/Perfil (izquierda) no cambia: sigue funcionando como el \"avatar\" de la app."
+        ]
+    },
+    {
         "version": "1.61.0",
         "date": "2026-09-22",
         "title": "Resumen abre primero, una sola medalla y mejor teclado",
