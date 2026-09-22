@@ -2,19 +2,27 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
-## [1.55.1] - 2026-09-21 — Hash del caché independiente de los saltos de línea
+## [1.55.3] - 2026-09-22 — La versión del caché coincide con la versión de la app
 
-### En la app: Sin cambios visibles (preparación para producción)
+### En la app: Sin cambios visibles (identificación interna más clara)
 
-- No cambia nada de lo que ves ni de cómo funciona: es un ajuste interno para que las actualizaciones de la app se detecten igual desde cualquier computadora.
+- No cambia nada de lo que ves ni de cómo funciona: es solo para quien mire el caché de la app en las herramientas del navegador — ahora dice la misma versión que ves en Perfil → Changelog.
 
 ### Fixed
 
-- **`CACHE_NAME` dependía de los saltos de línea de cada máquina.** `scripts/bump-sw-cache.php` hasheaba los bytes del directorio de trabajo, y con `core.autocrlf=true` (Windows) esos archivos pueden tener CRLF mientras que un clon en Linux o un `git archive` los tiene en LF: el mismo contenido daba hashes distintos (`d9fffcf696` con dos CSS en CRLF frente a `20a1e956af` con todo en LF). Ahora los archivos de texto se normalizan a LF antes de hashear; los binarios (íconos) se hashean tal cual. Detectado al verificar el paquete de producción contra el tag.
+- **Bug real encontrado al hacer este cambio:** en el commit de ayer (1.55.2), la entrada quedó ordenada después de la 1.55.1 en vez de antes, así que "Versión actual" en Perfil → Changelog mostraba 1.55.1 en vez de la 1.55.2 real. Corregido el orden.
 
-### Added
+### Changed
 
-- **README → "Armar el paquete de producción"**: cómo generar la carpeta y el `.zip` desde un tag, qué se deja fuera y la lista de verificaciones previas. Incluye la trampa de `git archive` con `core.autocrlf=true` (convierte a CRLF; hay que pasarle `-c core.autocrlf=false`).
+- **`CACHE_NAME` incluye la versión semver actual** además del hash de contenido: `bitacora-shell-v1.55.3-<hash>` en vez de `bitacora-shell-<hash>`. La versión sale de la cabecera más reciente de `CHANGELOG.md` (la misma que exige `build-changelog.php`, que corre antes en el hook), así que siempre coincide con lo que se ve en Perfil → Changelog. El hash sigue siendo lo que decide si el caché cambia; la versión es para que el nombre se lea en DevTools → Application → Cache Storage, no un mecanismo aparte.
+- `scripts/bump-sw-cache.php` aborta si `CHANGELOG.md` no tiene ninguna cabecera de versión (`## [x.y.z] - fecha`).
+
+### Verificado
+
+- Con el orden corregido, `CURRENT_VERSION` (`js/changelog-data.js`) y el nuevo `CACHE_NAME` muestran la misma versión (1.55.3).
+- Idempotencia: correr el script dos veces seguidas sin cambios no vuelve a tocar `sw.js`.
+- Guarda: `CHANGELOG.md` sin ninguna cabecera de versión hace fallar el script (código 1); con una cabecera corrupta pero otra válida más abajo, usa esa (comportamiento esperado, no un fallo).
+- El hook completo (`build-changelog.php` → `bump-sw-cache.php`) corre de punta a punta sin errores.
 
 ## [1.55.2] - 2026-09-21 — Script de despliegue por SFTP
 
@@ -33,6 +41,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), c
 
 - `scripts/deploy.local.json.example` no contiene credenciales reales (solo el placeholder `cambia-esto`); no hay ningún `scripts/deploy.local.json` real en el árbol de trabajo ni en el commit.
 - El script es PowerShell válido (`Get-Content` lo lee sin errores de sintaxis).
+
+## [1.55.1] - 2026-09-21 — Hash del caché independiente de los saltos de línea
+
+### En la app: Sin cambios visibles (preparación para producción)
+
+- No cambia nada de lo que ves ni de cómo funciona: es un ajuste interno para que las actualizaciones de la app se detecten igual desde cualquier computadora.
+
+### Fixed
+
+- **`CACHE_NAME` dependía de los saltos de línea de cada máquina.** `scripts/bump-sw-cache.php` hasheaba los bytes del directorio de trabajo, y con `core.autocrlf=true` (Windows) esos archivos pueden tener CRLF mientras que un clon en Linux o un `git archive` los tiene en LF: el mismo contenido daba hashes distintos (`d9fffcf696` con dos CSS en CRLF frente a `20a1e956af` con todo en LF). Ahora los archivos de texto se normalizan a LF antes de hashear; los binarios (íconos) se hashean tal cual. Detectado al verificar el paquete de producción contra el tag.
+
+### Added
+
+- **README → "Armar el paquete de producción"**: cómo generar la carpeta y el `.zip` desde un tag, qué se deja fuera y la lista de verificaciones previas. Incluye la trampa de `git archive` con `core.autocrlf=true` (convierte a CRLF; hay que pasarle `-c core.autocrlf=false`).
 
 ## [1.55.0] - 2026-09-21 — La nota del ejercicio con un diálogo propio
 

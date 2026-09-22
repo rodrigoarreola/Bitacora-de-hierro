@@ -2,11 +2,11 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
-        "version": "1.55.1",
-        "date": "2026-09-21",
-        "title": "Sin cambios visibles (preparación para producción)",
+        "version": "1.55.3",
+        "date": "2026-09-22",
+        "title": "Sin cambios visibles (identificación interna más clara)",
         "items": [
-            "No cambia nada de lo que ves ni de cómo funciona: es un ajuste interno para que las actualizaciones de la app se detecten igual desde cualquier computadora."
+            "No cambia nada de lo que ves ni de cómo funciona: es solo para quien mire el caché de la app en las herramientas del navegador — ahora dice la misma versión que ves en Perfil → Changelog."
         ]
     },
     {
@@ -15,6 +15,14 @@ window.APP_VERSIONS = [
         "title": "Sin cambios visibles (herramienta de despliegue)",
         "items": [
             "No cambia nada de la app: se agrega un script para subir los archivos al servidor sin usar FileZilla a mano."
+        ]
+    },
+    {
+        "version": "1.55.1",
+        "date": "2026-09-21",
+        "title": "Sin cambios visibles (preparación para producción)",
+        "items": [
+            "No cambia nada de lo que ves ni de cómo funciona: es un ajuste interno para que las actualizaciones de la app se detecten igual desde cualquier computadora."
         ]
     },
     {

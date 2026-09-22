@@ -11,8 +11,13 @@ seguía con el código anterior, sin avisar.
 
 ## Decisión
 `index.html`, `css`, `js` e íconos salen del mismo caché
-`bitacora-shell-<hash>`, cuyo nombre recalcula el hook `pre-commit` según el
-contenido del shell. Una versión nueva se instala en segundo plano y **espera**;
+`bitacora-shell-v<versión>-<hash>` (ej. `bitacora-shell-v1.55.3-f517deaf55`),
+cuyo nombre recalcula el hook `pre-commit` según el contenido del shell — el
+hash es lo que decide si cambia; la versión semver (de la cabecera más
+reciente de `CHANGELOG.md`) solo se agrega para que el nombre se lea en
+DevTools y coincida con "Versión actual" en Perfil → Changelog (ver
+[ADR 0010](0010-version-semver-en-el-nombre-del-cache.md)). Una versión nueva
+se instala en segundo plano y **espera**;
 la app muestra "Hay una versión nueva — Actualizar" y, al aceptar, activa el SW
 (`SKIP_WAITING`) y se recarga. También se busca actualización al volver a primer
 plano. El precache usa `cache:'reload'` para no guardar archivos viejos de la

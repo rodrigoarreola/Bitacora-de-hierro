@@ -2,10 +2,14 @@
 declare(strict_types=1);
 
 // Recalcula CACHE_NAME de sw.js a partir de un hash del contenido del app
-// shell (index.html, css, js, manifest e íconos). Se llama solo desde .githooks/pre-commit — no
-// hace falta correrlo a mano. Sin esto, CACHE_NAME se bumpeaba a mano en
-// cada commit (bitacora-shell-v2..v15) y varias veces se olvidó, dejando
-// navegadores sirviendo el shell viejo desde caché (ver README → PWA).
+// shell (index.html, css, js, manifest e íconos), con la versión semver actual
+// (la misma que se ve en Perfil → Changelog) al frente para que sea legible en
+// DevTools → Application → Cache Storage — el hash sigue siendo lo que de
+// verdad decide si el caché cambia, no la versión por sí sola (ver más abajo).
+// Se llama solo desde .githooks/pre-commit — no hace falta correrlo a mano.
+// Sin el hash, CACHE_NAME se bumpeaba a mano en cada commit (bitacora-shell-v2
+// ..v15) y varias veces se olvidó, dejando navegadores sirviendo el shell
+// viejo desde caché (ver README → PWA).
 
 $repoRoot = dirname(__DIR__);
 $shellFiles = [
@@ -68,7 +72,22 @@ foreach ($shellFiles as $relPath) {
 }
 
 $hash = substr(sha1($hashInput), 0, 10);
-$newCacheName = "bitacora-shell-$hash";
+
+// Versión semver actual: la cabecera más reciente de CHANGELOG.md. Se corre
+// después de build-changelog.php (ver .githooks/pre-commit), que ya exige que
+// esa versión tenga un bloque "### En la app: …" — así que siempre coincide
+// con CURRENT_VERSION (js/changelog-data.js, lo que muestra Perfil →
+// Changelog). Solo entra al NOMBRE del caché, no al hash: un cambio de
+// versión sin tocar el shell no dispararía una actualización por sí solo,
+// pero CHANGELOG.md nunca cambia sin regenerar js/changelog-data.js (que sí
+// es parte del shell), así que en la práctica el hash también cambia.
+$changelogPath = $repoRoot . '/CHANGELOG.md';
+if (!preg_match('/^## \[([^\]]+)\] - \d{4}-\d{2}-\d{2}/m', (string) file_get_contents($changelogPath), $vm)) {
+    fwrite(STDERR, "bump-sw-cache: no se encontró la versión más reciente en CHANGELOG.md\n");
+    exit(1);
+}
+$version = $vm[1];
+$newCacheName = "bitacora-shell-v$version-$hash";
 
 $pattern ="/const CACHE_NAME = '[^']*';/";
 if (!preg_match($pattern, $swContent, $m)) {

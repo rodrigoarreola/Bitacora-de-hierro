@@ -16,6 +16,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0007](0007-cache-de-librerias-cdn.md) | Librerías de CDN en un caché propio del service worker | Aceptada |
 | [0008](0008-dialogo-de-confirmacion.md) | Diálogos propios en vez de `confirm()` y `prompt()` | Aceptada |
 | [0009](0009-estados-de-carga.md) | Esqueletos en la primera carga y Reintentar ante fallos | Aceptada |
+| [0010](0010-version-semver-en-el-nombre-del-cache.md) | Versión semver en el nombre del caché del shell | Aceptada |
 
 ## Formato
 
