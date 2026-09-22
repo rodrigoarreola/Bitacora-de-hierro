@@ -18,12 +18,17 @@ body{
 
 /* ---------- Header ---------- */
 header.app-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:var(--sp-3-5); }
-.brand{ display:flex; align-items:center; gap:var(--sp-2-5); }
+/* .brand es un <a href="#/perfil">: el logo/título hacen de acceso a Perfil
+   (mismo lugar que un avatar en otras apps) — un solo usuario, así que "la
+   app" y "tu cuenta" son casi lo mismo. Se resalta el ícono, no el texto
+   completo (el título en acento se vería demasiado pesado). */
+.brand{ display:flex; align-items:center; gap:var(--sp-2-5); text-decoration:none; cursor:pointer; }
 .brand-mark{
   width:34px; height:34px; border-radius:var(--r-md); background:var(--surface-2);
   border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
   color:var(--accent); flex-shrink:0;
 }
+.brand.active .brand-mark{ border-color:var(--accent); }
 .brand-mark .icon{ font-size:17px; }
 h1{ font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:.01em; text-transform:uppercase; color:var(--text); margin:0; line-height:1; }
 .sub{ font-size:var(--fs-md); color:var(--text-dim); margin:var(--sp-1) 0 0; }
@@ -61,7 +66,7 @@ nav.bottom-nav{
 }
 nav.bottom-nav button{
   flex:1; background:none; border:none; color:var(--text-faint);
-  padding:var(--sp-3) var(--sp-1) var(--sp-2-5); font-size:9.5px; /* fuera de escala: 5 botones en 360-375px, "CALENDARIO" (10px) casi no entra */ cursor:pointer;
+  padding:var(--sp-3) var(--sp-1) var(--sp-2-5); font-size:var(--fs-xs); cursor:pointer;
   display:flex; flex-direction:column; align-items:center; gap:var(--sp-1-5);
   font-family:var(--font-body); font-weight:600; text-transform:uppercase; letter-spacing:.02em;
 }

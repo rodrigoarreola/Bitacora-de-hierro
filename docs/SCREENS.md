@@ -17,8 +17,8 @@ Sin un hash válido se abre `#/hoy`.
 | Historial | barra inferior | `#/historial` |
 | Progreso | barra inferior | `#/progreso` |
 | Calendario | barra inferior | `#/calendario` |
-| Perfil | barra inferior | `#/perfil` |
-| Ajustes | ícono de engranaje en el header | `#/ajustes` |
+| Perfil | logo (header, izquierda) | `#/perfil` |
+| Ajustes | ícono de engranaje (header, derecha) | `#/ajustes` |
 
 Atajos entre vistas: una tarjeta de Historial o un día de Calendario/Heatmap
 abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre

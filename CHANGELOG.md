@@ -2,6 +2,33 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.58.0] - 2026-09-22 — Perfil se muda al header, barra de 4 destinos
+
+### En la app: Perfil ahora se abre tocando el logo
+
+- El logo "Bitácora" de arriba a la izquierda ahora te lleva a Perfil, igual que el ícono de Ajustes (arriba a la derecha) te lleva ahí. Perfil sale de la barra inferior, que queda con 4 botones: Hoy, Historial, Progreso, Calendario.
+- El subtítulo "Registro de entrenamiento" vuelve a verse en una sola línea, y el texto de la barra inferior se ve un poco más grande — con menos elementos en el header y la barra, sobraba espacio.
+
+### Changed
+
+- **`.brand`** (logo + título + subtítulo, header) pasa de `<div>` a `<a href="#/perfil" data-view="perfil">`. Se resalta el ícono con un borde de acento cuando estás en Perfil (`.brand.active .brand-mark`). Sin cambios de JS: `showView()`/`switchToView()` ya operan de forma genérica sobre `[data-view]` (ADR 0001), así que agregar el atributo al enlace fue suficiente.
+- **Barra inferior de 5 → 4 destinos**: se quita el botón "Perfil".
+- **Texto de la barra inferior vuelve a la escala de tokens** (`--fs-xs`, 10px en vez de 9.5px "fuera de escala"): con 4 botones en vez de 5, "Calendario" ya no desborda.
+- README y `docs/UI-ESTRUCTURA.md`/`docs/SCREENS.md` actualizados; ADR 0005 recibe una nota de seguimiento (la limitación de espacio que describía ya no aplica).
+
+### Added
+
+- **ADR 0013** con la decisión completa.
+
+### Verificado (Navegador integrado)
+
+- 4 botones en la barra; el logo navega a `#/perfil`, se resalta (`aria-current="page"`) y ningún botón de la barra queda activo al mismo tiempo.
+- Header: 42px de alto, subtítulo en una sola línea (antes 2, desde la 1.50.0).
+- "Calendario" a 10px: 67px de texto dentro de un botón de 94px, sin desborde (`overflowX` en `false`).
+- Ajustes sigue funcionando igual (hash, vista, resaltado).
+- Compartir resumen semanal: la imagen sigue sin incluir el engranaje, con el logo ahora como `<a>` sin romper el clon (`cloneForShare()`), y con la card de racha (ADR 0012) presente.
+- Sin ids duplicados ni errores de consola.
+
 ## [1.57.0] - 2026-09-22 — Hoy se parte en pestañas, y la racha se muda a una card
 
 ### En la app: Hoy en dos pestañas, y tu racha con su propia card

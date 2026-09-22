@@ -24,3 +24,11 @@ y `data-view="ajustes"`. Se resalta cuando es la vista activa.
   Reducir el espacio de las medallas no lo evita y ese espacio fue una decisión
   previa; la salida sería quitar el subtítulo.
 - El ícono de Ajustes se excluye de la imagen de "Compartir resumen semanal".
+
+## Seguimiento
+La racha se mudó del header a una card en Hoy → Resumen (1.57.0, ADR 0012),
+y Perfil se movió del bottom-nav al logo del header (1.58.0, ADR 0013),
+bajando la barra de 5 a 4 destinos. Con la racha afuera, el subtítulo volvió
+a caber en una línea y el header bajó a 42 px — la limitación de espacio que
+esta decisión describía ya no aplica, pero la decisión en sí (Ajustes en el
+header) sigue vigente.

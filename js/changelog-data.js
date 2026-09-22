@@ -2,6 +2,15 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.58.0",
+        "date": "2026-09-22",
+        "title": "Perfil ahora se abre tocando el logo",
+        "items": [
+            "El logo \"Bitácora\" de arriba a la izquierda ahora te lleva a Perfil, igual que el ícono de Ajustes (arriba a la derecha) te lleva ahí. Perfil sale de la barra inferior, que queda con 4 botones: Hoy, Historial, Progreso, Calendario.",
+            "El subtítulo \"Registro de entrenamiento\" vuelve a verse en una sola línea, y el texto de la barra inferior se ve un poco más grande — con menos elementos en el header y la barra, sobraba espacio."
+        ]
+    },
+    {
         "version": "1.57.0",
         "date": "2026-09-22",
         "title": "Hoy en dos pestañas, y tu racha con su propia card",

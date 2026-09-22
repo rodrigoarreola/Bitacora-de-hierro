@@ -15,21 +15,22 @@ tema oscuro, ancho máximo 520 px.
 ┌─ Login (si no hay sesión)
 └─ App shell
    ├─ Banner offline (condicional)
-   ├─ Header fijo ......... marca + racha actual + badges + engranaje (Ajustes)
+   ├─ Header fijo ......... logo→Perfil + título + engranaje→Ajustes
    ├─ Vista activa (una de 6)
-   │    Hoy · Historial · Progreso · Calendario · Perfil · Ajustes (desde el header)
-   ├─ Nav inferior ........ 5 botones
+   │    Hoy · Historial · Progreso · Calendario · Perfil (header) · Ajustes (header)
+   ├─ Nav inferior ........ 4 botones
    └─ Capas globales ...... toast, overlay de info de ejercicio
 ```
 
-Navegación: barra inferior de 5 destinos más el engranaje de Ajustes en el
-header. Cada vista tiene URL por hash (`#/hoy`, `#/historial`, `#/progreso`,
+Navegación: barra inferior de 4 destinos (lo diario) más Perfil y Ajustes
+como accesos del header (lo ocasional) — desde 1.58.0, ver ADR 0013. Cada
+vista tiene URL por hash (`#/hoy`, `#/historial`, `#/progreso`,
 `#/calendario`, `#/perfil`, `#/ajustes`): atrás/adelante y enlaces directos
 funcionan. Hay atajos entre vistas: tocar una semana en Historial o un día en
 Calendario/Heatmap lleva a **Hoy**; "Ver progreso" en un ejercicio lleva a
 **Progreso** con ese ejercicio cargado.
 
-### Nav inferior (5 ítems, todos con ícono + texto)
+### Nav inferior (4 ítems, todos con ícono + texto)
 
 | Ítem | Ícono | Vista |
 |---|---|---|
@@ -37,8 +38,8 @@ Calendario/Heatmap lleva a **Hoy**; "Ver progreso" en un ejercicio lleva a
 | Historial | reloj con flecha | Semanas pasadas |
 | Progreso | línea de gráfica | Evolución por ejercicio |
 | Calendario | calendario | Mes + heatmap anual |
-| Perfil | usuario | Hitos, horarios, datos |
-| _(header)_ Ajustes | engranaje | Reglas, fuente de nombres, librería |
+| _(header, izquierda)_ Perfil | logo Bitácora | Datos, backups, cuenta |
+| _(header, derecha)_ Ajustes | engranaje | Reglas, fuente de nombres, librería |
 
 ---
 
@@ -49,7 +50,10 @@ Tarjeta centrada: logo, título "Bitácora", "Inicia sesión para continuar",
 campos Usuario y Contraseña, botón **Entrar**, línea de error.
 
 ### Header (siempre visible en la app)
-- **Izquierda:** logo (mancuerna), "Bitácora", subtítulo "Registro de entrenamiento".
+- **Izquierda:** logo (mancuerna) + "Bitácora" + subtítulo "Registro de
+  entrenamiento", todo un solo enlace a **Perfil** (`.brand`, como un
+  avatar — un solo usuario, así que "la app" y "tu cuenta" son casi lo
+  mismo). Se resalta el ícono cuando estás en Perfil.
 - **Derecha:** el **engranaje** que abre Ajustes (se resalta cuando estás en
   esa vista). La racha (número + medallas 7/30/100 días) ya no vive acá —
   desde 1.57.0 es su propia card en Hoy → Resumen.
@@ -276,12 +280,10 @@ Solo cuenta/datos — Hitos y Horarios se movieron a Progreso (ver arriba).
 
 Observaciones de la estructura actual (candidatos, no decisiones):
 
-- **Hoy concentra demasiado:** 9 bloques apilados; lo esencial (ejercicios
-  del día) queda debajo de riel de semanas, riel de días, 4 chips y la
-  comparación semanal. La sesión, la nota de la semana, el conversor y
-  "Eliminar semana" están al final, lejos de donde se usan.
-- ~~6 ítems en la nav inferior~~ — resuelto: quedan 5 y Ajustes pasó a un
-  ícono en el header (1.50.0).
+- ~~Hoy concentra demasiado~~ — atenuado (1.57.0, [ADR 0012](adr/0012-hoy-pestanas-registro-resumen.md)):
+  2 pestañas (Registro / Resumen) separan lo diario de lo ocasional.
+- ~~6 ítems en la nav inferior~~ — resuelto: 5 con Ajustes al header
+  (1.50.0), y 4 con Perfil también al header (1.58.0, [ADR 0013](adr/0013-perfil-al-header.md)).
 - ~~Acciones destructivas con `confirm()` del navegador~~ — resuelto (1.53.0):
   diálogo propio con contexto y botón rojo. La nota, con `prompt()`, también
   (1.55.0).
