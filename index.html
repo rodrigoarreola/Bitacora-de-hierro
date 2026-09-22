@@ -66,13 +66,6 @@
       </div>
     </div>
     <div class="head-right">
-      <div class="streak">
-        <div class="streak-badges" id="streak-badges"></div>
-        <div class="streak-text">
-          <div class="n" id="streak-badge">0 días</div>
-          <div class="l">racha actual</div>
-        </div>
-      </div>
       <a class="btn btn--icon head-settings" href="#/ajustes" data-view="ajustes" aria-label="Ajustes"><i class="icon fa-solid fa-gear"></i></a>
     </div>
   </header>
@@ -88,58 +81,77 @@
       <div id="week-pills" style="display:contents"></div>
     </div>
 
-    <div class="day-rack" id="day-rack"></div>
-
-    <div class="summary-strip cols-4">
-      <div class="card card--compact sum-chip"><div class="k">Series hoy</div><div class="v accent" id="sum-series">0</div></div>
-      <div class="card card--compact sum-chip"><div class="k">Ejercicios</div><div class="v" id="sum-exercises">0/0</div></div>
-      <div class="card card--compact sum-chip"><div class="k">Mejor racha</div><div class="v" id="sum-best-streak">0 días</div></div>
-      <div class="card card--compact sum-chip"><div class="k">Volumen</div><div class="v" id="sum-volume">0 kg</div></div>
+    <div class="seg-tabs" id="hoy-tabs" role="tablist">
+      <button type="button" class="seg-tab active" role="tab" aria-selected="true" aria-controls="hoy-tab-registro" data-hoy-tab="registro">Registro</button>
+      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="hoy-tab-resumen" data-hoy-tab="resumen">Resumen</button>
     </div>
 
-    <div class="card card--compact recap-card hidden" id="weekly-recap-host"></div>
+    <div id="hoy-tab-registro" role="tabpanel">
+      <div class="day-rack" id="day-rack"></div>
 
-    <div class="day-swipe-area" id="day-panel-host"></div>
+      <div class="summary-strip">
+        <div class="card card--compact sum-chip"><div class="k">Series hoy</div><div class="v accent" id="sum-series">0</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Ejercicios</div><div class="v" id="sum-exercises">0/0</div></div>
+        <div class="card card--compact sum-chip"><div class="k">Volumen</div><div class="v" id="sum-volume">0 kg</div></div>
+      </div>
 
-    <div class="card card--compact day-session-panel hidden" id="day-session-panel">
-      <div class="day-session-row">
-        <button class="day-session-toggle" type="button" id="day-session-toggle" aria-label="Iniciar entrenamiento"><i class="icon fa-solid fa-play"></i></button>
-        <div class="day-session-field">
-          <label for="day-session-start">Hora inicio</label>
-          <input type="time" id="day-session-start" aria-label="Hora de inicio">
-        </div>
-        <div class="day-session-field">
-          <label for="day-session-end">Hora fin</label>
-          <input type="time" id="day-session-end" aria-label="Hora de fin">
-        </div>
-        <div class="day-session-field">
-          <label for="day-session-duration">Duración</label>
-          <div class="day-session-duration" id="day-session-duration">—</div>
+      <div class="day-swipe-area" id="day-panel-host"></div>
+
+      <div class="card card--compact day-session-panel hidden" id="day-session-panel">
+        <div class="day-session-row">
+          <button class="day-session-toggle" type="button" id="day-session-toggle" aria-label="Iniciar entrenamiento"><i class="icon fa-solid fa-play"></i></button>
+          <div class="day-session-field">
+            <label for="day-session-start">Hora inicio</label>
+            <input type="time" id="day-session-start" aria-label="Hora de inicio">
+          </div>
+          <div class="day-session-field">
+            <label for="day-session-end">Hora fin</label>
+            <input type="time" id="day-session-end" aria-label="Hora de fin">
+          </div>
+          <div class="day-session-field">
+            <label for="day-session-duration">Duración</label>
+            <div class="day-session-duration" id="day-session-duration">—</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="card card--compact week-note-panel hidden" id="week-note-panel">
-      <label for="week-note-input" class="week-note-label">Nota de la semana</label>
-      <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
-    </div>
-
-    <div class="card card--compact converter-panel">
-      <div class="converter-label">Conversor kg / lbs</div>
-      <div class="converter-row">
-        <div class="converter-field">
-          <input type="text" id="conv-kg" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Kilogramos">
-          <span class="converter-unit">kg</span>
+    <div id="hoy-tab-resumen" class="hidden" role="tabpanel">
+      <div class="card streak-hero" id="streak-hero-card">
+        <div class="streak-hero-top">
+          <div>
+            <div class="streak-hero-n" id="streak-badge">0 días</div>
+            <div class="streak-hero-l">racha actual</div>
+          </div>
+          <div class="streak-hero-badges" id="streak-badges"></div>
         </div>
-        <i class="icon fa-solid fa-right-left converter-icon"></i>
-        <div class="converter-field">
-          <input type="text" id="conv-lbs" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Libras">
-          <span class="converter-unit">lbs</span>
+        <div class="streak-hero-best">Mejor racha: <strong id="sum-best-streak">0 días</strong></div>
+      </div>
+
+      <div class="card card--compact recap-card hidden" id="weekly-recap-host"></div>
+
+      <div class="card card--compact week-note-panel hidden" id="week-note-panel">
+        <label for="week-note-input" class="week-note-label">Nota de la semana</label>
+        <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
+      </div>
+
+      <div class="card card--compact converter-panel">
+        <div class="converter-label">Conversor kg / lbs</div>
+        <div class="converter-row">
+          <div class="converter-field">
+            <input type="text" id="conv-kg" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Kilogramos">
+            <span class="converter-unit">kg</span>
+          </div>
+          <i class="icon fa-solid fa-right-left converter-icon"></i>
+          <div class="converter-field">
+            <input type="text" id="conv-lbs" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Libras">
+            <span class="converter-unit">lbs</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <button class="btn btn--danger btn--block btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
+      <button class="btn btn--danger btn--block btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
+    </div>
 
   </div>
 

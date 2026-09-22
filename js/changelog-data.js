@@ -2,6 +2,16 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.57.0",
+        "date": "2026-09-22",
+        "title": "Hoy en dos pestañas, y tu racha con su propia card",
+        "items": [
+            "Hoy ahora tiene dos pestañas: Registro (riel de días, tus ejercicios y el temporizador de sesión — lo de todos los días) y Resumen (comparación semanal, nota de la semana, conversor kg/lbs y eliminar la semana — lo ocasional).",
+            "Tu racha ya no vive arriba del todo en cada pantalla: ahora tiene su propia tarjeta al abrir Resumen, con el número más grande, tus medallas y tu mejor racha.",
+            "La tira de chips de Registro pasa de 4 a 3 (ya no incluye \"Mejor racha\", que se mudó a la tarjeta de racha)."
+        ]
+    },
+    {
         "version": "1.56.0",
         "date": "2026-09-22",
         "title": "Constancia y Horarios ahora viven en Progreso",

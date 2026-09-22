@@ -2,6 +2,42 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.57.0] - 2026-09-22 — Hoy se parte en pestañas, y la racha se muda a una card
+
+### En la app: Hoy en dos pestañas, y tu racha con su propia card
+
+- Hoy ahora tiene dos pestañas: Registro (riel de días, tus ejercicios y el temporizador de sesión — lo de todos los días) y Resumen (comparación semanal, nota de la semana, conversor kg/lbs y eliminar la semana — lo ocasional).
+- Tu racha ya no vive arriba del todo en cada pantalla: ahora tiene su propia tarjeta al abrir Resumen, con el número más grande, tus medallas y tu mejor racha.
+- La tira de chips de Registro pasa de 4 a 3 (ya no incluye "Mejor racha", que se mudó a la tarjeta de racha).
+
+### Added
+
+- **`hoyTab`** (`js/app.js`, estado en memoria como `progTab`): decide la pestaña activa de Hoy; `renderHoyTabs()`. Ninguna de las dos pestañas tiene gráfica, así que cambiar de pestaña no necesita volver a renderizar nada.
+- **`#streak-hero-card`** (`.streak-hero`, `css/views/hoy.css`): número de racha grande, medallas a la derecha, "Mejor racha" debajo de una línea — primera card de la pestaña Resumen.
+- **ADR 0012** con la decisión completa.
+
+### Changed
+
+- **Hoy se reorganiza en 2 pestañas** (`.seg-tabs`): Registro (riel de días, tira de 3 chips, panel del día, sesión) y Resumen (card de racha, comparación semanal, nota de la semana, conversor, eliminar semana). El riel de semanas queda fuera de las pestañas, arriba de las dos.
+- **La racha sale del header por completo** — antes visible en las 6 pantallas, ahora solo en Hoy → Resumen. El header baja de 56 a 42px de alto.
+- **`goToDate()`** (abrir un día desde Historial o Calendario) fuerza `hoyTab = 'registro'`, para no aterrizar en una pestaña sin ejercicios.
+- **`placeDaySessionPanel()` se elimina**: la card de sesión ya no se reubica según si el día activo es hoy de verdad; vive siempre después del panel del día, dentro de Registro, para cualquier día.
+- **`buildDashboardShareContainer()`** clona también la card de racha, para no perderla de la imagen de "Compartir resumen semanal" (antes se incluía gratis con el header). Funciona sin importar qué pestaña de Hoy esté activa.
+- README y `docs/UI-ESTRUCTURA.md`/`docs/SCREENS.md` actualizados.
+
+### Verificado (Navegador integrado)
+
+- Pestañas cambian de contenido y `aria-selected` correctamente; sin ids duplicados (`#streak-badge`/`#streak-badges` existen una sola vez).
+- Header: 42px de alto (antes 56px), sin rastro de `.streak`.
+- Sesión del día: visible y fija en Registro, dentro de `#hoy-tab-registro`, probado en un día que no es hoy.
+- `goToDate()` desde una tarjeta de Historial: aterriza en Registro aunque se venía de Resumen.
+- Compartir resumen: la imagen generada incluye la card de racha con el valor correcto (interceptando `html2canvas`, sin llamarlo de verdad).
+- Capturas de pantalla de Registro y Resumen, consistentes con el resto de la app.
+
+### Límites conocidos
+
+- El subtítulo del header ("Registro de entrenamiento") sigue partido a 2 líneas — se hizo así en la 1.50.0 para dejarle lugar al engranaje, y con la racha afuera probablemente ya no hace falta. Queda para el siguiente paso (mover Perfil al header).
+
 ## [1.56.0] - 2026-09-22 — Hitos y Horarios se mudan a Progreso (pestañas)
 
 ### En la app: Constancia y Horarios ahora viven en Progreso

@@ -1,6 +1,22 @@
-/* Vista Hoy (#/hoy): riel de días, panel del día, filas de ejercicio, sesión, nota, conversor, comparación semanal,
-   imagen de "Compartir" y el panel de info de ejercicio (se abre desde una fila).
+/* Vista Hoy (#/hoy): pestañas Registro (riel de días, panel del día, filas de
+   ejercicio, sesión) / Resumen (racha, comparación semanal, nota, conversor,
+   eliminar semana), imagen de "Compartir" y el panel de info de ejercicio
+   (se abre desde una fila).
    Se carga después de tokens.css, components.css y base.css. */
+
+/* ---------- Racha (pestaña Resumen) ---------- */
+/* Antes vivía en el header, visible en las 6 pantallas; ahora es la card de
+   apertura de Resumen — solo se ve en Hoy, pero como el número que más
+   importa mostrar de entrada. */
+.streak-hero{ padding:var(--pad-card); margin-bottom:var(--sp-3-5); }
+.streak-hero-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp-3); }
+.streak-hero-n{ font-family:var(--font-mono); font-size:32px; font-weight:700; color:var(--text-faint); line-height:1; transition:color .2s ease; }
+.streak-hero-n.complete{ color:var(--ok); }
+.streak-hero-l{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:var(--sp-1); }
+.streak-hero-badges{ display:flex; align-items:center; gap:var(--sp-0-5); flex-shrink:0; }
+.streak-hero-badge-ico{ font-size:26px; line-height:1; }
+.streak-hero-best{ font-size:var(--fs-md); color:var(--text-dim); margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid var(--line); }
+.streak-hero-best strong{ color:var(--text); font-family:var(--font-mono); }
 
 /* ---------- Day tabs (plate rack) ---------- */
 /* 7 días, ancho relativo al contenedor real (no un px fijo pensado para
@@ -215,19 +231,18 @@
   border:1px solid var(--line); border-radius:22px;
 }
 /* Con la card semitransparente en vez de sólida, los elementos que no
-   tienen su propia card de fondo (título, subtítulo, label "racha
-   actual", nombre/grupo de cada day-tab) se apoyaban en tonos apagados
-   pensados para leerse sobre --bg sólido — sobre la card semitransparente
-   perdían contraste, sobre todo los day-tab .completed (fondo verde a
-   10-30%, encima el texto gris quedaba casi invisible). Se fuerzan acá,
-   solo dentro del export (la app en vivo no cambia). El número de racha
-   va siempre en verde, tenga o no la clase .complete. */
+   tienen su propia card de fondo (título, subtítulo, nombre/grupo de cada
+   day-tab) se apoyaban en tonos apagados pensados para leerse sobre --bg
+   sólido — sobre la card semitransparente perdían contraste, sobre todo
+   los day-tab .completed (fondo verde a 10-30%, encima el texto gris
+   quedaba casi invisible). Se fuerzan acá, solo dentro del export (la app
+   en vivo no cambia). La card de racha (#streak-hero-card, clonada aparte
+   en buildDashboardShareContainer()) no necesita esto: es una .card con
+   fondo propio, se lee igual que en la app. */
 .dashboard-share h1,
 .dashboard-share .sub,
-.dashboard-share .streak .l,
 .dashboard-share .day-tab .dname,
 .dashboard-share .day-tab .muted-tag{ color:var(--white); }
-.dashboard-share .streak .n{ color:var(--ok); }
 .dashboard-share .day-tab.completed{ background:var(--ok-strong); }
 
 /* ---------- Sesión del día (Iniciar/Finalizar entrenamiento) ---------- */

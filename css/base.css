@@ -27,18 +27,9 @@ header.app-head{ display:flex; align-items:flex-end; justify-content:space-betwe
 .brand-mark .icon{ font-size:17px; }
 h1{ font-family:var(--font-display); font-size:23px; font-weight:800; letter-spacing:.01em; text-transform:uppercase; color:var(--text); margin:0; line-height:1; }
 .sub{ font-size:var(--fs-md); color:var(--text-dim); margin:var(--sp-1) 0 0; }
-/* La racha y el engranaje no se parten: si falta ancho, se encoge la marca de la izquierda (su subtítulo ya envuelve a 2 líneas). */
 .head-right{ display:flex; align-items:center; gap:var(--sp-2); flex-shrink:0; }
-.streak-text{ white-space:nowrap; }
 .head-settings{ text-decoration:none; }
 .head-settings.active{ color:var(--accent); border-color:var(--accent-dim); }
-.streak{ display:flex; align-items:stretch; justify-content:flex-end; gap:var(--sp-2); }
-.streak-text{ text-align:right; }
-.streak .n{ font-family:var(--font-mono); font-size:19px; font-weight:600; color:var(--text-faint); line-height:1; transition:color .2s ease; }
-.streak .n.complete{ color:var(--ok); }
-.streak .l{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:var(--sp-0-5); }
-.streak-badges{ display:flex; align-items:center; justify-content:center; gap:var(--sp-0-5); padding-right:var(--sp-5); }
-.streak-badges .streak-badge-ico{ font-size:28px; line-height:1; }
 
 
 .toast{

@@ -50,9 +50,9 @@ campos Usuario y Contraseña, botón **Entrar**, línea de error.
 
 ### Header (siempre visible en la app)
 - **Izquierda:** logo (mancuerna), "Bitácora", subtítulo "Registro de entrenamiento".
-- **Derecha:** número de racha ("N días", verde), etiqueta "racha actual" y,
-  al lado, **badges** de hito: bronce (7+ días), plata (30+), oro (100+); y el
-  **engranaje** que abre Ajustes (se resalta cuando estás en esa vista).
+- **Derecha:** el **engranaje** que abre Ajustes (se resalta cuando estás en
+  esa vista). La racha (número + medallas 7/30/100 días) ya no vive acá —
+  desde 1.57.0 es su propia card en Hoy → Resumen.
 
 ### Banner offline
 Aparece cuando no hay conexión o hay cambios pendientes de sincronizar.
@@ -97,22 +97,24 @@ músculos secundarios, **instrucciones** paso a paso y atribución.
 
 ## 3. Vista HOY (`#view-hoy`)
 
-Pantalla principal y la más densa. De arriba abajo:
+**Riel de semanas** arriba (fuera de las pestañas: elegir semana aplica a
+las dos) y luego **2 pestañas** (`.seg-tabs`, desde 1.57.0, ver ADR 0012):
+Registro (lo que se usa a diario) / Resumen (lo ocasional).
 
 1. **Riel de semanas.** Botón "+ Nueva semana" (abre selector de fecha, se
    ajusta al lunes más cercano) seguido de una píldora por semana. La
    semana activa muestra una X para eliminarla (si hay más de una).
+
+### Registro (pestaña por defecto)
+
 2. **Riel de días.** 7 pestañas (L M X J V S D): letra en "placa", nombre
    corto y grupo muscular (primera palabra). Estados: activa / completada
    (≥ mínimo de ejercicios) / con marca de "migrado". Se puede navegar
    también **deslizando** el panel a izquierda/derecha.
-3. **Tira de resumen (4 chips):** Series hoy · Ejercicios (hechos/total) ·
-   Mejor racha · Volumen (kg).
-4. **Comparación semanal** (tarjeta, solo si la semana anterior es la
-   inmediata): "Esta semana vs. la pasada", con Volumen (± %) y
-   Adherencia (hechos/total y "antes X/Y"). En la semana en curso compara
-   solo hasta el día de hoy.
-5. **Panel del día:**
+3. **Tira de resumen (3 chips):** Series hoy · Ejercicios (hechos/total) ·
+   Volumen (kg) — todos del día activo. "Mejor racha" se movió a la card
+   de racha, en Resumen.
+4. **Panel del día:**
    - Cabecera: grupo muscular, "Día · fecha", botón **compartir día**
      (imagen), botón **compartir resumen semanal** (imagen) y **anillo de
      progreso** hechos/total con color de semáforo.
@@ -133,15 +135,27 @@ Pantalla principal y la más densa. De arriba abajo:
    - **Migrar día:** botón que abre un selector con los días posteriores de
      la semana (avisa si el destino ya tiene rutina, que se recorre) y
      botones Migrar / cancelar.
-6. **Panel de sesión del día** (solo si hay día activo): botón play/stop y
-   campos Hora inicio, Hora fin y Duración calculada.
-7. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
+5. **Panel de sesión del día** (solo si hay día activo): botón play/stop y
+   campos Hora inicio, Hora fin y Duración calculada. Posición fija después
+   del panel del día, para cualquier día (antes se reubicaba dinámicamente
+   solo cuando el día activo era hoy de verdad).
+
+### Resumen
+
+6. **Card de racha:** número grande + medallas (7/30/100 días) + "Mejor
+   racha" debajo de una línea divisoria. Antes vivía en el header, visible
+   en las 6 pantallas; ahora solo se ve acá.
+7. **Comparación semanal** (tarjeta, solo si la semana anterior es la
+   inmediata): "Esta semana vs. la pasada", con Volumen (± %) y
+   Adherencia (hechos/total y "antes X/Y"). En la semana en curso compara
+   solo hasta el día de hoy.
+8. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
    ajustes…").
-8. **Conversor kg ⇄ lbs:** dos inputs enlazados.
-9. **Eliminar esta semana** (botón destructivo, con confirmación).
+9. **Conversor kg ⇄ lbs:** dos inputs enlazados.
+10. **Eliminar esta semana** (botón destructivo, con confirmación).
 
 Estado vacío global (sin semanas): tarjeta "Todavía no has creado ninguna
-semana" con botón "+ Nueva semana".
+semana" con botón "+ Nueva semana" (Registro).
 
 ---
 

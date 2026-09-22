@@ -986,6 +986,33 @@
   });
 
   // ============================================================
+  // Pestañas de Hoy: Registro (día activo, riel de días y ejercicios — lo
+  // que se usa a diario) / Resumen (racha, comparación semanal, nota,
+  // conversor, eliminar semana — lo ocasional). Ninguna de las dos tiene
+  // gráfica, así que a diferencia de Progreso no hace falta re-renderizar
+  // nada al cambiar de pestaña.
+  // ============================================================
+  let hoyTab = 'registro'; // 'registro' | 'resumen'
+
+  function renderHoyTabs(){
+    document.querySelectorAll('#hoy-tabs .seg-tab').forEach(b=>{
+      const on = b.dataset.hoyTab === hoyTab;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    document.getElementById('hoy-tab-registro').classList.toggle('hidden', hoyTab !== 'registro');
+    document.getElementById('hoy-tab-resumen').classList.toggle('hidden', hoyTab !== 'resumen');
+  }
+
+  document.getElementById('hoy-tabs').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-hoy-tab]');
+    if(!btn) return;
+    hoyTab = btn.dataset.hoyTab;
+    renderHoyTabs();
+  });
+  renderHoyTabs();
+
+  // ============================================================
   // Render
   // ============================================================
   function renderAll(){
@@ -1056,6 +1083,8 @@
     state.activeWeek = wk;
     state.activeDay = DAY_ORDER[(date.getDay() + 6) % 7];
     migratePickerOpen = false;
+    hoyTab = 'registro'; // el destino es un día puntual — Resumen no muestra ejercicios
+    renderHoyTabs();
     renderAll();
     switchToView('hoy');
     const el = document.querySelector(`.week-pill[data-week="${wk}"]`);
@@ -1278,7 +1307,12 @@
 
   // Card de "Iniciar/Finalizar entrenamiento" del día activo — vive fuera
   // del innerHTML de #day-panel-host (como #week-note-panel) para no perder
-  // el foco de los inputs de hora en cada re-render.
+  // el foco de los inputs de hora en cada re-render. Posición fija dentro de
+  // la pestaña Registro (después de day-panel-host) para cualquier día, sea
+  // o no hoy — antes se reubicaba dinámicamente cerca de la tira de resumen
+  // solo cuando el día activo era hoy de verdad, pero con Registro/Resumen ya
+  // separados (1.57.0) la sesión siempre vive junto a los ejercicios del día
+  // que se está viendo, sin ese caso especial.
   function fmtDurationLabel(min){
     if(min == null) return '—';
     const h = Math.floor(min / 60), m = min % 60;
@@ -1299,21 +1333,6 @@
     return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
   }
 
-  // Mueve la card de sesión entre el riel de días y la tira de resumen
-  // cuando el día cargado es HOY de verdad (fecha real, no solo el día de
-  // la semana activo) — pensado para tenerla a mano arriba mientras se
-  // entrena; cualquier otro día (pasado o futuro) la deja donde siempre
-  // vivió, justo antes de la nota de la semana.
-  function placeDaySessionPanel(panel, isToday){
-    if(isToday){
-      const summaryStrip = document.querySelector('.summary-strip');
-      summaryStrip.parentNode.insertBefore(panel, summaryStrip);
-    } else {
-      const weekNotePanel = document.getElementById('week-note-panel');
-      weekNotePanel.parentNode.insertBefore(panel, weekNotePanel);
-    }
-  }
-
   function renderDaySession(){
     const panel = document.getElementById('day-session-panel');
     const week = currentWeek();
@@ -1321,9 +1340,6 @@
     if(!week) return;
 
     const day = currentDay();
-    const d = dayDate(state.activeWeek, state.activeDay);
-    placeDaySessionPanel(panel, toISO(d) === toISO(new Date()));
-
     const startEl = document.getElementById('day-session-start');
     const endEl = document.getElementById('day-session-end');
     const durEl = document.getElementById('day-session-duration');
@@ -1402,7 +1418,7 @@
     if(current >= 30)  tiers.push({ icon: 'fa-medal',  cls: 'silver', label: 'Racha de 30+ días' });
     if(current >= 100) tiers.push({ icon: 'fa-trophy', cls: 'gold',   label: 'Racha de 100+ días' });
     host.innerHTML = tiers.map(t =>
-      `<i class="icon streak-badge-ico milestone-ico ${t.cls} fa-solid ${t.icon}" title="${t.label}" aria-label="${t.label}"></i>`
+      `<i class="icon streak-hero-badge-ico milestone-ico ${t.cls} fa-solid ${t.icon}" title="${t.label}" aria-label="${t.label}"></i>`
     ).join('');
   }
 
@@ -2755,6 +2771,12 @@
     card.appendChild(weekRailClone);
     card.appendChild(cloneRailForShare(document.getElementById('day-rack'), { stretch: true }));
     card.appendChild(cloneForShare(document.querySelector('.summary-strip')));
+    // La racha vivía en el header (siempre se clonaba); ahora es su propia
+    // card en la pestaña Resumen — se agrega aparte para no perderla de la
+    // imagen. Funciona sin importar qué pestaña de Hoy esté activa: cloneNode
+    // no depende de la visibilidad del original (ver shareDashboardAsImage()).
+    const streakHero = document.getElementById('streak-hero-card');
+    if(streakHero) card.appendChild(cloneForShare(streakHero));
     const recapHost = document.getElementById('weekly-recap-host');
     if(recapHost && !recapHost.classList.contains('hidden') && recapHost.innerHTML.trim()){
       card.appendChild(cloneForShare(recapHost));

@@ -30,7 +30,7 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 |---|---|---|---|---|
 | Arranque | Estado | `#boot-screen` (sin ruta) | `api/session.php`, copia local | V n/a · C ✓ · E ✓ (Reintentar) · O ✓ |
 | Login | Formulario | `#view-login` (sin ruta) | `api/session.php`, `api/login.php` | V n/a · C ✓ · E ✓ · O ~ |
-| Hoy | Formulario + dashboard | `#/hoy` | `api/weeks.php`, `api/exercises.php`, `api/migrate_day.php`, `api/library.php`, `api/settings.php` | V ✓ · C ✓ · E ~ · O ~ |
+| Hoy | Formulario + dashboard (2 pestañas: Registro, Resumen) | `#/hoy` | `api/weeks.php`, `api/exercises.php`, `api/migrate_day.php`, `api/library.php`, `api/settings.php` | V ✓ · C ✓ · E ~ · O ~ |
 | Historial | Lista | `#/historial` | semanas ya cargadas (memoria) | V ✓ · C ✓ · E n/a · O ✓ |
 | Progreso | Dashboard / detalle (3 pestañas: Ejercicios, Constancia, Horarios) | `#/progreso` | semanas en memoria + Chart.js (CDN, en caché del SW) | V ✓ · C ✓ · E ✓ · O ✓ |
 | Calendario | Dashboard | `#/calendario` | semanas en memoria | V ~ · C ✓ · E n/a · O ✓ |
@@ -74,8 +74,10 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 
 ### Pantallas que mezclan tipos
 
-- **Hoy:** registro (formulario) + resumen (dashboard) + utilidades
-  (conversor, gestión de semanas).
+- ~~Hoy: registro (formulario) + resumen (dashboard) + utilidades~~ —
+  atenuado (1.57.0, [ADR 0012](adr/0012-hoy-pestanas-registro-resumen.md)):
+  2 pestañas (Registro / Resumen) separan lo diario de lo ocasional. Sigue
+  siendo una sola pantalla con dos modos, no dos pantallas.
 - ~~Perfil: análisis (Hitos, Horarios) + administración~~ — resuelto
   (1.56.0, [ADR 0011](adr/0011-hitos-horarios-a-progreso.md)): Hitos y
   Horarios se movieron a Progreso; Perfil quedó solo con cuenta/datos.
