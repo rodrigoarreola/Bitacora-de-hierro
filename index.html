@@ -73,29 +73,18 @@
   <!-- ================= VIEW: HOY / RUTINA ================= -->
   <div class="view active" id="view-hoy">
 
-    <div class="week-rail" id="week-rail">
-      <button class="add-week" id="add-week-btn" type="button">
-        <i class="icon fa-solid fa-plus"></i>Nueva semana
-        <input type="date" id="new-week-date" aria-label="Elegir lunes de inicio de semana">
-      </button>
-      <div id="week-pills" style="display:contents"></div>
-    </div>
-
     <div class="seg-tabs" id="hoy-tabs" role="tablist">
       <button type="button" class="seg-tab active" role="tab" aria-selected="true" aria-controls="hoy-tab-registro" data-hoy-tab="registro">Registro</button>
       <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="hoy-tab-resumen" data-hoy-tab="resumen">Resumen</button>
     </div>
 
     <div id="hoy-tab-registro" role="tabpanel">
-      <div class="day-rack" id="day-rack"></div>
-
-      <div class="summary-strip">
-        <div class="card card--compact sum-chip"><div class="k">Series hoy</div><div class="v accent" id="sum-series">0</div></div>
-        <div class="card card--compact sum-chip"><div class="k">Ejercicios</div><div class="v" id="sum-exercises">0/0</div></div>
-        <div class="card card--compact sum-chip"><div class="k">Volumen</div><div class="v" id="sum-volume">0 kg</div></div>
+      <div class="day-switch-row">
+        <button type="button" class="btn btn--icon" id="day-switch-prev" aria-label="Día anterior"><i class="icon fa-solid fa-chevron-left"></i></button>
+        <div class="day-switch-label" id="day-switch-label">—</div>
+        <button type="button" class="btn btn--icon" id="day-switch-next" aria-label="Día siguiente"><i class="icon fa-solid fa-chevron-right"></i></button>
+        <button type="button" class="btn btn--icon" id="converter-open-btn" aria-label="Conversor kg / lbs"><i class="icon fa-solid fa-right-left"></i></button>
       </div>
-
-      <div class="day-swipe-area" id="day-panel-host"></div>
 
       <div class="card card--compact day-session-panel hidden" id="day-session-panel">
         <div class="day-session-row">
@@ -114,16 +103,31 @@
           </div>
         </div>
       </div>
+
+      <div class="day-swipe-area" id="day-panel-host"></div>
     </div>
 
     <div id="hoy-tab-resumen" class="hidden" role="tabpanel">
+      <div class="week-rail" id="week-rail">
+        <button class="add-week" id="add-week-btn" type="button">
+          <i class="icon fa-solid fa-plus"></i>Nueva semana
+          <input type="date" id="new-week-date" aria-label="Elegir lunes de inicio de semana">
+        </button>
+        <div id="week-pills" style="display:contents"></div>
+      </div>
+
+      <div class="day-rack" id="day-rack"></div>
+
       <div class="card streak-hero" id="streak-hero-card">
         <div class="streak-hero-top">
           <div>
             <div class="streak-hero-n" id="streak-badge">0 días</div>
             <div class="streak-hero-l">racha actual</div>
           </div>
-          <div class="streak-hero-badges" id="streak-badges"></div>
+          <div class="streak-hero-top-right">
+            <div class="streak-hero-badges" id="streak-badges"></div>
+            <button type="button" class="btn btn--icon share-btn" id="share-dashboard-btn" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-share-nodes"></i></button>
+          </div>
         </div>
         <div class="streak-hero-best">Mejor racha: <strong id="sum-best-streak">0 días</strong></div>
       </div>
@@ -135,22 +139,7 @@
         <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
       </div>
 
-      <div class="card card--compact converter-panel">
-        <div class="converter-label">Conversor kg / lbs</div>
-        <div class="converter-row">
-          <div class="converter-field">
-            <input type="text" id="conv-kg" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Kilogramos">
-            <span class="converter-unit">kg</span>
-          </div>
-          <i class="icon fa-solid fa-right-left converter-icon"></i>
-          <div class="converter-field">
-            <input type="text" id="conv-lbs" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Libras">
-            <span class="converter-unit">lbs</span>
-          </div>
-        </div>
-      </div>
-
-      <button class="btn btn--danger btn--block btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
+      <button class="btn btn--ghost btn--block btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
     </div>
 
   </div>
@@ -345,6 +334,24 @@
 
   <div class="sheet-overlay ex-info-overlay hidden" id="exercise-info-overlay">
     <div class="sheet ex-info-panel" id="exercise-info-panel"></div>
+  </div>
+
+  <!-- Conversor kg / lbs, colapsado detrás de un ícono en Hoy → Registro — ver openConverterSheet()/closeConverterSheet() en js/app.js -->
+  <div class="sheet-overlay hidden" id="converter-overlay">
+    <div class="sheet converter-sheet">
+      <div class="converter-label">Conversor kg / lbs</div>
+      <div class="converter-row">
+        <div class="converter-field">
+          <input type="text" id="conv-kg" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Kilogramos">
+          <span class="converter-unit">kg</span>
+        </div>
+        <i class="icon fa-solid fa-right-left converter-icon"></i>
+        <div class="converter-field">
+          <input type="text" id="conv-lbs" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Libras">
+          <span class="converter-unit">lbs</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Diálogo de confirmación / de texto (reemplaza a window.confirm y window.prompt) — ver confirmDialog() y promptDialog() en js/app.js -->

@@ -101,62 +101,72 @@ músculos secundarios, **instrucciones** paso a paso y atribución.
 
 ## 3. Vista HOY (`#view-hoy`)
 
-**Riel de semanas** arriba (fuera de las pestañas: elegir semana aplica a
-las dos) y luego **2 pestañas** (`.seg-tabs`, desde 1.57.0, ver ADR 0012):
-Registro (lo que se usa a diario) / Resumen (lo ocasional).
-
-1. **Riel de semanas.** Botón "+ Nueva semana" (abre selector de fecha, se
-   ajusta al lunes más cercano) seguido de una píldora por semana. La
-   semana activa muestra una X para eliminarla (si hay más de una).
+**2 pestañas** (`.seg-tabs`, desde 1.57.0, ver ADR 0012) directo al inicio
+de la vista: Registro (solo el día activo) / Resumen (todo lo de nivel
+semana). Desde 1.59.0 (ADR 0014) ninguna navegación de semana/día vive
+fuera de las pestañas — cada una es dueña de su contenido.
 
 ### Registro (pestaña por defecto)
 
-2. **Riel de días.** 7 pestañas (L M X J V S D): letra en "placa", nombre
-   corto y grupo muscular (primera palabra). Estados: activa / completada
-   (≥ mínimo de ejercicios) / con marca de "migrado". Se puede navegar
-   también **deslizando** el panel a izquierda/derecha.
-3. **Tira de resumen (3 chips):** Series hoy · Ejercicios (hechos/total) ·
-   Volumen (kg) — todos del día activo. "Mejor racha" se movió a la card
-   de racha, en Resumen.
-4. **Panel del día:**
-   - Cabecera: grupo muscular, "Día · fecha", botón **compartir día**
-     (imagen), botón **compartir resumen semanal** (imagen) y **anillo de
-     progreso** hechos/total con color de semáforo.
+1. **Selector de día compacto** (`.day-switch-row`): flechas ‹ › + fecha
+   ("Martes · 15 sep") y, al final de la misma fila, un ícono que despliega
+   el **conversor kg ⇄ lbs** (sheet, ver punto 8). Reemplaza al riel de 7
+   días dentro de Registro — cambiar de día también se puede **deslizando**
+   el panel a izquierda/derecha (misma lógica, `stepActiveDay()`).
+2. **Panel de sesión del día**: botón play/stop y campos Hora inicio, Hora
+   fin y Duración calculada. Sube arriba de la tabla de ejercicios (en vez
+   de después del panel del día).
+3. **Panel del día:**
+   - Cabecera: grupo muscular, línea de stats fusionada ("9 series · 4,980
+     kg"), botón **compartir día** (imagen) y **anillo de progreso**
+     hechos/total con color de semáforo. Ya no lleva "Día · fecha" (lo
+     cubre el selector de arriba) ni el botón de compartir resumen semanal
+     (se movió a Resumen).
    - **Sin ejercicios:** mensaje vacío + botones "Copiar semana pasada" y
      "+ Agregar ejercicio".
    - **Con ejercicios:** encabezado de columnas (Ejercicio · Kg · Rep ·
-     Ser) y una **fila por ejercicio**:
+     Ser) y una **fila por ejercicio**, con 7 controles siempre visibles:
      - Check para marcar hecho / pendiente.
-     - Nombre (toca para editar, con autocompletado de la librería), botón
-       de ojo (info/GIF si hay coincidencia) y nota corta ("+ nota").
+     - Nombre (toca para editar, con autocompletado de la librería) y nota
+       corta ("+ nota").
      - Inputs Kg, Rep, Ser.
-     - Papelera (borra con opción de deshacer), chevron y asa de arrastre
-       para **reordenar**.
-     - **Detalle expandible** (chevron): compara Kg/Rep/Ser con la semana
-       pasada (flechas ↑ ↓ =), sugiere carga (+ incremento), botón "Ver
-       progreso"; o "Sin datos de la semana pasada".
+     - Chevron y asa de arrastre para **reordenar**.
+     - **Detalle expandible** (chevron): fila de acciones ("Ver progreso" /
+       "Ver info" si hay coincidencia con el ojo / "Eliminar" en rojo, con
+       la papelera) y, debajo, la comparación Kg/Rep/Ser con la semana
+       pasada (flechas ↑ ↓ =) con sugerencia de carga (+ incremento), o
+       "Sin datos de la semana pasada".
    - Fila "+ Agregar ejercicio" y notas del día (si existen).
    - **Migrar día:** botón que abre un selector con los días posteriores de
      la semana (avisa si el destino ya tiene rutina, que se recorre) y
      botones Migrar / cancelar.
-5. **Panel de sesión del día** (solo si hay día activo): botón play/stop y
-   campos Hora inicio, Hora fin y Duración calculada. Posición fija después
-   del panel del día, para cualquier día (antes se reubicaba dinámicamente
-   solo cuando el día activo era hoy de verdad).
 
 ### Resumen
 
-6. **Card de racha:** número grande + medallas (7/30/100 días) + "Mejor
-   racha" debajo de una línea divisoria. Antes vivía en el header, visible
-   en las 6 pantallas; ahora solo se ve acá.
+4. **Riel de semanas.** Botón "+ Nueva semana" (abre selector de fecha, se
+   ajusta al lunes más cercano) seguido de una píldora por semana. La
+   semana activa muestra una X para eliminarla (si hay más de una). Tocar
+   una semana **se queda en Resumen** (refresca riel de días, racha y
+   comparación).
+5. **Riel de días.** 7 pestañas (L M X J V S D): letra en "placa", nombre
+   corto y grupo muscular (primera palabra). Estados: activa / completada
+   (≥ mínimo de ejercicios) / con marca de "migrado". Tocar un día **manda
+   a Registro** con ese día cargado (mismo patrón que `goToDate()`).
+6. **Card de racha:** número grande + medallas (7/30/100 días) + botón
+   **compartir resumen semanal** (imagen) + "Mejor racha" debajo de una
+   línea divisoria. Antes vivía en el header, visible en las 6 pantallas;
+   ahora solo se ve acá.
 7. **Comparación semanal** (tarjeta, solo si la semana anterior es la
    inmediata): "Esta semana vs. la pasada", con Volumen (± %) y
    Adherencia (hechos/total y "antes X/Y"). En la semana en curso compara
    solo hasta el día de hoy.
 8. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
    ajustes…").
-9. **Conversor kg ⇄ lbs:** dos inputs enlazados.
-10. **Eliminar esta semana** (botón destructivo, con confirmación).
+9. **Eliminar esta semana** (enlace ghost, con doble confirmación).
+
+**Conversor kg ⇄ lbs:** ya no es una card fija de Resumen — es un sheet
+(`#converter-overlay`) que se abre desde el ícono del selector de día en
+Registro (punto 1) y se cierra tocando el fondo.
 
 Estado vacío global (sin semanas): tarjeta "Todavía no has creado ninguna
 semana" con botón "+ Nueva semana" (Registro).
@@ -287,10 +297,12 @@ Observaciones de la estructura actual (candidatos, no decisiones):
 - ~~Acciones destructivas con `confirm()` del navegador~~ — resuelto (1.53.0):
   diálogo propio con contexto y botón rojo. La nota, con `prompt()`, también
   (1.55.0).
-- **Fila de ejercicio muy cargada:** check, nombre, ojo, nota, 3 inputs,
-  papelera, chevron y asa — 9 controles en ~520 px.
-- **"Mejor racha"** vive en la tira del día aunque no es del día; la
-  racha actual está en el header y la mejor en otro lado.
+- ~~Fila de ejercicio muy cargada (9 controles)~~ — resuelto (1.59.0,
+  [ADR 0014](adr/0014-registro-solo-dia-activo.md)): ojo y papelera se
+  movieron al detalle del chevron, quedan 7 controles siempre visibles.
+- ~~"Mejor racha" vive en la tira del día aunque no es del día~~ — resuelto
+  (1.57.0, [ADR 0012](adr/0012-hoy-pestanas-registro-resumen.md)): racha
+  actual y mejor racha viven juntas en su propia card, en Hoy → Resumen.
 - ~~Perfil mezcla análisis con administración~~ — resuelto (1.56.0):
   Hitos y Horarios se movieron a Progreso; Perfil quedó solo con
   cuenta/datos.

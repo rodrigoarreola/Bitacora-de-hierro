@@ -2,6 +2,20 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.59.0",
+        "date": "2026-09-22",
+        "title": "Registro más simple, Resumen con todo lo de nivel semana",
+        "items": [
+            "Registro ahora solo tiene información del día activo: un selector compacto (‹ Martes · 15 sep ›) reemplaza al riel de 7 días, que se muda a Resumen junto con el riel de semanas — ahí es donde tiene sentido comparar días y semanas entre sí.",
+            "El cronómetro de sesión (Iniciar/Finalizar entrenamiento) vuelve a estar arriba de la tabla de ejercicios, como en versiones anteriores.",
+            "El conversor kg/lbs se muda a Registro (donde más se usa, a media sesión) pero colapsado: un ícono junto al selector de día lo despliega solo cuando hace falta.",
+            "La cabecera de la card del día fusiona los chips de Series y Volumen con el nombre del grupo muscular; se quita el chip \"Ejercicios\" (redundante con el anillo de progreso).",
+            "\"Compartir resumen semanal\" sale de la cabecera del día (no comparte nada de ese día en particular) y se muda a la card de racha, en Resumen.",
+            "En cada fila de ejercicio, el ícono de info (ojo) y el de eliminar (papelera) dejan de estar siempre visibles: se movieron al detalle que despliega el chevron, junto a \"Ver progreso\". La fila pasa de 9 a 7 controles.",
+            "\"Eliminar esta semana\" baja de peso visual: de botón rojo de ancho completo a enlace ghost (ya pedía doble confirmación, eso no cambió)."
+        ]
+    },
+    {
         "version": "1.58.0",
         "date": "2026-09-22",
         "title": "Perfil ahora se abre tocando el logo",

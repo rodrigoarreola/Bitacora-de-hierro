@@ -20,6 +20,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0011](0011-hitos-horarios-a-progreso.md) | Hitos y Horarios se mudan de Perfil a Progreso, con pestañas | Aceptada |
 | [0012](0012-hoy-pestanas-registro-resumen.md) | Hoy se parte en pestañas Registro / Resumen; racha a una card | Aceptada |
 | [0013](0013-perfil-al-header.md) | Perfil se mueve al header (logo), barra inferior de 4 destinos | Aceptada |
+| [0014](0014-registro-solo-dia-activo.md) | Registro solo con el día activo; riel de semanas y de días a Resumen | Aceptada |
 
 ## Formato
 

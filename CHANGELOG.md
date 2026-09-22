@@ -2,6 +2,51 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.59.0] - 2026-09-22 — Registro solo con el día activo; semanas y días a Resumen
+
+### En la app: Registro más simple, Resumen con todo lo de nivel semana
+
+- Registro ahora solo tiene información del día activo: un selector compacto (‹ Martes · 15 sep ›) reemplaza al riel de 7 días, que se muda a Resumen junto con el riel de semanas — ahí es donde tiene sentido comparar días y semanas entre sí.
+- El cronómetro de sesión (Iniciar/Finalizar entrenamiento) vuelve a estar arriba de la tabla de ejercicios, como en versiones anteriores.
+- El conversor kg/lbs se muda a Registro (donde más se usa, a media sesión) pero colapsado: un ícono junto al selector de día lo despliega solo cuando hace falta.
+- La cabecera de la card del día fusiona los chips de Series y Volumen con el nombre del grupo muscular; se quita el chip "Ejercicios" (redundante con el anillo de progreso).
+- "Compartir resumen semanal" sale de la cabecera del día (no comparte nada de ese día en particular) y se muda a la card de racha, en Resumen.
+- En cada fila de ejercicio, el ícono de info (ojo) y el de eliminar (papelera) dejan de estar siempre visibles: se movieron al detalle que despliega el chevron, junto a "Ver progreso". La fila pasa de 9 a 7 controles.
+- "Eliminar esta semana" baja de peso visual: de botón rojo de ancho completo a enlace ghost (ya pedía doble confirmación, eso no cambió).
+
+### Changed
+
+- **`index.html`**: `#view-hoy` se reordena — `#week-rail` y `#day-rack` pasan de vivir fuera de las pestañas a ser contenido exclusivo de `#hoy-tab-resumen`; `#day-session-panel` sube arriba de `#day-panel-host` dentro de `#hoy-tab-registro`; nuevo `.day-switch-row` (flechas + fecha + ícono del conversor) al inicio de Registro; el conversor deja de ser una card fija en Resumen y pasa a un overlay (`#converter-overlay`, mismo patrón `.sheet-overlay`/`.sheet` que el resto de los diálogos); `#share-dashboard-btn` se muda al markup estático de `#streak-hero-card`; `#delete-week-btn` cambia de `btn btn--danger btn--block` a `btn btn--ghost`.
+- **`js/app.js`**: nueva `stepActiveDay(delta)` (extraída de la lógica de swipe, ahora compartida con las flechas del selector) y `renderDaySwitcher()`; `renderDayRack()` cambia a pestaña Registro al tocar un día (el riel de semanas no cambia de pestaña); `renderDayPanel()` arma la cabecera fusionada con `updateDayStats()` (Series/Volumen, no destructivo para no perder foco al escribir); `updateSummaryStrip()` se retira, sus 6 call sites simples pasan a `renderWeeklyRecap()` directo; `exerciseRowHtml()` mueve el ojo y la papelera al bloque de detalle (`.ex-detail-actions`), con `data-id` en `.ex-detail` para que el borrado delegado siga encontrando el ejercicio; nuevas `openConverterSheet()`/`closeConverterSheet()` calcadas de `openExerciseInfo()`/`closeExerciseInfo()`.
+- **`css/views/hoy.css`**: grid de `.col-heads`/`.ex-row` de 8 a 7 columnas; nuevas `.day-switch-row`, `.streak-hero-top-right`, `.ex-detail-actions`, `.ex-progress-btn--danger`; se retiran `.ex-name-row`, `.ex-info-btn`, `.ex-del`, `.ex-detail-head-left`, `.ex-detail-empty-row`, `.converter-panel` (todas reemplazadas o ya no usadas).
+
+### Fixed
+
+- **`.ex-detail-empty`** ("Sin datos de la semana pasada para este ejercicio") no tenía `grid-column:1/-1` tras perder su wrapper `.ex-detail-empty-row` — el texto se veía comprimido en la primera columna (22px), una palabra por línea.
+- El `input` de kg/rep/ser no actualizaba Series/Volumen en vivo: un `if` sin llaves dejaba `updateDayStats()` condicionado a `field === 'series' && ex.done`, cuando debía correr en cada tecleo de cualquiera de los tres campos.
+- **`.is-loading .streak .n`** (esqueleto de carga) apuntaba a una clase que ya no existe desde la 1.57.0 (`.streak-hero-n`) — la racha se veía como "0 días" real en vez de gris durante la carga.
+
+### Added
+
+- **ADR 0014** con la decisión completa de este reordenamiento.
+
+### Fuera de alcance
+
+- Notas por día (en vez de por semana): requiere columna nueva en `exercises` o una tabla nueva — queda pendiente para otra ronda.
+
+### Verificado (Navegador integrado)
+
+- Selector de día: flechas cambian de día y coinciden con el swipe existente (mismo `stepActiveDay()`); día vacío muestra el estado "Todavía no hay ejercicios" con "Copiar semana pasada".
+- Riel de días en Resumen: tocar un día carga Registro con ese día y sus ejercicios.
+- Riel de semanas en Resumen: tocar una semana se queda en Resumen y refresca riel de días, racha y comparación.
+- Cabecera del día: "9 series · 4,980 kg" fusionado con el anillo, sin chip "Ejercicios" ni botón de compartir resumen.
+- Conversor: el ícono abre el sheet, 20 kg → 44.09 lbs, tocar el fondo lo cierra.
+- Escribir en kg/rep/ser actualiza Series/Volumen en vivo sin perder el foco del input.
+- Fila de ejercicio: 7 controles visibles; el chevron despliega Ver progreso / Ver info / Eliminar, con Eliminar en rojo.
+- "Eliminar esta semana" se ve como ghost link y sigue pidiendo confirmación.
+- "Compartir resumen semanal" desde la card de racha genera la imagen sin duplicar el ícono de compartir.
+- Sin ids duplicados ni errores de consola nuevos.
+
 ## [1.58.0] - 2026-09-22 — Perfil se muda al header, barra de 4 destinos
 
 ### En la app: Perfil ahora se abre tocando el logo

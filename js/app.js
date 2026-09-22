@@ -210,6 +210,17 @@
     document.getElementById('exercise-info-overlay').classList.add('hidden');
   }
 
+  // Conversor kg/lbs, colapsado detrás de un ícono en Hoy → Registro (antes
+  // era una card siempre visible en Resumen). Mismo patrón que openExerciseInfo/
+  // closeExerciseInfo: un sheet más entre los overlays reutilizables.
+  function openConverterSheet(){
+    document.getElementById('converter-overlay').classList.remove('hidden');
+  }
+
+  function closeConverterSheet(){
+    document.getElementById('converter-overlay').classList.add('hidden');
+  }
+
   // ============================================================
   // Diálogos: reemplazan a window.confirm() y window.prompt() (que se ven fuera
   // de la app, sin estilo ni contexto). Se usan igual que ellos pero con await:
@@ -986,11 +997,12 @@
   });
 
   // ============================================================
-  // Pestañas de Hoy: Registro (día activo, riel de días y ejercicios — lo
-  // que se usa a diario) / Resumen (racha, comparación semanal, nota,
-  // conversor, eliminar semana — lo ocasional). Ninguna de las dos tiene
-  // gráfica, así que a diferencia de Progreso no hace falta re-renderizar
-  // nada al cambiar de pestaña.
+  // Pestañas de Hoy: Registro (día activo — selector compacto, sesión,
+  // ejercicios; lo que se usa a diario) / Resumen (riel de semanas, riel de
+  // días, racha, comparación semanal, nota, eliminar semana — lo ocasional
+  // o de nivel semana). Ninguna de las dos tiene gráfica, así que a
+  // diferencia de Progreso no hace falta re-renderizar nada al cambiar de
+  // pestaña.
   // ============================================================
   let hoyTab = 'registro'; // 'registro' | 'resumen'
 
@@ -1004,11 +1016,14 @@
     document.getElementById('hoy-tab-resumen').classList.toggle('hidden', hoyTab !== 'resumen');
   }
 
+  function setHoyTab(tab){
+    hoyTab = tab;
+    renderHoyTabs();
+  }
+
   document.getElementById('hoy-tabs').addEventListener('click', (e)=>{
     const btn = e.target.closest('[data-hoy-tab]');
-    if(!btn) return;
-    hoyTab = btn.dataset.hoyTab;
-    renderHoyTabs();
+    if(btn) setHoyTab(btn.dataset.hoyTab);
   });
   renderHoyTabs();
 
@@ -1018,10 +1033,11 @@
   function renderAll(){
     renderWeekPills();
     renderDayRack();
+    renderDaySwitcher();
     renderDayPanel();
     renderWeekNote();
     updateStreakBadge();
-    updateSummaryStrip();
+    renderWeeklyRecap();
   }
 
   // Nota libre de la semana activa (separada de la nota por ejercicio).
@@ -1083,8 +1099,7 @@
     state.activeWeek = wk;
     state.activeDay = DAY_ORDER[(date.getDay() + 6) % 7];
     migratePickerOpen = false;
-    hoyTab = 'registro'; // el destino es un día puntual — Resumen no muestra ejercicios
-    renderHoyTabs();
+    setHoyTab('registro'); // el destino es un día puntual — Resumen no muestra ejercicios
     renderAll();
     switchToView('hoy');
     const el = document.querySelector(`.week-pill[data-week="${wk}"]`);
@@ -1111,6 +1126,49 @@
     showToast('Semana eliminada.');
   }
 
+  // Mueve state.activeDay `delta` posiciones dentro de la semana (-1 día
+  // anterior, +1 siguiente), respetando los bordes lun/dom — no da la
+  // vuelta. Reusada por el swipe (day-swipe-area) y por las flechas ‹ › del
+  // selector compacto de Registro (day-switch-row). Devuelve false en el
+  // borde, útil para deshabilitar el botón correspondiente.
+  function stepActiveDay(delta){
+    const idx = DAY_ORDER.indexOf(state.activeDay);
+    const next = idx + delta;
+    if(next < 0 || next >= DAY_ORDER.length) return false;
+    state.activeDay = DAY_ORDER[next];
+    migratePickerOpen = false;
+    renderDayRack();
+    renderDaySwitcher();
+    renderDayPanel();
+    renderWeeklyRecap();
+    return true;
+  }
+
+  // Selector compacto de día en Registro (‹ Martes · 15 sep ›): reemplaza
+  // al riel de 7 días para no repetir ahí lo que ya se ve completo en
+  // Resumen. El swipe entre días sigue siendo el gesto principal; esto es
+  // la versión visible/tocable del mismo movimiento (stepActiveDay()).
+  function renderDaySwitcher(){
+    const label = document.getElementById('day-switch-label');
+    const prevBtn = document.getElementById('day-switch-prev');
+    const nextBtn = document.getElementById('day-switch-next');
+    if(!label) return;
+    if(!state.activeWeek){
+      label.textContent = '—';
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      return;
+    }
+    const idx = DAY_ORDER.indexOf(state.activeDay);
+    const d = dayDate(state.activeWeek, state.activeDay);
+    label.textContent = `${DAY_NAMES[state.activeDay]} · ${fmtShortDate(d)}`;
+    prevBtn.disabled = idx <= 0;
+    nextBtn.disabled = idx >= DAY_ORDER.length - 1;
+  }
+
+  document.getElementById('day-switch-prev').addEventListener('click', ()=> stepActiveDay(-1));
+  document.getElementById('day-switch-next').addEventListener('click', ()=> stepActiveDay(1));
+
   function renderDayRack(){
     const host = document.getElementById('day-rack');
     host.innerHTML = '';
@@ -1129,12 +1187,17 @@
         <div class="dname">${DAY_SHORT[dk]}</div>
         <span class="muted-tag">${week.days[dk].group.split(' ')[0]}</span>
       `;
+      // El riel de días vive en Resumen (desde 1.59.0): tocar un día
+      // puntual manda a ver sus ejercicios, así que salta a Registro —
+      // mismo criterio que goToDate() desde Historial/Calendario.
       tab.addEventListener('click', ()=>{
         state.activeDay = dk;
         migratePickerOpen = false;
+        setHoyTab('registro');
         renderDayRack();
+        renderDaySwitcher();
         renderDayPanel();
-        updateSummaryStrip();
+        renderWeeklyRecap();
       });
       host.appendChild(tab);
     });
@@ -1150,11 +1213,21 @@
     const progressBtnHtml = hasName
       ? `<button type="button" class="ex-progress-btn" data-action="view-progress" data-name="${escapeHtml(ex.name)}"><i class="icon fa-solid fa-chart-line"></i>Ver progreso</button>`
       : '';
+    // Ver info (ojo) y eliminar (papelera): antes siempre visibles en la
+    // fila, ahora dentro del detalle que despliega el chevron — la fila
+    // principal queda con 7 controles en vez de 9. Borrar sigue con el
+    // mismo criterio de siempre (toast + deshacer, ver deleteExercise()),
+    // solo cambia dónde se toca.
+    const infoBtnHtml = hasName && findDatasetMatch(ex.name)
+      ? `<button type="button" class="ex-progress-btn" data-action="view-exercise-info" data-name="${escapeHtml(ex.name)}"><i class="icon fa-solid fa-eye"></i>Ver info</button>`
+      : '';
+    const deleteBtnHtml = `<button type="button" class="ex-progress-btn ex-progress-btn--danger" data-action="delete"><i class="icon fa-solid fa-trash"></i>Eliminar</button>`;
+    const detailActionsHtml = `<div class="ex-detail-actions">${progressBtnHtml}${infoBtnHtml}${deleteBtnHtml}</div>`;
     let detailHtml = '';
     if(expanded){
       const prevEx = findExerciseInPrevWeek(ex.name);
       if(!prevEx){
-        detailHtml = `<div class="ex-detail"><div class="ex-detail-empty-row">${progressBtnHtml}<p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div></div>`;
+        detailHtml = `<div class="ex-detail" data-id="${ex.id}">${detailActionsHtml}<p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div>`;
       } else {
         // Progresión sugerida: solo si la semana pasada se marcó como
         // hecha (si no, no hay nada que "progresar" todavía) y su kg es
@@ -1168,11 +1241,9 @@
           suggestionHtml = `<div class="ex-detail-suggestion">Sugerido esta semana: <strong>${suggestedLabel} kg</strong></div>`;
         }
         detailHtml = `
-          <div class="ex-detail">
-            <div class="ex-detail-head-left">
-              ${progressBtnHtml}
-              <div class="ex-detail-label">Semana<br>pasada:</div>
-            </div>
+          <div class="ex-detail" data-id="${ex.id}">
+            ${detailActionsHtml}
+            <div class="ex-detail-label">Semana pasada:</div>
             <div class="ex-detail-item"><span class="k">Kg</span><span class="v">${comparisonHtml(ex.kg, prevEx.kg)}</span></div>
             <div class="ex-detail-item"><span class="k">Rep</span><span class="v">${comparisonHtml(ex.reps, prevEx.reps)}</span></div>
             <div class="ex-detail-item"><span class="k">Ser</span><span class="v">${comparisonHtml(ex.series, prevEx.series)}</span></div>
@@ -1183,25 +1254,18 @@
     const displayText = hasName ? escapeHtml(ex.name) : 'Nombre del ejercicio';
     const noteText = ex.note && ex.note.trim() ? escapeHtml(ex.note.trim()) : '+ nota';
     const noteClass = ex.note && ex.note.trim() ? 'ex-note has-note' : 'ex-note';
-    const infoBtnHtml = hasName && findDatasetMatch(ex.name)
-      ? `<button type="button" class="ex-info-btn" data-action="view-exercise-info" data-name="${escapeHtml(ex.name)}" aria-label="Ver GIF e info del ejercicio"><i class="icon fa-solid fa-eye"></i></button>`
-      : '';
     return `
       <div class="ex-row ${ex.done ? 'done' : 'pending'}" data-id="${ex.id}">
         <div class="ex-check" data-action="toggle"><i class="icon fa-solid ${ex.done ? 'fa-check' : 'fa-minus'}"></i></div>
         <div class="ex-name-cell">
-          <div class="ex-name-row">
-            <div class="ex-name-display${hasName ? '' : ' empty'}" data-action="edit-name">${displayText}</div>
-            ${infoBtnHtml}
-          </div>
+          <div class="ex-name-display${hasName ? '' : ' empty'}" data-action="edit-name">${displayText}</div>
           <input class="ex-name-input" data-field="name" list="exercise-library-list" value="${escapeHtml(ex.name)}" placeholder="Nombre del ejercicio">
           <button type="button" class="${noteClass}" data-action="edit-note">${noteText}</button>
         </div>
         <input class="ex-val-input" data-field="kg" value="${escapeHtml(ex.kg)}" inputmode="decimal" placeholder="—">
         <input class="ex-val-input" data-field="reps" value="${escapeHtml(ex.reps)}" inputmode="numeric" placeholder="—">
         <input class="ex-val-input" data-field="series" value="${escapeHtml(ex.series)}" inputmode="numeric" placeholder="—">
-        <button class="ex-del" type="button" data-action="delete" aria-label="Eliminar ejercicio"><i class="icon fa-solid fa-trash"></i></button>
-        <button class="ex-chevron${expanded ? ' open' : ''}" type="button" data-action="chevron" aria-label="Ver semana pasada"><i class="icon fa-solid fa-chevron-down"></i></button>
+        <button class="ex-chevron${expanded ? ' open' : ''}" type="button" data-action="chevron" aria-label="Ver detalle del ejercicio"><i class="icon fa-solid fa-chevron-down"></i></button>
         <div class="ex-drag-handle" aria-label="Reordenar"><i class="icon fa-solid fa-grip-lines"></i></div>
       </div>${detailHtml}`;
   }
@@ -1224,7 +1288,6 @@
     }
 
     const day = currentDay();
-    const d = dayDate(state.activeWeek, state.activeDay);
     const total = day.exercises.length;
     const done = day.exercises.filter(e=>e.done).length;
     const ratio = total ? done/total : 0;
@@ -1244,7 +1307,7 @@
         </div>`;
     } else {
       bodyHtml = `
-        <div class="col-heads"><span></span><span>Ejercicio</span><span>Kg</span><span>Rep</span><span>Ser</span><span></span><span></span><span></span></div>
+        <div class="col-heads"><span></span><span>Ejercicio</span><span>Kg</span><span>Rep</span><span>Ser</span><span></span><span></span></div>
         ${day.exercises.map(exerciseRowHtml).join('')}
         <div class="add-ex-row" data-action="add-ex"><i class="icon fa-solid fa-plus"></i>Agregar ejercicio</div>
         ${day.notes ? `<div class="day-notes">${day.notes}</div>` : ''}`;
@@ -1280,16 +1343,21 @@
       }
     }
 
+    // Series/Volumen del día viven en el head (ids fijos, ver
+    // updateDayStats()) en vez de una tira de chips aparte — el "hechos/
+    // total" que antes era un tercer chip ya lo muestra el anillo, mostrarlo
+    // dos veces era redundante. "Compartir resumen semanal" se mudó a la
+    // card de racha en Resumen (#share-dashboard-btn, listener propio más
+    // abajo) — este head solo comparte el día puntual.
     host.innerHTML = `
       <div class="card day-panel">
         <div class="day-panel-head">
           <div>
             <div class="grp">${day.group}</div>
-            <div class="day-of">${DAY_NAMES[state.activeDay]} · ${fmtShortDate(d)}</div>
+            <div class="day-stats"><span id="day-stat-series">0</span> series · <span id="day-stat-volume">0 kg</span></div>
           </div>
           <div class="day-panel-head-actions">
             <button class="btn btn--icon share-btn" type="button" data-action="share-day" aria-label="Compartir día"><i class="icon fa-solid fa-share-nodes"></i></button>
-            <button class="btn btn--icon share-btn" type="button" data-action="share-dashboard" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-calendar-week"></i></button>
             <div class="progress-ring ${ringTier}">
               <svg width="40" height="40" viewBox="0 0 40 40">
                 <circle class="bgc" cx="20" cy="20" r="16"></circle>
@@ -1302,7 +1370,26 @@
         ${bodyHtml}
         ${migrateHtml}
       </div>`;
+    updateDayStats();
     renderDaySession();
+  }
+
+  // Series (suma de las marcadas como hechas) y volumen del día, dentro de
+  // la cabecera del panel. Función aparte de renderDayPanel() (no solo
+  // parte de su plantilla) porque también se llama sola al escribir en el
+  // campo "series" de un ejercicio ya hecho — reescribir todo el panel en
+  // cada tecla perdería el foco del input (mismo motivo por el que
+  // day-session-panel/week-note-panel viven fuera del innerHTML reconstruido).
+  function updateDayStats(){
+    const seriesEl = document.getElementById('day-stat-series');
+    const volEl = document.getElementById('day-stat-volume');
+    if(!seriesEl || !volEl) return;
+    const day = currentDay();
+    if(!day){ seriesEl.textContent = '0'; volEl.textContent = '0 kg'; return; }
+    let seriesSum = 0;
+    day.exercises.filter(e=>e.done).forEach(e=>{ const n = parseInt(e.series, 10); if(!isNaN(n)) seriesSum += n; });
+    seriesEl.textContent = seriesSum;
+    volEl.textContent = `${Math.round(computeDayVolume(day)).toLocaleString('es-MX')} kg`;
   }
 
   // Card de "Iniciar/Finalizar entrenamiento" del día activo — vive fuera
@@ -1390,6 +1477,11 @@
     if(!state.activeWeek) return;
     deleteWeek(state.activeWeek, { doubleConfirm: true });
   });
+
+  // "Compartir resumen semanal": vive en la card de racha (Resumen), fuera
+  // de #day-panel-host — listener propio en vez de la delegación de ese
+  // contenedor (que solo cubre lo que está dentro de él).
+  document.getElementById('share-dashboard-btn').addEventListener('click', shareDashboardAsImage);
 
   async function migrateDay(toDay){
     if(!state.activeWeek) return;
@@ -1541,23 +1633,6 @@
   }
   renderChangelog();
 
-  function updateSummaryStrip(){
-    renderWeeklyRecap();
-    const day = currentDay();
-    if(!day){
-      document.getElementById('sum-series').textContent = '0';
-      document.getElementById('sum-exercises').textContent = '0/0';
-      document.getElementById('sum-volume').textContent = '0 kg';
-      return;
-    }
-    const doneRows = day.exercises.filter(e=>e.done);
-    let seriesSum = 0;
-    doneRows.forEach(e=>{ const n = parseInt(e.series, 10); if(!isNaN(n)) seriesSum += n; });
-    document.getElementById('sum-series').textContent = seriesSum;
-    document.getElementById('sum-exercises').textContent = `${doneRows.length}/${day.exercises.length}`;
-    document.getElementById('sum-volume').textContent = `${Math.round(computeDayVolume(day)).toLocaleString('es-MX')} kg`;
-  }
-
   // Volumen del día: kg x reps x series sumado de los ejercicios marcados
   // como hechos. Descarta silenciosamente cualquier valor no numérico
   // (mismo criterio que el resto de la app: "40(8)" o vacío no cuentan
@@ -1665,7 +1740,7 @@
     }
     renderDayPanel();
     updateStreakBadge();
-    updateSummaryStrip();
+    renderWeeklyRecap();
   }
 
   // Confirma en el servidor un borrado que ya se aplicó de forma optimista
@@ -1688,7 +1763,7 @@
     pendingDelete = null;
     renderDayPanel();
     updateStreakBadge();
-    updateSummaryStrip();
+    renderWeeklyRecap();
   }
 
   function deleteExercise(id){
@@ -1705,7 +1780,7 @@
     expandedIds.delete(String(id));
     renderDayPanel();
     updateStreakBadge();
-    updateSummaryStrip();
+    renderWeeklyRecap();
 
     pendingDelete = { day, exercise, index, timer: setTimeout(finalizePendingDelete, UNDO_DELETE_MS) };
 
@@ -1725,7 +1800,7 @@
     currentDay().exercises.push(created);
     renderDayPanel();
     updateStreakBadge();
-    updateSummaryStrip();
+    renderWeeklyRecap();
     enterNameEdit(created.id);
   }
 
@@ -1739,7 +1814,7 @@
     applyWeekDetail(state.activeWeek, detail);
     renderDayPanel();
     updateStreakBadge();
-    updateSummaryStrip();
+    renderWeeklyRecap();
     showToast('Rutina copiada de la semana pasada — sin marcar.');
   }
 
@@ -1765,7 +1840,10 @@
     const toggleEl = e.target.closest('[data-action="toggle"]');
     if(toggleEl){ toggleExercise(toggleEl.closest('.ex-row').dataset.id); return; }
     const delEl = e.target.closest('[data-action="delete"]');
-    if(delEl){ deleteExercise(delEl.closest('.ex-row').dataset.id); return; }
+    // El botón vive dentro de .ex-detail (hermano de .ex-row, no hijo, desde
+    // que se movió al desplegable del chevron) — closest('[data-id]') sirve
+    // para los dos casos, ya que ambos llevan el mismo data-id.
+    if(delEl){ deleteExercise(delEl.closest('[data-id]').dataset.id); return; }
     const chevronEl = e.target.closest('[data-action="chevron"]');
     if(chevronEl){ toggleDetail(chevronEl.closest('.ex-row').dataset.id); return; }
     const progressEl = e.target.closest('[data-action="view-progress"]');
@@ -1800,10 +1878,6 @@
       shareElementAsImage(document.querySelector('.day-panel'), `bitacora-${state.activeWeek}-${state.activeDay}.png`);
       return;
     }
-    if(e.target.closest('[data-action="share-dashboard"]')){
-      shareDashboardAsImage();
-      return;
-    }
     if(e.target.closest('[data-action="first-week"]')){ addWeekBtn.click(); return; }
     if(e.target.closest('[data-action="migrate-open"]')){ migratePickerOpen = true; renderDayPanel(); return; }
     if(e.target.closest('[data-action="migrate-cancel"]')){ migratePickerOpen = false; renderDayPanel(); return; }
@@ -1821,7 +1895,8 @@
     const ex = findExercise(row.dataset.id);
     if(!ex) return;
     ex[input.dataset.field] = input.value;
-    if(input.dataset.field === 'series' && ex.done) updateSummaryStrip();
+    updateDayStats();
+    renderWeeklyRecap();
   });
 
   dayPanelHost.addEventListener('change', (e)=>{
@@ -1865,14 +1940,7 @@
     const dy = t.clientY - touchStartY;
     touchStartX = null;
     if(Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    const idx = DAY_ORDER.indexOf(state.activeDay);
-    if(dx < 0 && idx < DAY_ORDER.length - 1){ state.activeDay = DAY_ORDER[idx+1]; }
-    else if(dx > 0 && idx > 0){ state.activeDay = DAY_ORDER[idx-1]; }
-    else return;
-    migratePickerOpen = false;
-    renderDayRack();
-    renderDayPanel();
-    updateSummaryStrip();
+    stepActiveDay(dx < 0 ? 1 : -1);
   });
 
   // ============================================================
@@ -1995,6 +2063,15 @@
     if(e.target === exerciseInfoOverlay || e.target.closest('[data-action="close-exercise-info"]')){
       closeExerciseInfo();
     }
+  });
+
+  // Conversor kg/lbs (ícono en el selector de día de Registro): mismo cierre
+  // por fondo que el resto de los sheets; sin botón de X porque no tiene
+  // acciones que confirmar, solo dos campos que se leen y ya.
+  document.getElementById('converter-open-btn').addEventListener('click', openConverterSheet);
+  const converterOverlay = document.getElementById('converter-overlay');
+  converterOverlay.addEventListener('click', (e)=>{
+    if(e.target === converterOverlay) closeConverterSheet();
   });
 
   // ============================================================
@@ -2770,13 +2847,20 @@
     weekRailClone.querySelector('input[type="date"]')?.remove();
     card.appendChild(weekRailClone);
     card.appendChild(cloneRailForShare(document.getElementById('day-rack'), { stretch: true }));
-    card.appendChild(cloneForShare(document.querySelector('.summary-strip')));
     // La racha vivía en el header (siempre se clonaba); ahora es su propia
     // card en la pestaña Resumen — se agrega aparte para no perderla de la
     // imagen. Funciona sin importar qué pestaña de Hoy esté activa: cloneNode
     // no depende de la visibilidad del original (ver shareDashboardAsImage()).
+    // Los chips de Series/Volumen del día ya no existen como bloque aparte
+    // (viven en la cabecera del panel del día, dato de HOY, no de la
+    // semana) — se sacaron de la imagen porque nunca fueron parte del
+    // "resumen semanal" que este botón arma.
     const streakHero = document.getElementById('streak-hero-card');
-    if(streakHero) card.appendChild(cloneForShare(streakHero));
+    if(streakHero){
+      const streakHeroClone = cloneForShare(streakHero);
+      streakHeroClone.querySelector('.share-btn')?.remove(); // el propio botón de compartir no tiene sentido en la imagen (cloneForShare() ya quitó los ids)
+      card.appendChild(streakHeroClone);
+    }
     const recapHost = document.getElementById('weekly-recap-host');
     if(recapHost && !recapHost.classList.contains('hidden') && recapHost.innerHTML.trim()){
       card.appendChild(cloneForShare(recapHost));

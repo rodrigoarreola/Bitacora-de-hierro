@@ -1,7 +1,7 @@
-/* Vista Hoy (#/hoy): pestañas Registro (riel de días, panel del día, filas de
-   ejercicio, sesión) / Resumen (racha, comparación semanal, nota, conversor,
-   eliminar semana), imagen de "Compartir" y el panel de info de ejercicio
-   (se abre desde una fila).
+/* Vista Hoy (#/hoy): pestañas Registro (selector de día, sesión, panel del
+   día con sus filas de ejercicio) / Resumen (riel de semanas, riel de días,
+   racha, comparación semanal, nota, eliminar semana), imagen de "Compartir",
+   el sheet del conversor kg/lbs y el panel de info de ejercicio.
    Se carga después de tokens.css, components.css y base.css. */
 
 /* ---------- Racha (pestaña Resumen) ---------- */
@@ -10,6 +10,7 @@
    importa mostrar de entrada. */
 .streak-hero{ padding:var(--pad-card); margin-bottom:var(--sp-3-5); }
 .streak-hero-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp-3); }
+.streak-hero-top-right{ display:flex; align-items:center; gap:var(--sp-2); flex-shrink:0; }
 .streak-hero-n{ font-family:var(--font-mono); font-size:32px; font-weight:700; color:var(--text-faint); line-height:1; transition:color .2s ease; }
 .streak-hero-n.complete{ color:var(--ok); }
 .streak-hero-l{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em; margin-top:var(--sp-1); }
@@ -17,6 +18,14 @@
 .streak-hero-badge-ico{ font-size:26px; line-height:1; }
 .streak-hero-best{ font-size:var(--fs-md); color:var(--text-dim); margin-top:var(--sp-3); padding-top:var(--sp-3); border-top:1px solid var(--line); }
 .streak-hero-best strong{ color:var(--text); font-family:var(--font-mono); }
+
+/* ---------- Selector de día compacto (Registro) ---------- */
+/* Reemplaza al riel de 7 días dentro de Registro (que se movió a Resumen,
+   ver ADR 0014): flechas + fecha, más el ícono del conversor kg/lbs al
+   final de la misma fila — ambos son utilidades de "mientras entreno",
+   tiene sentido agruparlos. */
+.day-switch-row{ display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-4); }
+.day-switch-label{ flex:1; text-align:center; font-size:var(--fs-lg); font-weight:600; color:var(--text); }
 
 /* ---------- Day tabs (plate rack) ---------- */
 /* 7 días, ancho relativo al contenedor real (no un px fijo pensado para
@@ -58,7 +67,7 @@
   border-bottom:1px solid var(--line); background:var(--surface-2);
 }
 .day-panel-head .grp{ font-family:var(--font-display); font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:.01em; color:var(--text); }
-.day-panel-head .day-of{ font-size:var(--fs-sm); color:var(--text-dim); margin-top:var(--sp-0-5); }
+.day-panel-head .day-stats{ font-size:var(--fs-sm); color:var(--text-dim); margin-top:var(--sp-0-5); }
 .day-panel-head-actions{ display:flex; align-items:center; gap:var(--sp-2); }
 .progress-ring{ position:relative; width:40px; height:40px; flex-shrink:0; }
 .progress-ring svg{ transform:rotate(-90deg); }
@@ -70,14 +79,14 @@
 .progress-ring .pct{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:var(--fs-xs); font-weight:600; color:var(--text); }
 
 .col-heads{
-  display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px 18px;
+  display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px;
   gap:var(--sp-1-5); padding:var(--sp-2) var(--sp-3) var(--sp-1-5); font-size:var(--fs-xxs); color:var(--text-faint);
   text-transform:uppercase; letter-spacing:.05em; font-weight:600;
 }
 .col-heads span:nth-child(3), .col-heads span:nth-child(4), .col-heads span:nth-child(5){ text-align:center; }
 
 .ex-row{
-  display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px 18px; gap:var(--sp-1-5);
+  display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px; gap:var(--sp-1-5);
   align-items:center; padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
   min-height:64px; background:var(--surface);
 }
@@ -119,16 +128,6 @@
 .ex-name-cell.editing .ex-name-display{ display:none; }
 .ex-name-cell.editing .ex-name-input{ display:block; }
 
-.ex-name-row{ display:flex; align-items:flex-start; gap:var(--sp-1-5); }
-.ex-name-row .ex-name-display{ flex:1; min-width:0; }
-.ex-info-btn{
-  flex-shrink:0; background:none; border:none; color:var(--text-faint); cursor:pointer;
-  padding:var(--sp-0-5); display:flex; align-items:center; justify-content:center; margin-top:var(--sp-0-5);
-}
-.ex-info-btn .icon{ font-size:var(--fs-sm); }
-.ex-info-btn:hover{ color:var(--accent); }
-.ex-name-cell.editing .ex-info-btn{ display:none; }
-
 .ex-note{
   display:block; margin-top:var(--sp-1); font-size:var(--fs-xs); color:var(--text-faint); background:none; border:none;
   padding:0; text-align:left; cursor:pointer; font-family:var(--font-body); line-height:1.3;
@@ -144,28 +143,31 @@
 .ex-row.done .ex-val-input{ color:var(--text); }
 .ex-val-input:focus{ outline:none; border-bottom-color:var(--accent-dim); }
 
-.ex-del, .ex-chevron{ background:none; border:none; color:var(--text-faint); cursor:pointer; padding:var(--sp-1); display:flex; align-items:center; justify-content:center; align-self:start; margin-top:var(--sp-0-5); }
-.ex-del .icon, .ex-chevron .icon{ font-size:var(--fs-md); }
-.ex-del:hover{ color:var(--danger); }
+.ex-chevron{ background:none; border:none; color:var(--text-faint); cursor:pointer; padding:var(--sp-1); display:flex; align-items:center; justify-content:center; align-self:start; margin-top:var(--sp-0-5); }
+.ex-chevron .icon{ font-size:var(--fs-md); }
 .ex-chevron:hover{ color:var(--accent); }
 .ex-chevron .icon{ transition:transform .2s ease; }
 .ex-chevron.open .icon{ transform:rotate(180deg); }
 .ex-chevron.open{ color:var(--accent); }
 
 /* Mismas columnas que .ex-row (22px check / 1fr nombre / 38-30-30 kg-rep-ser
-   / 18-18 del-chevron) para que el grid de "semana pasada" quede alineado
-   debajo del kg/rep/ser actual, en vez de un flex suelto con su propio
-   espaciado. */
+   / 18px chevron) para que el grid de "semana pasada" quede alineado debajo
+   del kg/rep/ser actual, en vez de un flex suelto con su propio espaciado. */
 .ex-detail{
   display:grid; grid-template-columns:22px 1fr 38px 30px 30px 18px 18px; gap:var(--sp-1-5);
   padding:var(--sp-2-5) var(--sp-3); border-top:1px dashed var(--line); background:var(--wash);
 }
-.ex-detail-head-left{ grid-column:1 / 3; display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2-5); min-width:0; }
-.ex-detail-empty-row{ grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2-5); }
-.ex-detail-label{ font-size:var(--fs-xxs); text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); font-weight:700; line-height:1.35; }
+/* Fila de acciones del detalle (Ver progreso / Ver info / Eliminar) — ancho
+   completo, envuelve si no caben las tres. Reemplaza a .ex-detail-head-left
+   (que solo agrupaba "Ver progreso" con el label "Semana pasada") ahora que
+   hay hasta 3 botones ahí, ninguno pegado a un label específico. */
+.ex-detail-actions{ grid-column:1 / -1; display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-3); margin-bottom:var(--sp-1); }
+.ex-detail-label{ grid-column:1 / -1; font-size:var(--fs-xxs); text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); font-weight:700; line-height:1.35; }
 .ex-progress-btn{ display:flex; align-items:center; gap:var(--sp-1-5); background:none; border:none; color:var(--accent); font-size:var(--fs-sm); font-weight:700; cursor:pointer; padding:var(--sp-1) 0; flex-shrink:0; }
 .ex-progress-btn .icon{ font-size:var(--fs-xs); }
 .ex-progress-btn:hover{ color:var(--accent-dim); }
+.ex-progress-btn--danger{ color:var(--danger); }
+.ex-progress-btn--danger:hover{ color:var(--danger); filter:brightness(1.2); }
 .ex-detail-item{ display:flex; flex-direction:column; align-items:center; gap:var(--sp-1); }
 .ex-detail-item .k{ font-size:var(--fs-xxs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; }
 .ex-detail-item .v{ display:flex; align-items:center; gap:var(--sp-1); font-family:var(--font-mono); font-size:var(--fs-lg); color:var(--text); font-weight:600; }
@@ -173,7 +175,7 @@
 .cmp-up{ color:var(--ok); transform:rotate(180deg); }
 .cmp-down{ color:var(--pending); }
 .cmp-eq{ color:var(--text-faint); font-size:var(--fs-sm); }
-.ex-detail-empty{ font-size:var(--fs-sm); color:var(--text-faint); margin:0; }
+.ex-detail-empty{ grid-column:1 / -1; font-size:var(--fs-sm); color:var(--text-faint); margin:0; }
 .ex-detail-suggestion{ grid-column:1 / -1; margin-top:var(--sp-2-5); padding-top:var(--sp-2-5); border-top:1px dashed var(--line); font-size:var(--fs-sm); color:var(--text-dim); }
 .ex-detail-suggestion strong{ color:var(--accent); font-family:var(--font-mono); }
 
@@ -269,8 +271,7 @@
 .day-session-field input[type="time"]:focus{ outline:none; }
 .day-session-duration{ font-family:var(--font-mono); font-size:var(--fs-lg); font-weight:600; color:var(--text); }
 
-/* ---------- Conversor kg / lbs ---------- */
-.converter-panel{ padding:var(--pad-card-sm); margin-top:var(--sp-4); }
+/* ---------- Conversor kg / lbs (sheet, ícono en day-switch-row) ---------- */
 .converter-label{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; font-weight:600; margin-bottom:var(--sp-2); }
 .converter-row{ display:flex; align-items:center; gap:var(--sp-2-5); }
 .converter-field{
@@ -327,7 +328,7 @@
 .is-loading .add-week{ pointer-events:none; opacity:.5; }
 .is-loading .btn-delete-week{ visibility:hidden; }
 /* La racha y los chips todavía no tienen datos: en vez de un "0" que parece real, un bloque gris. */
-.is-loading .streak .n,
+.is-loading .streak-hero-n,
 .is-loading .sum-chip .v{ color:transparent; background:var(--surface-2); border-radius:var(--r-xs); }
 .is-loading .sum-chip .v{ width:60%; }
 /* La cabecera del panel ya es --surface-2: sus esqueletos van un tono más claro para verse. */
