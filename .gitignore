@@ -26,3 +26,11 @@ api/media_cache/*/*
 # Dataset crudo descargado por scripts/build-exercises-dataset.php — se
 # vuelve a bajar con solo correr el script, no hace falta versionarlo.
 scripts/.cache/
+
+# Credenciales SFTP para scripts/deploy-ftp.ps1 — copiar desde
+# scripts/deploy.local.json.example, nunca va al repo.
+scripts/deploy.local.json
+
+# Marca del último commit desplegado (usado por scripts/deploy-ftp.ps1
+# para saber qué subió incremental) — estado local, no código.
+scripts/.last-deploy-commit

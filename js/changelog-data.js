@@ -10,6 +10,14 @@ window.APP_VERSIONS = [
         ]
     },
     {
+        "version": "1.55.2",
+        "date": "2026-09-21",
+        "title": "Sin cambios visibles (herramienta de despliegue)",
+        "items": [
+            "No cambia nada de la app: se agrega un script para subir los archivos al servidor sin usar FileZilla a mano."
+        ]
+    },
+    {
         "version": "1.55.0",
         "date": "2026-09-21",
         "title": "Editar la nota de un ejercicio dentro de la app",

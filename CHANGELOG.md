@@ -16,6 +16,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), c
 
 - **README → "Armar el paquete de producción"**: cómo generar la carpeta y el `.zip` desde un tag, qué se deja fuera y la lista de verificaciones previas. Incluye la trampa de `git archive` con `core.autocrlf=true` (convierte a CRLF; hay que pasarle `-c core.autocrlf=false`).
 
+## [1.55.2] - 2026-09-21 — Script de despliegue por SFTP
+
+### En la app: Sin cambios visibles (herramienta de despliegue)
+
+- No cambia nada de la app: se agrega un script para subir los archivos al servidor sin usar FileZilla a mano.
+
+### Added
+
+- **`scripts/deploy-ftp.ps1`**: sube por SFTP (vía `curl`, que ya trae soporte SFTP) solo los archivos que cambiaron desde el último despliegue, comparando contra la marca guardada en `scripts/.last-deploy-commit`. `-Full` sube todo el árbol versionado en git (necesario la primera vez), `-DryRun` muestra qué se subiría sin conectarse, `-Since <commit>` usa un commit puntual como base. Crea los directorios remotos que falten y borra en el servidor los archivos que ya no están en el repo.
+- **`scripts/deploy.local.json.example`**: plantilla de las credenciales SFTP (host, usuario, contraseña, ruta remota, y opcionalmente la huella SHA-256 del servidor). Se copia a `scripts/deploy.local.json`, que **no se sube a git**.
+- **`.gitignore`**: `scripts/deploy.local.json` (credenciales) y `scripts/.last-deploy-commit` (estado local del último despliegue).
+- **README → "Despliegue"**: nota sobre el script como alternativa a subir archivos con FileZilla a mano.
+
+### Verificado
+
+- `scripts/deploy.local.json.example` no contiene credenciales reales (solo el placeholder `cambia-esto`); no hay ningún `scripts/deploy.local.json` real en el árbol de trabajo ni en el commit.
+- El script es PowerShell válido (`Get-Content` lo lee sin errores de sintaxis).
+
 ## [1.55.0] - 2026-09-21 — La nota del ejercicio con un diálogo propio
 
 ### En la app: Editar la nota de un ejercicio dentro de la app

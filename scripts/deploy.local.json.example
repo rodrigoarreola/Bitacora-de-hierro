@@ -1,0 +1,14 @@
+{
+  "_comentario": "Copiar este archivo a deploy.local.json y completar con los mismos datos que usas en FileZilla (Administrador de sitios). deploy.local.json nunca se sube a git.",
+
+  "Host": "tu-dominio.com",
+  "Port": 22,
+  "User": "usuario_cpanel",
+  "Password": "cambia-esto",
+
+  "_remotePath": "Ruta del sitio en el hosting, RELATIVA al directorio inicial de la sesión SFTP (normalmente el home del usuario cPanel) — es la misma ruta que ves en el panel derecho de FileZilla al conectarte. Ejemplos típicos de Hostgator: 'public_html/bitacora' o 'bitacora' si el home ya apunta a public_html.",
+  "RemotePath": "public_html/bitacora",
+
+  "_hostPubKeySha256": "Opcional pero recomendado: fija la huella del servidor para evitar conexiones a un servidor suplantado (curl no verifica esto por su cuenta, a diferencia de FileZilla). Se obtiene una sola vez con: ssh-keyscan -t ed25519 tu-dominio.com | ssh-keygen -lf - -E sha256   (o confirmando la huella que FileZilla te mostró la primera vez que te conectaste). Formato: 'sha256//BASE64...'. Dejar vacío para no fijarla.",
+  "HostPubKeySha256": ""
+}
