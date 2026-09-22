@@ -158,3 +158,14 @@ CREATE TABLE week_day_sessions (
   CONSTRAINT fk_week_day_sessions_week
     FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- users.remember_token_hash / remember_token_expires: cookie
+-- "recordarme" (api/config.php, api/login.php, api/logout.php),
+-- independiente del archivo de sesión de PHP — sobrevive a que el GC de
+-- sesiones del hosting lo borre antes de tiempo. Solo el hash se guarda,
+-- nunca el token en sí. Ver ADR 0017.
+-- ============================================================
+ALTER TABLE users
+  ADD COLUMN remember_token_hash VARCHAR(64) NULL,
+  ADD COLUMN remember_token_expires DATETIME NULL;

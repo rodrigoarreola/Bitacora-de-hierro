@@ -2,6 +2,38 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.63.0] - 2026-09-22 — Cookie "recordarme": la sesión ya no se cierra sola
+
+### En la app: ya no debería pedirte login a las pocas horas
+
+- La sesión se cerraba sola después de un rato porque el hosting borra el archivo de sesión de PHP por su cuenta (con su propio reloj, más corto que los 30 días que la app pedía), aunque la cookie del navegador siguiera siendo válida. Ahora hay una segunda cookie que la reestablece sola, sin pedirte volver a loguearte.
+
+### Changed
+
+- **`api/config.php`**: nuevas `set_remember_cookie()`/`clear_remember_cookie()`; respaldo justo después de `session_start()` — si `$_SESSION['user_id']` viene vacío pero llega la cookie `remember_token`, la reestablece sola y extiende su expiración (sin rotar el valor del token, para no chocar con las requests en paralelo de `loadAppData()`).
+- **`api/login.php`**: emite el token "recordarme" (hash guardado, nunca el valor en sí) en cada login exitoso.
+- **`api/logout.php`**: invalida el token en la base de datos (no solo borra la cookie del navegador).
+- **`api/db/schema.sql`**: nuevas `users.remember_token_hash` / `remember_token_expires`.
+- Las tres piezas de SQL nuevas (`login.php`, `logout.php`, el respaldo de `config.php`) van en `try/catch(PDOException)`, sin re-lanzar — si el código llega antes que el `ALTER TABLE` en producción, el login/logout por sesión sigue funcionando igual, solo sin la parte de "recordarme" hasta correr la migración.
+
+### Added
+
+- **ADR 0017** con el diagnóstico completo y la decisión.
+- Bloque idempotente en el README (`Pendiente de correr en producción`) para aplicar las columnas nuevas a la base ya viva.
+
+### Verificado (curl, sin `DEV_AUTOLOGIN`)
+
+- Login emite ambas cookies y guarda hash + expiración en `users`.
+- Una request sin `PHPSESSID` pero con `remember_token` válido reautentica sola y extiende la expiración sin cambiar el hash.
+- 5 requests en paralelo sin `PHPSESSID` responden todas `authenticated:true` — sin condición de carrera.
+- Token inexistente/expirado → `authenticated:false` y borra la cookie.
+- Logout invalida el token en BD y limpia la cookie; ese token viejo ya no reautentica.
+- Con las columnas `remember_token_*` quitadas a propósito (simulando un deploy sin la migración todavía corrida): login, verificación de sesión y logout responden 200 igual, sin fallar.
+
+### Pendiente de correr en producción
+
+- El `ALTER TABLE users` de `remember_token_hash`/`remember_token_expires` (bloque idempotente en el README) — sin correrlo, el login sigue funcionando igual (la sesión de PHP no depende de estas columnas), pero el respaldo "recordarme" no tiene dónde guardar el token hasta que se aplique.
+
 ## [1.62.0] - 2026-09-22 — Ajustes pierde la caja en el header
 
 ### En la app: el ícono de Ajustes se aligera

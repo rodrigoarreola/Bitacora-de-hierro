@@ -2,6 +2,14 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.63.0",
+        "date": "2026-09-22",
+        "title": "ya no debería pedirte login a las pocas horas",
+        "items": [
+            "La sesión se cerraba sola después de un rato porque el hosting borra el archivo de sesión de PHP por su cuenta (con su propio reloj, más corto que los 30 días que la app pedía), aunque la cookie del navegador siguiera siendo válida. Ahora hay una segunda cookie que la reestablece sola, sin pedirte volver a loguearte."
+        ]
+    },
+    {
         "version": "1.62.0",
         "date": "2026-09-22",
         "title": "el ícono de Ajustes se aligera",

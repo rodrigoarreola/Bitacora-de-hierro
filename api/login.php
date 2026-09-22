@@ -73,4 +73,27 @@ $pdo->prepare('UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE i
 session_regenerate_id(true);
 $_SESSION['user_id'] = (int) $user['id'];
 
+// Token "recordarme" nuevo en cada login explícito — ver api/config.php
+// para el respaldo que lo usa cuando la sesión de PHP se pierde sola.
+// try/catch a propósito: si el deploy subió este código antes de correr el
+// ALTER TABLE de remember_token_hash/expires en producción (columnas
+// inexistentes), el login por sesión de toda la vida (líneas de arriba)
+// sigue funcionando igual — no hace falta que las dos cosas lleguen en el
+// mismo instante.
+try {
+    $rememberToken = bin2hex(random_bytes(32));
+    $pdo->prepare(
+        'UPDATE users SET remember_token_hash = :hash, remember_token_expires = DATE_ADD(NOW(), INTERVAL :sec SECOND) WHERE id = :id'
+    )->execute([
+        'hash' => hash('sha256', $rememberToken),
+        'sec' => SESSION_LIFETIME,
+        'id' => $user['id'],
+    ]);
+    set_remember_cookie($rememberToken, $isHttps);
+} catch (PDOException $e) {
+    // Sin remember_token_hash/expires todavía en la BD — se ignora, el
+    // login por sesión (ya establecido arriba) responde normal de todos
+    // modos.
+}
+
 respond_ok(['authenticated' => true]);

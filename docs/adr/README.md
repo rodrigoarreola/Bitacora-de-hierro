@@ -23,6 +23,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0014](0014-registro-solo-dia-activo.md) | Registro solo con el día activo; riel de semanas y de días a Resumen | Aceptada |
 | [0015](0015-semana-resumen-hoy.md) | La vista Hoy pasa a llamarse Semana; Resumen abre por default | Aceptada |
 | [0016](0016-resumen-primero-medalla-unica.md) | Resumen como primera pestaña visual; una sola medalla más grande | Aceptada |
+| [0017](0017-cookie-recordarme.md) | Cookie "recordarme" independiente del archivo de sesión de PHP | Aceptada |
 
 ## Formato
 
