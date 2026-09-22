@@ -74,8 +74,44 @@
   <div class="view active" id="view-hoy">
 
     <div class="seg-tabs" id="hoy-tabs" role="tablist">
-      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="hoy-tab-registro" data-hoy-tab="registro">Hoy</button>
       <button type="button" class="seg-tab active" role="tab" aria-selected="true" aria-controls="hoy-tab-resumen" data-hoy-tab="resumen">Resumen</button>
+      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="hoy-tab-registro" data-hoy-tab="registro">Hoy</button>
+    </div>
+
+    <div id="hoy-tab-resumen" role="tabpanel">
+      <div class="week-rail" id="week-rail">
+        <button class="add-week" id="add-week-btn" type="button">
+          <i class="icon fa-solid fa-plus"></i>Nueva semana
+          <input type="date" id="new-week-date" aria-label="Elegir lunes de inicio de semana">
+        </button>
+        <div id="week-pills" style="display:contents"></div>
+      </div>
+
+      <div class="day-rack" id="day-rack"></div>
+
+      <div class="card streak-hero" id="streak-hero-card">
+        <div class="streak-hero-top">
+          <div>
+            <div class="streak-hero-n" id="streak-badge">0 días</div>
+            <div class="streak-hero-l">racha actual</div>
+          </div>
+          <div class="streak-hero-top-right">
+            <div class="streak-hero-badges" id="streak-badges"></div>
+            <button type="button" class="btn btn--icon share-btn" id="share-dashboard-btn" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-share-nodes"></i></button>
+          </div>
+        </div>
+        <div class="streak-hero-best">Mejor racha: <strong id="sum-best-streak">0 días</strong></div>
+        <div class="streak-hero-next" id="streak-next-badge"></div>
+      </div>
+
+      <div class="card card--compact recap-card hidden" id="weekly-recap-host"></div>
+
+      <div class="card card--compact week-note-panel hidden" id="week-note-panel">
+        <label for="week-note-input" class="week-note-label">Nota de la semana</label>
+        <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
+      </div>
+
+      <button class="btn btn--ghost btn--block btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
     </div>
 
     <div id="hoy-tab-registro" class="hidden" role="tabpanel">
@@ -105,41 +141,6 @@
       </div>
 
       <div class="day-swipe-area" id="day-panel-host"></div>
-    </div>
-
-    <div id="hoy-tab-resumen" role="tabpanel">
-      <div class="week-rail" id="week-rail">
-        <button class="add-week" id="add-week-btn" type="button">
-          <i class="icon fa-solid fa-plus"></i>Nueva semana
-          <input type="date" id="new-week-date" aria-label="Elegir lunes de inicio de semana">
-        </button>
-        <div id="week-pills" style="display:contents"></div>
-      </div>
-
-      <div class="day-rack" id="day-rack"></div>
-
-      <div class="card streak-hero" id="streak-hero-card">
-        <div class="streak-hero-top">
-          <div>
-            <div class="streak-hero-n" id="streak-badge">0 días</div>
-            <div class="streak-hero-l">racha actual</div>
-          </div>
-          <div class="streak-hero-top-right">
-            <div class="streak-hero-badges" id="streak-badges"></div>
-            <button type="button" class="btn btn--icon share-btn" id="share-dashboard-btn" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-share-nodes"></i></button>
-          </div>
-        </div>
-        <div class="streak-hero-best">Mejor racha: <strong id="sum-best-streak">0 días</strong></div>
-      </div>
-
-      <div class="card card--compact recap-card hidden" id="weekly-recap-host"></div>
-
-      <div class="card card--compact week-note-panel hidden" id="week-note-panel">
-        <label for="week-note-input" class="week-note-label">Nota de la semana</label>
-        <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
-      </div>
-
-      <button class="btn btn--ghost btn--block btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
     </div>
 
   </div>

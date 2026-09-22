@@ -2,6 +2,34 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.61.0] - 2026-09-22 — Resumen primero, una medalla grande, mejoras de teclado
+
+### En la app: Resumen abre primero, una sola medalla y mejor teclado
+
+- Resumen pasa a ser la primera pestaña, también visualmente (antes "Hoy" seguía apareciendo a la izquierda aunque Resumen abriera solo).
+- La card de racha ahora muestra una sola medalla — la más alta que ya ganaste — bien grande, a la altura del número de racha. Debajo, "Mejor racha" ahora te dice también cuánto te falta para la siguiente medalla.
+- En Hoy, el conversor kg/lbs abre el teclado numérico de una vez al tocarlo, sin necesitar un segundo toque sobre el campo.
+- Al tocar un valor de kg/rep/ser para editarlo, el cursor se va directo al final — pensado para agregar o corregir el último dígito rápido.
+
+### Changed
+
+- **`index.html`**: orden de `.seg-tabs`/paneles de Semana invertido (Resumen primero); nuevo `#streak-next-badge` debajo de "Mejor racha".
+- **`js/app.js`**: `renderStreakBadges()` muestra solo el tier más alto ganado (antes apilaba bronce+plata+oro); nueva `renderNextBadgeProgress()` y `STREAK_BADGE_TIERS` compartido entre ambas; `openConverterSheet()` hace `focus()`+`select()` sobre `#conv-kg`; nuevo listener `focusin` delegado en `dayPanelHost` que pone el cursor al final de kg/rep/ser vía `setSelectionRange()` diferido (`setTimeout(...,0)`, para ganarle al posicionamiento nativo del toque).
+- **`css/views/hoy.css`**: `#streak-badges .streak-hero-badge-ico` a 48px (antes 26px, con selector más específico para no depender del orden de los `<link>` frente a `.milestone-ico` de progreso.css); nuevo `.streak-hero-next` (oculto vía `:empty` cuando no hay siguiente medalla).
+
+### Added
+
+- **ADR 0016** con la decisión completa. ADR 0015 recibe una nota de seguimiento sobre el orden visual de pestañas.
+
+### Verificado (Navegador integrado)
+
+- Resumen es la primera pestaña, visible y activa al abrir.
+- Una sola medalla (plata a 40 días), 48px = mismo alto que "40 días" + "racha actual".
+- "Faltan 60 días para la medalla de oro (100 días)." se ve correctamente debajo de "Mejor racha".
+- El conversor enfoca y selecciona `#conv-kg` al abrir.
+- Un toque real (no solo `.focus()` por JS) en el borde izquierdo de un valor de kg dejó el cursor al final.
+- Sin ids duplicados ni errores de consola.
+
 ## [1.60.0] - 2026-09-22 — La vista Hoy pasa a llamarse Semana; Resumen abre por default
 
 ### En la app: ahora es "Semana", y abre en Resumen

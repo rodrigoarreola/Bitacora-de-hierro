@@ -64,3 +64,10 @@ con recomendación explícita) y se resolvió con: **"Semana / Hoy"**.
   "SEMANA" en la barra inferior no desborda (6 letras, menos que
   "Calendario" o "Historial", que ya cabían); sin ids duplicados ni
   errores de consola.
+
+## Seguimiento
+Esta decisión solo cubrió **cuál pestaña abre por default** (`hoyTab`);
+dejó sin querer a "Hoy" en la primera posición visual del `.seg-tabs` (el
+orden de los botones en el HTML no se tocó). El usuario aclaró que se
+refería también a la posición visual — corregido en la 1.61.0 (ADR 0016),
+que pone a Resumen primero de izquierda a derecha.

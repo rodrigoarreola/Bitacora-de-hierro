@@ -215,6 +215,13 @@
   // closeExerciseInfo: un sheet más entre los overlays reutilizables.
   function openConverterSheet(){
     document.getElementById('converter-overlay').classList.remove('hidden');
+    // Foco inmediato en kg: en celular abre el teclado numérico de una vez
+    // (inputmode="decimal") en vez de necesitar un toque extra sobre el
+    // campo. select() de paso, para sobreescribir de un tirón un valor que
+    // haya quedado de la conversión anterior — mismo patrón que enterNameEdit().
+    const kgInput = document.getElementById('conv-kg');
+    kgInput.focus();
+    kgInput.select();
   }
 
   function closeConverterSheet(){
@@ -1500,19 +1507,39 @@
       : `Día migrado a ${DAY_NAMES[toDay]}.`);
   }
 
-  // Badges apilados: a los 100 días se ven bronce+plata+oro juntos (no
-  // solo el más alto) — mismo criterio de "un ícono por rango" que ya usa
-  // el medallero de Hitos, pero acumulativo en vez de exclusivo.
+  // Umbrales de medallas de racha (bronce/plata/oro a 7/30/100 días) — un
+  // solo arreglo para no repetir los números en renderStreakBadges() (la
+  // medalla ya ganada) y renderNextBadgeProgress() (cuánto falta para la
+  // siguiente).
+  const STREAK_BADGE_TIERS = [
+    { days: 7,   icon: 'fa-medal',  cls: 'bronze', label: 'Racha de 7+ días',   short: 'bronce (7 días)' },
+    { days: 30,  icon: 'fa-medal',  cls: 'silver', label: 'Racha de 30+ días',  short: 'plata (30 días)' },
+    { days: 100, icon: 'fa-trophy', cls: 'gold',   label: 'Racha de 100+ días', short: 'oro (100 días)' },
+  ];
+
+  // Solo la medalla más alta ya ganada (no las anteriores apiladas): a los
+  // 100 días se ve solo el trofeo dorado, no bronce+plata+oro juntos —
+  // ahora que el ícono es grande (a la altura de la racha), mostrar varios
+  // competía por espacio con el número.
   function renderStreakBadges(current){
     const host = document.getElementById('streak-badges');
     if(!host) return;
-    const tiers = [];
-    if(current >= 7)   tiers.push({ icon: 'fa-medal',  cls: 'bronze', label: 'Racha de 7+ días' });
-    if(current >= 30)  tiers.push({ icon: 'fa-medal',  cls: 'silver', label: 'Racha de 30+ días' });
-    if(current >= 100) tiers.push({ icon: 'fa-trophy', cls: 'gold',   label: 'Racha de 100+ días' });
-    host.innerHTML = tiers.map(t =>
-      `<i class="icon streak-hero-badge-ico milestone-ico ${t.cls} fa-solid ${t.icon}" title="${t.label}" aria-label="${t.label}"></i>`
-    ).join('');
+    const tier = [...STREAK_BADGE_TIERS].reverse().find(t => current >= t.days);
+    host.innerHTML = tier
+      ? `<i class="icon streak-hero-badge-ico milestone-ico ${tier.cls} fa-solid ${tier.icon}" title="${tier.label}" aria-label="${tier.label}"></i>`
+      : '';
+  }
+
+  // Cuánto falta para la próxima medalla — complementa el ícono grande de
+  // arriba con algo concreto por lo que seguir. Vacío al llegar a la de
+  // oro (no hay "siguiente" después de esa).
+  function renderNextBadgeProgress(current){
+    const host = document.getElementById('streak-next-badge');
+    if(!host) return;
+    const next = STREAK_BADGE_TIERS.find(t => current < t.days);
+    if(!next){ host.textContent = ''; return; }
+    const remaining = next.days - current;
+    host.textContent = `Faltan ${remaining} día${remaining === 1 ? '' : 's'} para la medalla de ${next.short}.`;
   }
 
   function updateStreakBadge(){
@@ -1522,6 +1549,7 @@
     badge.textContent = diasLabel(current);
     badge.classList.toggle('complete', current > 0);
     renderStreakBadges(current);
+    renderNextBadgeProgress(current);
 
     document.getElementById('sum-best-streak').textContent = diasLabel(best);
 
@@ -1903,6 +1931,18 @@
   dayPanelHost.addEventListener('change', (e)=>{
     const input = e.target.closest('.ex-name-input');
     if(input) addToLibrary(input.value);
+  });
+
+  // Kg/Rep/Ser: al enfocar (toque o tab), el cursor va al final del valor
+  // en vez de quedar donde cayó el toque — pensado para progresión rápida
+  // (agregar/corregir el último dígito sin tener que primero mover el
+  // cursor). El toque nativo todavía reposiciona el cursor después de este
+  // evento, así que se difiere un tick para que la posición al final gane.
+  dayPanelHost.addEventListener('focusin', (e)=>{
+    const input = e.target.closest('.ex-val-input');
+    if(!input) return;
+    const end = input.value.length;
+    setTimeout(()=> input.setSelectionRange(end, end), 0);
   });
 
   // Al salir de un campo editable (nombre, kg, rep, ser) se persiste ese

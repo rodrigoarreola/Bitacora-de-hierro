@@ -2,6 +2,17 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.61.0",
+        "date": "2026-09-22",
+        "title": "Resumen abre primero, una sola medalla y mejor teclado",
+        "items": [
+            "Resumen pasa a ser la primera pestaña, también visualmente (antes \"Hoy\" seguía apareciendo a la izquierda aunque Resumen abriera solo).",
+            "La card de racha ahora muestra una sola medalla — la más alta que ya ganaste — bien grande, a la altura del número de racha. Debajo, \"Mejor racha\" ahora te dice también cuánto te falta para la siguiente medalla.",
+            "En Hoy, el conversor kg/lbs abre el teclado numérico de una vez al tocarlo, sin necesitar un segundo toque sobre el campo.",
+            "Al tocar un valor de kg/rep/ser para editarlo, el cursor se va directo al final — pensado para agregar o corregir el último dígito rápido."
+        ]
+    },
+    {
         "version": "1.60.0",
         "date": "2026-09-22",
         "title": "ahora es \"Semana\", y abre en Resumen",

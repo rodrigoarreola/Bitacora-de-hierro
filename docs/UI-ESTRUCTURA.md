@@ -122,10 +122,11 @@ ADR 0015): antes eran "Hoy" (vista) y "Registro" (pestaña).
    corto y grupo muscular (primera palabra). Estados: activa / completada
    (≥ mínimo de ejercicios) / con marca de "migrado". Tocar un día **manda
    a Hoy** con ese día cargado (mismo patrón que `goToDate()`).
-3. **Card de racha:** número grande + medallas (7/30/100 días) + botón
-   **compartir resumen semanal** (imagen) + "Mejor racha" debajo de una
-   línea divisoria. Antes vivía en el header, visible en las 6 pantallas;
-   ahora solo se ve acá.
+3. **Card de racha:** número grande + una sola medalla (bronce/plata/oro a
+   7/30/100 días — solo la más alta ya ganada, del alto del número) + botón
+   **compartir resumen semanal** (imagen); debajo de una línea divisoria,
+   "Mejor racha" y cuánto falta para la siguiente medalla. Antes vivía en
+   el header, visible en las 6 pantallas; ahora solo se ve acá.
 4. **Comparación semanal** (tarjeta, solo si la semana anterior es la
    inmediata): "Esta semana vs. la pasada", con Volumen (± %) y
    Adherencia (hechos/total y "antes X/Y"). En la semana en curso compara
@@ -157,7 +158,8 @@ ADR 0015): antes eran "Hoy" (vista) y "Registro" (pestaña).
      - Check para marcar hecho / pendiente.
      - Nombre (toca para editar, con autocompletado de la librería) y nota
        corta ("+ nota").
-     - Inputs Kg, Rep, Ser.
+     - Inputs Kg, Rep, Ser — al tocar uno para editar, el cursor va directo
+       al final del valor (no donde cayó el toque).
      - Chevron y asa de arrastre para **reordenar**.
      - **Detalle expandible** (chevron): fila de acciones ("Ver progreso" /
        "Ver info" si hay coincidencia con el ojo / "Eliminar" en rojo, con
@@ -171,7 +173,9 @@ ADR 0015): antes eran "Hoy" (vista) y "Registro" (pestaña).
 
 **Conversor kg ⇄ lbs:** no es una card fija — es un sheet
 (`#converter-overlay`) que se abre desde el ícono del selector de día en
-Hoy (punto 7) y se cierra tocando el fondo.
+Hoy (punto 7) y se cierra tocando el fondo. El campo kg recibe el foco (con
+su valor seleccionado) apenas se abre, para que el teclado numérico
+aparezca de una vez en celular.
 
 Estado vacío global (sin semanas): tarjeta "Todavía no has creado ninguna
 semana" con botón "+ Nueva semana" (Resumen).
