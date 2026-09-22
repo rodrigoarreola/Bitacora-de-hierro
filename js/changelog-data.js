@@ -2,6 +2,16 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.60.0",
+        "date": "2026-09-22",
+        "title": "ahora es \"Semana\", y abre en Resumen",
+        "items": [
+            "La vista de la barra inferior deja de llamarse \"Hoy\" y pasa a llamarse \"Semana\" — encaja mejor con lo que muestra (racha, comparación semanal, riel de semanas: información de la semana activa, no solo del día de hoy).",
+            "La pestaña \"Registro\" pasa a llamarse \"Hoy\": es literalmente donde ves y anotas el entrenamiento del día.",
+            "Ahora abre directo en Resumen (antes abría en Registro/Hoy)."
+        ]
+    },
+    {
         "version": "1.59.0",
         "date": "2026-09-22",
         "title": "Registro más simple, Resumen con todo lo de nivel semana",

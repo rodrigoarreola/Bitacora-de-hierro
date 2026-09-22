@@ -108,3 +108,10 @@ resueltas con el usuario vía preguntas directas:
   "Eliminar esta semana" como ghost con su confirmación intacta; imagen de
   "Compartir resumen semanal" sin duplicar el ícono; sin ids duplicados ni
   errores de consola nuevos.
+
+## Seguimiento
+El nombre de la vista ("Hoy") y de la pestaña "Registro" cambiaron en la
+1.60.0 (ADR 0015) a "Semana" y "Hoy" respectivamente, y Resumen pasó a ser
+la pestaña que abre por default (antes Registro). Toda la reorganización
+que describe este ADR (qué vive en cada pestaña, a dónde saltan los
+atajos) sigue vigente — solo cambió el naming visible y cuál abre primero.

@@ -74,11 +74,11 @@
   <div class="view active" id="view-hoy">
 
     <div class="seg-tabs" id="hoy-tabs" role="tablist">
-      <button type="button" class="seg-tab active" role="tab" aria-selected="true" aria-controls="hoy-tab-registro" data-hoy-tab="registro">Registro</button>
-      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="hoy-tab-resumen" data-hoy-tab="resumen">Resumen</button>
+      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="hoy-tab-registro" data-hoy-tab="registro">Hoy</button>
+      <button type="button" class="seg-tab active" role="tab" aria-selected="true" aria-controls="hoy-tab-resumen" data-hoy-tab="resumen">Resumen</button>
     </div>
 
-    <div id="hoy-tab-registro" role="tabpanel">
+    <div id="hoy-tab-registro" class="hidden" role="tabpanel">
       <div class="day-switch-row">
         <button type="button" class="btn btn--icon" id="day-switch-prev" aria-label="Día anterior"><i class="icon fa-solid fa-chevron-left"></i></button>
         <div class="day-switch-label" id="day-switch-label">—</div>
@@ -107,7 +107,7 @@
       <div class="day-swipe-area" id="day-panel-host"></div>
     </div>
 
-    <div id="hoy-tab-resumen" class="hidden" role="tabpanel">
+    <div id="hoy-tab-resumen" role="tabpanel">
       <div class="week-rail" id="week-rail">
         <button class="add-week" id="add-week-btn" type="button">
           <i class="icon fa-solid fa-plus"></i>Nueva semana
@@ -321,7 +321,7 @@
   </div>
 
   <nav class="bottom-nav">
-    <button class="active" data-view="hoy"><i class="icon fa-solid fa-dumbbell"></i>Hoy</button>
+    <button class="active" data-view="hoy"><i class="icon fa-solid fa-dumbbell"></i>Semana</button>
     <button data-view="historial"><i class="icon fa-solid fa-clock-rotate-left"></i>Historial</button>
     <button data-view="progreso"><i class="icon fa-solid fa-chart-line"></i>Progreso</button>
     <button data-view="calendario"><i class="icon fa-solid fa-calendar-days"></i>Calendario</button>

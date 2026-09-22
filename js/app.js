@@ -210,7 +210,7 @@
     document.getElementById('exercise-info-overlay').classList.add('hidden');
   }
 
-  // Conversor kg/lbs, colapsado detrás de un ícono en Hoy → Registro (antes
+  // Conversor kg/lbs, colapsado detrás de un ícono en Semana → Hoy (antes
   // era una card siempre visible en Resumen). Mismo patrón que openExerciseInfo/
   // closeExerciseInfo: un sheet más entre los overlays reutilizables.
   function openConverterSheet(){
@@ -997,14 +997,15 @@
   });
 
   // ============================================================
-  // Pestañas de Hoy: Registro (día activo — selector compacto, sesión,
-  // ejercicios; lo que se usa a diario) / Resumen (riel de semanas, riel de
-  // días, racha, comparación semanal, nota, eliminar semana — lo ocasional
-  // o de nivel semana). Ninguna de las dos tiene gráfica, así que a
-  // diferencia de Progreso no hace falta re-renderizar nada al cambiar de
-  // pestaña.
+  // Pestañas de la vista Semana (id/ruta internos siguen siendo hoy/#/hoy,
+  // ver ADR 0015): Hoy (día activo — selector compacto, sesión, ejercicios;
+  // lo que se usa a diario; clave interna 'registro') / Resumen (riel de
+  // semanas, riel de días, racha, comparación semanal, nota, eliminar
+  // semana — lo ocasional o de nivel semana; pestaña que abre por default).
+  // Ninguna de las dos tiene gráfica, así que a diferencia de Progreso no
+  // hace falta re-renderizar nada al cambiar de pestaña.
   // ============================================================
-  let hoyTab = 'registro'; // 'registro' | 'resumen'
+  let hoyTab = 'resumen'; // 'registro' | 'resumen' — Resumen abre por default (ver ADR 0015)
 
   function renderHoyTabs(){
     document.querySelectorAll('#hoy-tabs .seg-tab').forEach(b=>{
@@ -1129,8 +1130,8 @@
   // Mueve state.activeDay `delta` posiciones dentro de la semana (-1 día
   // anterior, +1 siguiente), respetando los bordes lun/dom — no da la
   // vuelta. Reusada por el swipe (day-swipe-area) y por las flechas ‹ › del
-  // selector compacto de Registro (day-switch-row). Devuelve false en el
-  // borde, útil para deshabilitar el botón correspondiente.
+  // selector compacto de la pestaña Hoy (day-switch-row). Devuelve false en
+  // el borde, útil para deshabilitar el botón correspondiente.
   function stepActiveDay(delta){
     const idx = DAY_ORDER.indexOf(state.activeDay);
     const next = idx + delta;
@@ -1144,7 +1145,7 @@
     return true;
   }
 
-  // Selector compacto de día en Registro (‹ Martes · 15 sep ›): reemplaza
+  // Selector compacto de día en la pestaña Hoy (‹ Martes · 15 sep ›): reemplaza
   // al riel de 7 días para no repetir ahí lo que ya se ve completo en
   // Resumen. El swipe entre días sigue siendo el gesto principal; esto es
   // la versión visible/tocable del mismo movimiento (stepActiveDay()).
@@ -1188,8 +1189,8 @@
         <span class="muted-tag">${week.days[dk].group.split(' ')[0]}</span>
       `;
       // El riel de días vive en Resumen (desde 1.59.0): tocar un día
-      // puntual manda a ver sus ejercicios, así que salta a Registro —
-      // mismo criterio que goToDate() desde Historial/Calendario.
+      // puntual manda a ver sus ejercicios, así que salta a la pestaña
+      // Hoy — mismo criterio que goToDate() desde Historial/Calendario.
       tab.addEventListener('click', ()=>{
         state.activeDay = dk;
         migratePickerOpen = false;
@@ -1395,9 +1396,9 @@
   // Card de "Iniciar/Finalizar entrenamiento" del día activo — vive fuera
   // del innerHTML de #day-panel-host (como #week-note-panel) para no perder
   // el foco de los inputs de hora en cada re-render. Posición fija dentro de
-  // la pestaña Registro (después de day-panel-host) para cualquier día, sea
-  // o no hoy — antes se reubicaba dinámicamente cerca de la tira de resumen
-  // solo cuando el día activo era hoy de verdad, pero con Registro/Resumen ya
+  // la pestaña Hoy (después de day-panel-host) para cualquier día, sea o no
+  // hoy — antes se reubicaba dinámicamente cerca de la tira de resumen solo
+  // cuando el día activo era hoy de verdad, pero con Hoy/Resumen ya
   // separados (1.57.0) la sesión siempre vive junto a los ejercicios del día
   // que se está viendo, sin ese caso especial.
   function fmtDurationLabel(min){
@@ -2065,7 +2066,7 @@
     }
   });
 
-  // Conversor kg/lbs (ícono en el selector de día de Registro): mismo cierre
+  // Conversor kg/lbs (ícono en el selector de día de la pestaña Hoy): mismo cierre
   // por fondo que el resto de los sheets; sin botón de X porque no tiene
   // acciones que confirmar, solo dos campos que se leen y ya.
   document.getElementById('converter-open-btn').addEventListener('click', openConverterSheet);

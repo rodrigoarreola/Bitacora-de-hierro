@@ -2,6 +2,32 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.60.0] - 2026-09-22 — La vista Hoy pasa a llamarse Semana; Resumen abre por default
+
+### En la app: ahora es "Semana", y abre en Resumen
+
+- La vista de la barra inferior deja de llamarse "Hoy" y pasa a llamarse "Semana" — encaja mejor con lo que muestra (racha, comparación semanal, riel de semanas: información de la semana activa, no solo del día de hoy).
+- La pestaña "Registro" pasa a llamarse "Hoy": es literalmente donde ves y anotas el entrenamiento del día.
+- Ahora abre directo en Resumen (antes abría en Registro/Hoy).
+
+### Changed
+
+- **`index.html`**: texto del botón de la barra inferior (`Hoy` → `Semana`); pestaña `data-hoy-tab="registro"` (`Registro` → `Hoy`); la pestaña Resumen pasa a llevar `.seg-tab active`/`aria-selected="true"` y su panel arranca sin `hidden` (viceversa para Hoy).
+- **`js/app.js`**: `let hoyTab` inicia en `'resumen'` en vez de `'registro'`. Comentarios que usaban "Registro"/"Hoy" como nombres visibles se actualizaron; los identificadores internos (`#/hoy`, `#view-hoy`, `hoyTab`, `data-hoy-tab="registro"`) no cambiaron — a propósito, ver ADR 0015.
+- **`css/views/hoy.css`**: comentarios de cabecera y de sección actualizados al nuevo naming (sin cambios de reglas ni de selectores).
+- Sin cambios de comportamiento más allá de cuál pestaña abre por default: los atajos que fuerzan la pestaña Hoy (`goToDate()`, tocar un día del riel en Resumen) siguen funcionando igual.
+
+### Added
+
+- **ADR 0015** con la decisión completa (incluye las 4 combinaciones de naming consideradas). ADR 0012 y ADR 0014 reciben una nota de seguimiento.
+
+### Verificado (Navegador integrado)
+
+- La app abre en Semana → Resumen; tocar la pestaña "Hoy" muestra el día activo con sus ejercicios.
+- Tocar un día del riel en Resumen salta a Hoy con ese día cargado; tocar una semana se queda en Resumen.
+- "SEMANA" en la barra inferior no desborda ni se corta.
+- Sin ids duplicados ni errores de consola.
+
 ## [1.59.0] - 2026-09-22 — Registro solo con el día activo; semanas y días a Resumen
 
 ### En la app: Registro más simple, Resumen con todo lo de nivel semana

@@ -65,3 +65,9 @@ no existía — construirla es lo que resuelve ambos pedidos a la vez.
   entrenamiento") probablemente ya no necesita partirse a 2 líneas (se hizo
   así en 1.50.0 para dejarle lugar al engranaje) — a revisar en el próximo
   paso de este mismo trabajo (mover Perfil al header).
+
+## Seguimiento
+El nombre de la vista ("Hoy") y de la pestaña "Registro" cambiaron en la
+1.60.0 (ADR 0015) a "Semana" y "Hoy" respectivamente, y Resumen pasó a ser
+la pestaña que abre por default. La estructura de 2 pestañas que describe
+esta decisión sigue vigente — solo cambió el naming visible.

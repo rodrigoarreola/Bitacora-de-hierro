@@ -13,7 +13,7 @@ Sin un hash válido se abre `#/hoy`.
 
 | Destino | Dónde está | Ruta |
 |---|---|---|
-| Hoy | barra inferior | `#/hoy` |
+| Semana | barra inferior | `#/hoy` (ruta interna, ver ADR 0015) |
 | Historial | barra inferior | `#/historial` |
 | Progreso | barra inferior | `#/progreso` |
 | Calendario | barra inferior | `#/calendario` |
@@ -21,7 +21,7 @@ Sin un hash válido se abre `#/hoy`.
 | Ajustes | ícono de engranaje (header, derecha) | `#/ajustes` |
 
 Atajos entre vistas: una tarjeta de Historial o un día de Calendario/Heatmap
-abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
+abren **Semana → Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 **Progreso** con ese ejercicio cargado.
 
 ## Inventario
@@ -30,7 +30,7 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 |---|---|---|---|---|
 | Arranque | Estado | `#boot-screen` (sin ruta) | `api/session.php`, copia local | V n/a · C ✓ · E ✓ (Reintentar) · O ✓ |
 | Login | Formulario | `#view-login` (sin ruta) | `api/session.php`, `api/login.php` | V n/a · C ✓ · E ✓ · O ~ |
-| Hoy | Formulario + dashboard (2 pestañas: Registro, Resumen) | `#/hoy` | `api/weeks.php`, `api/exercises.php`, `api/migrate_day.php`, `api/library.php`, `api/settings.php` | V ✓ · C ✓ · E ~ · O ~ |
+| Semana | Dashboard + formulario (2 pestañas: Resumen default, Hoy) | `#/hoy` | `api/weeks.php`, `api/exercises.php`, `api/migrate_day.php`, `api/library.php`, `api/settings.php` | V ✓ · C ✓ · E ~ · O ~ |
 | Historial | Lista | `#/historial` | semanas ya cargadas (memoria) | V ✓ · C ✓ · E n/a · O ✓ |
 | Progreso | Dashboard / detalle (3 pestañas: Ejercicios, Constancia, Horarios) | `#/progreso` | semanas en memoria + Chart.js (CDN, en caché del SW) | V ✓ · C ✓ · E ✓ · O ✓ |
 | Calendario | Dashboard | `#/calendario` | semanas en memoria | V ~ · C ✓ · E n/a · O ✓ |
@@ -45,7 +45,7 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 ### Notas sobre los estados
 
 - **Cargando:** al abrir la app se ve la pantalla de Arranque; al verificarse la
-  sesión, el shell aparece con **esqueletos** (`renderSkeletons()`) en Hoy,
+  sesión, el shell aparece con **esqueletos** (`renderSkeletons()`) en Semana,
   Historial, Progreso, Calendario, Perfil y Ajustes hasta que llegan los datos
   (`#app-shell.is-loading` y `aria-busy`; mientras tanto no se puede crear ni
   borrar semanas). Si la carga falla, se vuelve a la pantalla de Arranque con

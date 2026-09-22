@@ -21,6 +21,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0012](0012-hoy-pestanas-registro-resumen.md) | Hoy se parte en pestañas Registro / Resumen; racha a una card | Aceptada |
 | [0013](0013-perfil-al-header.md) | Perfil se mueve al header (logo), barra inferior de 4 destinos | Aceptada |
 | [0014](0014-registro-solo-dia-activo.md) | Registro solo con el día activo; riel de semanas y de días a Resumen | Aceptada |
+| [0015](0015-semana-resumen-hoy.md) | La vista Hoy pasa a llamarse Semana; Resumen abre por default | Aceptada |
 
 ## Formato
 

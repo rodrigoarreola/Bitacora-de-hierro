@@ -17,7 +17,7 @@ tema oscuro, ancho máximo 520 px.
    ├─ Banner offline (condicional)
    ├─ Header fijo ......... logo→Perfil + título + engranaje→Ajustes
    ├─ Vista activa (una de 6)
-   │    Hoy · Historial · Progreso · Calendario · Perfil (header) · Ajustes (header)
+   │    Semana · Historial · Progreso · Calendario · Perfil (header) · Ajustes (header)
    ├─ Nav inferior ........ 4 botones
    └─ Capas globales ...... toast, overlay de info de ejercicio
 ```
@@ -25,16 +25,18 @@ tema oscuro, ancho máximo 520 px.
 Navegación: barra inferior de 4 destinos (lo diario) más Perfil y Ajustes
 como accesos del header (lo ocasional) — desde 1.58.0, ver ADR 0013. Cada
 vista tiene URL por hash (`#/hoy`, `#/historial`, `#/progreso`,
-`#/calendario`, `#/perfil`, `#/ajustes`): atrás/adelante y enlaces directos
-funcionan. Hay atajos entre vistas: tocar una semana en Historial o un día en
-Calendario/Heatmap lleva a **Hoy**; "Ver progreso" en un ejercicio lleva a
-**Progreso** con ese ejercicio cargado.
+`#/calendario`, `#/perfil`, `#/ajustes`) — id/ruta internos de **Semana**
+siguen siendo `hoy`, solo cambió el texto visible (ver ADR 0015): atrás/
+adelante y enlaces directos funcionan. Hay atajos entre vistas: tocar una
+semana en Historial o un día en Calendario/Heatmap lleva a **Semana → Hoy**;
+"Ver progreso" en un ejercicio lleva a **Progreso** con ese ejercicio
+cargado.
 
 ### Nav inferior (4 ítems, todos con ícono + texto)
 
 | Ítem | Ícono | Vista |
 |---|---|---|
-| Hoy | mancuerna | Registro del día |
+| Semana | mancuerna | Resumen semanal (default) + registro del día |
 | Historial | reloj con flecha | Semanas pasadas |
 | Progreso | línea de gráfica | Evolución por ejercicio |
 | Calendario | calendario | Mes + heatmap anual |
@@ -56,7 +58,7 @@ campos Usuario y Contraseña, botón **Entrar**, línea de error.
   mismo). Se resalta el ícono cuando estás en Perfil.
 - **Derecha:** el **engranaje** que abre Ajustes (se resalta cuando estás en
   esa vista). La racha (número + medallas 7/30/100 días) ya no vive acá —
-  desde 1.57.0 es su propia card en Hoy → Resumen.
+  desde 1.57.0 es su propia card en Semana → Resumen.
 
 ### Banner offline
 Aparece cuando no hay conexión o hay cambios pendientes de sincronizar.
@@ -73,7 +75,8 @@ Bottom sheet (`#confirm-overlay`, componente `.sheet`) que reemplaza al
 semana que se va a eliminar) y dos botones: **Cancelar** y la acción, en rojo
 cuando borra o reemplaza datos. Escape o tocar el fondo cancelan. Como
 confirmación (foco en Cancelar) lo usan: eliminar semana (dos diálogos seguidos
-desde el botón grande de Hoy), quitar de la librería e importar datos. Con un
+desde el enlace ghost al final de Semana → Resumen), quitar de la librería e
+importar datos. Con un
 **campo de texto** (foco en el campo, Enter guarda, máx. 200 caracteres) lo usa la
 nota de un ejercicio.
 
@@ -99,29 +102,54 @@ músculos secundarios, **instrucciones** paso a paso y atribución.
 
 ---
 
-## 3. Vista HOY (`#view-hoy`)
+## 3. Vista SEMANA (`#view-hoy`, id/ruta internos siguen siendo `hoy`)
 
 **2 pestañas** (`.seg-tabs`, desde 1.57.0, ver ADR 0012) directo al inicio
-de la vista: Registro (solo el día activo) / Resumen (todo lo de nivel
-semana). Desde 1.59.0 (ADR 0014) ninguna navegación de semana/día vive
-fuera de las pestañas — cada una es dueña de su contenido.
+de la vista: Resumen (default desde 1.60.0, todo lo de nivel semana) / Hoy
+(solo el día activo). Desde 1.59.0 (ADR 0014) ninguna navegación de semana/
+día vive fuera de las pestañas — cada una es dueña de su contenido. El
+nombre de la vista y de la pestaña de registro cambiaron en 1.60.0 (ver
+ADR 0015): antes eran "Hoy" (vista) y "Registro" (pestaña).
 
-### Registro (pestaña por defecto)
+### Resumen (pestaña por defecto)
 
-1. **Selector de día compacto** (`.day-switch-row`): flechas ‹ › + fecha
+1. **Riel de semanas.** Botón "+ Nueva semana" (abre selector de fecha, se
+   ajusta al lunes más cercano) seguido de una píldora por semana. La
+   semana activa muestra una X para eliminarla (si hay más de una). Tocar
+   una semana **se queda en Resumen** (refresca riel de días, racha y
+   comparación).
+2. **Riel de días.** 7 pestañas (L M X J V S D): letra en "placa", nombre
+   corto y grupo muscular (primera palabra). Estados: activa / completada
+   (≥ mínimo de ejercicios) / con marca de "migrado". Tocar un día **manda
+   a Hoy** con ese día cargado (mismo patrón que `goToDate()`).
+3. **Card de racha:** número grande + medallas (7/30/100 días) + botón
+   **compartir resumen semanal** (imagen) + "Mejor racha" debajo de una
+   línea divisoria. Antes vivía en el header, visible en las 6 pantallas;
+   ahora solo se ve acá.
+4. **Comparación semanal** (tarjeta, solo si la semana anterior es la
+   inmediata): "Esta semana vs. la pasada", con Volumen (± %) y
+   Adherencia (hechos/total y "antes X/Y"). En la semana en curso compara
+   solo hasta el día de hoy.
+5. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
+   ajustes…").
+6. **Eliminar esta semana** (enlace ghost, con doble confirmación).
+
+### Hoy
+
+7. **Selector de día compacto** (`.day-switch-row`): flechas ‹ › + fecha
    ("Martes · 15 sep") y, al final de la misma fila, un ícono que despliega
-   el **conversor kg ⇄ lbs** (sheet, ver punto 8). Reemplaza al riel de 7
-   días dentro de Registro — cambiar de día también se puede **deslizando**
-   el panel a izquierda/derecha (misma lógica, `stepActiveDay()`).
-2. **Panel de sesión del día**: botón play/stop y campos Hora inicio, Hora
-   fin y Duración calculada. Sube arriba de la tabla de ejercicios (en vez
-   de después del panel del día).
-3. **Panel del día:**
+   el **conversor kg ⇄ lbs** (sheet, ver abajo). Reemplaza al riel de 7
+   días dentro de esta pestaña (que vive en Resumen) — cambiar de día
+   también se puede **deslizando** el panel a izquierda/derecha (misma
+   lógica, `stepActiveDay()`).
+8. **Panel de sesión del día**: botón play/stop y campos Hora inicio, Hora
+   fin y Duración calculada. Arriba de la tabla de ejercicios.
+9. **Panel del día:**
    - Cabecera: grupo muscular, línea de stats fusionada ("9 series · 4,980
      kg"), botón **compartir día** (imagen) y **anillo de progreso**
-     hechos/total con color de semáforo. Ya no lleva "Día · fecha" (lo
-     cubre el selector de arriba) ni el botón de compartir resumen semanal
-     (se movió a Resumen).
+     hechos/total con color de semáforo. No lleva "Día · fecha" (lo cubre
+     el selector de arriba) ni el botón de compartir resumen semanal (vive
+     en Resumen).
    - **Sin ejercicios:** mensaje vacío + botones "Copiar semana pasada" y
      "+ Agregar ejercicio".
    - **Con ejercicios:** encabezado de columnas (Ejercicio · Kg · Rep ·
@@ -141,35 +169,12 @@ fuera de las pestañas — cada una es dueña de su contenido.
      la semana (avisa si el destino ya tiene rutina, que se recorre) y
      botones Migrar / cancelar.
 
-### Resumen
-
-4. **Riel de semanas.** Botón "+ Nueva semana" (abre selector de fecha, se
-   ajusta al lunes más cercano) seguido de una píldora por semana. La
-   semana activa muestra una X para eliminarla (si hay más de una). Tocar
-   una semana **se queda en Resumen** (refresca riel de días, racha y
-   comparación).
-5. **Riel de días.** 7 pestañas (L M X J V S D): letra en "placa", nombre
-   corto y grupo muscular (primera palabra). Estados: activa / completada
-   (≥ mínimo de ejercicios) / con marca de "migrado". Tocar un día **manda
-   a Registro** con ese día cargado (mismo patrón que `goToDate()`).
-6. **Card de racha:** número grande + medallas (7/30/100 días) + botón
-   **compartir resumen semanal** (imagen) + "Mejor racha" debajo de una
-   línea divisoria. Antes vivía en el header, visible en las 6 pantallas;
-   ahora solo se ve acá.
-7. **Comparación semanal** (tarjeta, solo si la semana anterior es la
-   inmediata): "Esta semana vs. la pasada", con Volumen (± %) y
-   Adherencia (hechos/total y "antes X/Y"). En la semana en curso compara
-   solo hasta el día de hoy.
-8. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
-   ajustes…").
-9. **Eliminar esta semana** (enlace ghost, con doble confirmación).
-
-**Conversor kg ⇄ lbs:** ya no es una card fija de Resumen — es un sheet
+**Conversor kg ⇄ lbs:** no es una card fija — es un sheet
 (`#converter-overlay`) que se abre desde el ícono del selector de día en
-Registro (punto 1) y se cierra tocando el fondo.
+Hoy (punto 7) y se cierra tocando el fondo.
 
 Estado vacío global (sin semanas): tarjeta "Todavía no has creado ninguna
-semana" con botón "+ Nueva semana" (Registro).
+semana" con botón "+ Nueva semana" (Resumen).
 
 ---
 
@@ -181,7 +186,7 @@ semana" con botón "+ Nueva semana" (Registro).
 3. **Lista de tarjetas por semana:** etiqueta de la semana, total
    hechos/total de ejercicios, botón compartir (imagen) y fila de **7
    puntos** L M X J V S D (relleno = día cumplido; el domingo aparece
-   siempre). Tocar la tarjeta o un punto abre esa semana/día en **Hoy**.
+   siempre). Tocar la tarjeta o un punto abre esa semana/día en **Semana → Hoy**.
    Estado vacío: "No hay semanas en este mes / con ese ejercicio".
 4. **Balance por grupo muscular:** barras horizontales con los días
    cumplidos por grupo en el período filtrado.
@@ -234,7 +239,7 @@ entrenar?".
    "Mes año", botón "Volver a hoy", cabecera L M X J V S D y cuadrícula.
    Cada día muestra número y una **línea de color** (semáforo); días de
    otro mes atenuados, hoy resaltado, días con semana registrada son
-   tocables (abren **Hoy**). Leyenda: Sin actividad / 1–5 / 6+ ejercicios.
+   tocables (abren **Semana → Hoy**). Leyenda: Sin actividad / 1–5 / 6+ ejercicios.
    Sábado y domingo sin ejercicios quedan sin línea (no rojo).
 2. **Actividad del año (heatmap):** riel de años y cuadrícula tipo
    contribuciones con etiquetas de mes; celdas coloreadas por semáforo,
@@ -302,7 +307,7 @@ Observaciones de la estructura actual (candidatos, no decisiones):
   movieron al detalle del chevron, quedan 7 controles siempre visibles.
 - ~~"Mejor racha" vive en la tira del día aunque no es del día~~ — resuelto
   (1.57.0, [ADR 0012](adr/0012-hoy-pestanas-registro-resumen.md)): racha
-  actual y mejor racha viven juntas en su propia card, en Hoy → Resumen.
+  actual y mejor racha viven juntas en su propia card, en Semana → Resumen.
 - ~~Perfil mezcla análisis con administración~~ — resuelto (1.56.0):
   Hitos y Horarios se movieron a Progreso; Perfil quedó solo con
   cuenta/datos.
