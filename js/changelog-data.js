@@ -2,6 +2,15 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.56.0",
+        "date": "2026-09-22",
+        "title": "Constancia y Horarios ahora viven en Progreso",
+        "items": [
+            "Progreso tiene 3 pestañas nuevas: Ejercicios (como antes), Constancia y Horarios. Estas dos últimas se movieron desde Perfil, porque son estadísticas de tu entrenamiento, no datos de tu cuenta.",
+            "Perfil queda más simple: solo Tus datos, Backups automáticos, Cerrar sesión y Changelog."
+        ]
+    },
+    {
         "version": "1.55.3",
         "date": "2026-09-22",
         "title": "Sin cambios visibles (identificación interna más clara)",

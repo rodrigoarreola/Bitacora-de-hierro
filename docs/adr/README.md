@@ -17,6 +17,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0008](0008-dialogo-de-confirmacion.md) | Diálogos propios en vez de `confirm()` y `prompt()` | Aceptada |
 | [0009](0009-estados-de-carga.md) | Esqueletos en la primera carga y Reintentar ante fallos | Aceptada |
 | [0010](0010-version-semver-en-el-nombre-del-cache.md) | Versión semver en el nombre del caché del shell | Aceptada |
+| [0011](0011-hitos-horarios-a-progreso.md) | Hitos y Horarios se mudan de Perfil a Progreso, con pestañas | Aceptada |
 
 ## Formato
 

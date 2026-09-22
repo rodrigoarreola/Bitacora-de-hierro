@@ -162,6 +162,13 @@ semana" con botón "+ Nueva semana".
 
 ## 5. Vista PROGRESO (`#view-progreso`)
 
+**3 pestañas** (`.seg-tabs`, patrón de selector de modo — no de filtro):
+Ejercicios · Constancia · Horarios. Las dos últimas vivían en Perfil; se
+movieron acá desde la 1.56.0 (ver ADR 0011) porque son análisis de tu
+entrenamiento, no datos de cuenta.
+
+### Ejercicios (pestaña por defecto)
+
 1. **Buscador** de ejercicio principal.
 2. **Fila de comparación** (aparece al elegir uno): segundo buscador
    ("Comparar con… opcional") y toggle para mostrar **repeticiones**.
@@ -176,6 +183,20 @@ semana" con botón "+ Nueva semana".
    - Solo cuenta apariciones marcadas como **hechas**.
    - Sin datos: placeholder "Busca un ejercicio arriba para ver su
      progreso".
+
+### Constancia (ex-Perfil)
+
+Tres bloques — periodos de **mayor** constancia (top con trofeo/medallas
+oro-plata-bronce, rango de fechas y "N semanas seguidas con X días en
+promedio"), periodos de **menor** constancia (huecos sin entrenar, ícono
+de alerta) e "Hitos interesantes" (primer entrenamiento, mejor racha,
+mejor mes, hueco más largo, año más productivo).
+
+### Horarios (ex-Perfil)
+
+Filtros de año y mes; chips Tiempo total · Promedio · Más larga · Hora
+frecuente; gráfica "Duración por sesión" y barras "¿A qué hora sueles
+entrenar?".
 
 ---
 
@@ -195,20 +216,13 @@ semana" con botón "+ Nueva semana".
 
 ## 7. Vista PERFIL (`#view-perfil`)
 
-1. **Hitos y constancia:** tres bloques — periodos de **mayor**
-   constancia (top con trofeo/medallas oro-plata-bronce, rango de fechas y
-   "N semanas seguidas con X días en promedio"), periodos de **menor**
-   constancia (huecos sin entrenar, ícono de alerta) e "Hitos
-   interesantes" (primer entrenamiento, mejor racha, mejor mes, hueco más
-   largo, año más productivo).
-2. **Horarios de entrenamiento:** filtros de año y mes; chips Tiempo
-   total · Promedio · Más larga · Hora frecuente; gráfica "Duración por
-   sesión" y barras "¿A qué hora sueles entrenar?".
-3. **Tus datos:** botones Exportar e Importar (JSON).
-4. **Backups automáticos:** lista de los últimos 14 con fecha, tamaño y
+Solo cuenta/datos — Hitos y Horarios se movieron a Progreso (ver arriba).
+
+1. **Tus datos:** botones Exportar e Importar (JSON).
+2. **Backups automáticos:** lista de los últimos 14 con fecha, tamaño y
    descarga.
-5. **Cerrar sesión.**
-6. **Changelog** (colapsable): versión actual + historial de versiones.
+3. **Cerrar sesión.**
+4. **Changelog** (colapsable): versión actual + historial de versiones.
 
 ---
 
@@ -261,8 +275,9 @@ Observaciones de la estructura actual (candidatos, no decisiones):
   papelera, chevron y asa — 9 controles en ~520 px.
 - **"Mejor racha"** vive en la tira del día aunque no es del día; la
   racha actual está en el header y la mejor en otro lado.
-- **Perfil mezcla** análisis (Hitos, Horarios) con administración (datos,
-  backups, sesión, changelog).
+- ~~Perfil mezcla análisis con administración~~ — resuelto (1.56.0):
+  Hitos y Horarios se movieron a Progreso; Perfil quedó solo con
+  cuenta/datos.
 - **Progreso** sin ejercicio depende de un buscador vacío; el dashboard de
   sparklines es más útil como estado inicial que como fallback.
 - ~~Errores de carga en texto plano~~ — resuelto (1.54.0): esqueletos en la

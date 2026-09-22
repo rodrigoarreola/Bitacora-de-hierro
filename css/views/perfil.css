@@ -1,4 +1,5 @@
-/* Vista Perfil (#/perfil): datos, backups, hitos, horarios de entrenamiento y changelog.
+/* Vista Perfil (#/perfil): datos (exportar/importar), backups y changelog.
+   Hitos y Horarios viven ahora en Progreso (css/views/progreso.css).
    Se carga después de tokens.css, components.css y base.css. */
 
 /* ---------- Logout ---------- */
@@ -22,52 +23,6 @@
 .backup-row-size{ font-size:var(--fs-sm); color:var(--text-faint); font-family:var(--font-mono); }
 .backup-row .icon{ font-size:var(--fs-lg); color:var(--text-faint); }
 .backup-row:hover .icon{ color:var(--accent); }
-
-/* ---------- Perfil: hitos y constancia ---------- */
-.milestones-panel{ padding:var(--pad-card); margin-top:var(--sp-4); }
-.milestones-panel .lib-sub{ margin-bottom:var(--sp-0-5); }
-.milestone-block{ margin-top:var(--sp-4-5); }
-.milestone-block-title{
-  font-family:var(--font-display); font-size:var(--fs-lg); font-weight:700; text-transform:uppercase;
-  letter-spacing:.01em; color:var(--text); margin-bottom:var(--sp-2);
-}
-.milestone-row{ display:flex; gap:var(--sp-3); padding:var(--sp-2-5) 0; }
-.milestone-ico{ font-size:17px; flex-shrink:0; margin-top:var(--sp-0-5); width:20px; text-align:center; }
-.milestone-ico.ok{ color:var(--ok); }
-.milestone-ico.danger{ color:var(--danger); }
-.milestone-ico.gold{ color:var(--gold); }
-.milestone-ico.silver{ color:var(--silver); }
-.milestone-ico.bronze{ color:var(--bronze); }
-.milestone-period{ font-size:var(--fs-lg); font-weight:700; color:var(--text); }
-.milestone-daterange{ font-size:var(--fs-sm); color:var(--text-dim); margin-top:var(--sp-0-5); }
-.milestone-desc{ font-size:var(--fs-md); color:var(--text-dim); margin:var(--sp-1) 0 0; line-height:1.5; }
-.milestone-divider{ border-top:1px solid var(--line); }
-.milestone-empty{ font-size:var(--fs-md); color:var(--text-faint); padding:var(--sp-2) 0; line-height:1.5; }
-.milestone-list{ margin:0; padding-left:var(--sp-4-5); display:flex; flex-direction:column; gap:var(--sp-2); }
-.milestone-list li{ font-size:var(--fs-md); color:var(--text-dim); line-height:1.5; }
-.milestone-list strong{ color:var(--text); }
-
-/* ---------- Perfil: horarios de entrenamiento ---------- */
-/* Anidado dentro de .milestones-panel (fondo --surface), así que cada
-   nivel siguiente sube un tono para distinguirse: chip/card en
-   --surface-2, y el track del bar-chart de horas vuelve a --bg. */
-.time-stats-panel .week-rail{ margin-bottom:var(--sp-2-5); }
-.time-summary{ margin-top:var(--sp-3-5); margin-bottom:0; }
-.time-summary .sum-chip{ background:var(--surface-2); }
-.time-chart-card{ padding:var(--sp-3-5) var(--sp-3-5) var(--sp-2-5); margin-top:var(--sp-3); }
-.time-chart-title{
-  font-family:var(--font-display); font-size:var(--fs-lg); font-weight:700; text-transform:uppercase; letter-spacing:.01em;
-  color:var(--text); display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp-2); margin-bottom:var(--sp-2);
-}
-.time-chart-title .sub{ font-family:var(--font-body); font-size:var(--fs-xs); font-weight:600; text-transform:none; color:var(--text-faint); }
-.time-canvas-wrap{ position:relative; height:170px; }
-.hour-list{ display:flex; flex-direction:column; gap:var(--sp-2-5); }
-.hour-row{ display:grid; grid-template-columns:66px 1fr 24px; align-items:center; gap:var(--sp-2-5); }
-.hour-label{ font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-dim); white-space:nowrap; }
-.hour-bar-track{ height:8px; background:var(--bg); border-radius:var(--r-xs); overflow:hidden; }
-.hour-bar-fill{ height:100%; background:var(--info); border-radius:var(--r-xs); }
-.hour-bar-fill.peak{ background:var(--accent); }
-.hour-value{ font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-dim); text-align:right; }
 
 /* ---------- Perfil: changelog ---------- */
 /* Panel exterior colapsado por defecto (<details>, no un <div> fijo):

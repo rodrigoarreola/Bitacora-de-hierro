@@ -159,18 +159,42 @@
 
   <!-- ================= VIEW: PROGRESO ================= -->
   <div class="view" id="view-progreso">
-    <input type="text" id="prog-search" class="prog-search" placeholder="Buscar ejercicio…" list="exercise-library-list" autocomplete="off">
-    <div class="prog-compare-row hidden" id="prog-compare-row">
-      <input type="text" id="prog-search-2" class="prog-search prog-search-2" placeholder="Comparar con… (opcional)" list="exercise-library-list" autocomplete="off">
-      <button type="button" class="btn btn--icon prog-reps-toggle" id="prog-reps-toggle" aria-pressed="false" aria-label="Mostrar repeticiones">
-        <i class="icon fa-solid fa-repeat"></i>
-      </button>
+    <div class="seg-tabs" id="prog-tabs" role="tablist">
+      <button type="button" class="seg-tab active" role="tab" aria-selected="true" aria-controls="prog-tab-ejercicios" data-prog-tab="ejercicios">Ejercicios</button>
+      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="prog-tab-constancia" data-prog-tab="constancia">Constancia</button>
+      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="prog-tab-horarios" data-prog-tab="horarios">Horarios</button>
     </div>
-    <div id="prog-content">
-      <div class="card card--dashed placeholder">
-        <i class="icon fa-solid fa-chart-line"></i>
-        <span>Progreso</span>
-        <p>Busca un ejercicio arriba para ver su progreso.</p>
+
+    <div id="prog-tab-ejercicios" role="tabpanel">
+      <input type="text" id="prog-search" class="prog-search" placeholder="Buscar ejercicio…" list="exercise-library-list" autocomplete="off">
+      <div class="prog-compare-row hidden" id="prog-compare-row">
+        <input type="text" id="prog-search-2" class="prog-search prog-search-2" placeholder="Comparar con… (opcional)" list="exercise-library-list" autocomplete="off">
+        <button type="button" class="btn btn--icon prog-reps-toggle" id="prog-reps-toggle" aria-pressed="false" aria-label="Mostrar repeticiones">
+          <i class="icon fa-solid fa-repeat"></i>
+        </button>
+      </div>
+      <div id="prog-content">
+        <div class="card card--dashed placeholder">
+          <i class="icon fa-solid fa-chart-line"></i>
+          <span>Progreso</span>
+          <p>Busca un ejercicio arriba para ver su progreso.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="prog-tab-constancia" class="hidden" role="tabpanel">
+      <div class="card milestones-panel">
+        <div class="lib-title">Hitos y constancia</div>
+        <p class="lib-sub">Calculado a partir de tus semanas registradas en la app.</p>
+        <div id="milestones-host"></div>
+      </div>
+    </div>
+
+    <div id="prog-tab-horarios" class="hidden" role="tabpanel">
+      <div class="card milestones-panel time-stats-panel">
+        <div class="lib-title">Horarios de entrenamiento</div>
+        <p class="lib-sub">Cuándo y cuánto entrenas, a partir de tus sesiones con horario registrado.</p>
+        <div id="time-stats-host"></div>
       </div>
     </div>
   </div>
@@ -207,18 +231,6 @@
 
   <!-- ================= VIEW: PERFIL ================= -->
   <div class="view" id="view-perfil">
-    <div class="card milestones-panel">
-      <div class="lib-title">Hitos y constancia</div>
-      <p class="lib-sub">Calculado a partir de tus semanas registradas en la app.</p>
-      <div id="milestones-host"></div>
-    </div>
-
-    <div class="card milestones-panel time-stats-panel">
-      <div class="lib-title">Horarios de entrenamiento</div>
-      <p class="lib-sub">Cuándo y cuánto entrenas, a partir de tus sesiones con horario registrado.</p>
-      <div id="time-stats-host"></div>
-    </div>
-
     <div class="card perfil-panel">
       <div class="lib-title">Tus datos</div>
       <p class="lib-sub">Respalda o restaura tus semanas y ejercicios en un archivo JSON.</p>

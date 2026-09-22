@@ -2,6 +2,33 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.56.0] - 2026-09-22 — Hitos y Horarios se mudan a Progreso (pestañas)
+
+### En la app: Constancia y Horarios ahora viven en Progreso
+
+- Progreso tiene 3 pestañas nuevas: Ejercicios (como antes), Constancia y Horarios. Estas dos últimas se movieron desde Perfil, porque son estadísticas de tu entrenamiento, no datos de tu cuenta.
+- Perfil queda más simple: solo Tus datos, Backups automáticos, Cerrar sesión y Changelog.
+
+### Added
+
+- **`.seg-tabs`/`.seg-tab`** (`css/components.css`): pestañas segmentadas para elegir el modo de una pantalla (pocas opciones fijas, una activa a la vez) — distinto del riel de píldoras (`.week-rail`/`.week-pill`, que filtra listas con scroll). Con `role="tablist"`/`role="tab"`/`aria-selected`.
+- **`progTab`** (`js/app.js`): estado en memoria (como `historialMonth`) que decide la pestaña activa de Progreso; `renderProgTabs()`/`setProgTab()`.
+- **ADR 0011** con la decisión completa.
+
+### Changed
+
+- **Hitos y constancia y Horarios de entrenamiento se mueven de `#view-perfil` a `#view-progreso`** (nuevas pestañas "Constancia" y "Horarios"), con todo su CSS (`perfil.css` → `progreso.css`: `.milestones-panel`, `.milestone-*`, `.time-stats-panel`, `.time-chart-*`, `.hour-*`). `renderMilestones()`/`renderTimeStats()` no cambian: se siguen llamando siempre desde `updateStreakBadge()`, sin importar la pestaña activa.
+- **`setProgTab()` vuelve a dibujar la gráfica de Horarios** al mostrar esa pestaña — Chart.js mide el canvas al crearlo y un contenedor `display:none` mide 0×0 (mismo motivo por el que `switchToView()` va antes de `renderProgreso()` en `goToProgress()`).
+- **`goToProgress()`** (el atajo "Ver progreso" de un ejercicio) fuerza `progTab = 'ejercicios'`, por si se venía de Constancia u Horarios.
+- README y `docs/UI-ESTRUCTURA.md`/`docs/SCREENS.md` actualizados; de paso, corregida una mención vieja a `confirm()` en README (ya es `confirmDialog()` desde la 1.53.0).
+
+### Verificado (Navegador integrado)
+
+- Las 3 pestañas cambian de contenido y estado activo/`aria-selected` correctamente.
+- Horarios: el canvas mide su ancho real (279px) al mostrarse, no 0.
+- Perfil: exactamente 4 títulos (Tus datos, Backups automáticos, Changelog + el botón de cerrar sesión), sin rastro de Hitos/Horarios en su markup.
+- Capturas de pantalla de Constancia y Horarios con datos reales, consistentes con el resto de la app.
+
 ## [1.55.3] - 2026-09-22 — La versión del caché coincide con la versión de la app
 
 ### En la app: Sin cambios visibles (identificación interna más clara)

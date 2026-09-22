@@ -130,3 +130,18 @@
 .skeleton-daytab{ flex:0 0 calc((100% - 24px) / 5); height:76px; border-radius:var(--r-lg); }
 .skeleton-ring{ width:40px; height:40px; border-radius:var(--r-full); flex-shrink:0; }
 .skeleton-spark{ height:38px; }
+
+/* ---------- Pestañas segmentadas (dentro de una vista: Progreso, Hoy) ---------- */
+/* Distinto del riel de píldoras (.week-rail/.week-pill, que hace scroll y
+   filtra listas): esto es un selector de MODO de la pantalla — pocas
+   opciones fijas, siempre todas visibles, una sola activa a la vez. */
+.seg-tabs{
+  display:flex; gap:var(--sp-0-5); background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-md); padding:var(--sp-0-5); margin-bottom:var(--sp-4);
+}
+.seg-tab{
+  flex:1; text-align:center; background:none; border:none; cursor:pointer;
+  padding:var(--sp-2) var(--sp-1); border-radius:var(--r-sm);
+  font-family:var(--font-body); font-size:var(--fs-sm); font-weight:600; color:var(--text-dim);
+}
+.seg-tab.active{ background:var(--accent); color:var(--accent-ink); }

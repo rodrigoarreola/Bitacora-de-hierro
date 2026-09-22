@@ -2077,9 +2077,46 @@
     progExercise2 = null; // comparación no tiene sentido al saltar a un ejercicio nuevo desde otra vista
     document.getElementById('prog-search').value = name;
     document.getElementById('prog-search-2').value = '';
+    setProgTab('ejercicios'); // por si venía de la pestaña Constancia/Horarios
     switchToView('progreso');
     renderProgreso();
   }
+
+  // ============================================================
+  // Pestañas de Progreso: Ejercicios (buscador + gráfica/dashboard) /
+  // Constancia (Hitos, ex-Perfil) / Horarios (ex-Perfil). renderMilestones()
+  // y renderTimeStats() ya se llaman siempre desde updateStreakBadge(),
+  // sin importar qué pestaña esté activa (mismo criterio que antes, cuando
+  // vivían en Perfil) — su contenido llega actualizado aunque esté oculto.
+  // Horarios sí necesita re-render al mostrarse: Chart.js mide el canvas al
+  // crearlo, y un contenedor display:none todavía mide 0×0 (mismo motivo por
+  // el que switchToView() va antes de renderProgreso() en goToProgress()).
+  // ============================================================
+  let progTab = 'ejercicios'; // 'ejercicios' | 'constancia' | 'horarios'
+
+  function renderProgTabs(){
+    document.querySelectorAll('#prog-tabs .seg-tab').forEach(b=>{
+      const on = b.dataset.progTab === progTab;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    ['ejercicios', 'constancia', 'horarios'].forEach(t=>{
+      document.getElementById('prog-tab-' + t).classList.toggle('hidden', t !== progTab);
+    });
+  }
+
+  function setProgTab(tab){
+    if(progTab === tab){ renderProgTabs(); return; }
+    progTab = tab;
+    renderProgTabs();
+    if(tab === 'horarios') renderTimeStats();
+  }
+
+  document.getElementById('prog-tabs').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-prog-tab]');
+    if(btn) setProgTab(btn.dataset.progTab);
+  });
+  renderProgTabs();
 
   // Barra inferior y ícono de Ajustes del header (ambos con data-view).
   document.querySelectorAll('[data-view]').forEach(el=>{

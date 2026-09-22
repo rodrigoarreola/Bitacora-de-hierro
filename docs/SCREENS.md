@@ -32,9 +32,9 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 | Login | Formulario | `#view-login` (sin ruta) | `api/session.php`, `api/login.php` | V n/a · C ✓ · E ✓ · O ~ |
 | Hoy | Formulario + dashboard | `#/hoy` | `api/weeks.php`, `api/exercises.php`, `api/migrate_day.php`, `api/library.php`, `api/settings.php` | V ✓ · C ✓ · E ~ · O ~ |
 | Historial | Lista | `#/historial` | semanas ya cargadas (memoria) | V ✓ · C ✓ · E n/a · O ✓ |
-| Progreso | Dashboard / detalle | `#/progreso` | semanas en memoria + Chart.js (CDN, en caché del SW) | V ✓ · C ✓ · E ✓ · O ✓ |
+| Progreso | Dashboard / detalle (3 pestañas: Ejercicios, Constancia, Horarios) | `#/progreso` | semanas en memoria + Chart.js (CDN, en caché del SW) | V ✓ · C ✓ · E ✓ · O ✓ |
 | Calendario | Dashboard | `#/calendario` | semanas en memoria | V ~ · C ✓ · E n/a · O ✓ |
-| Perfil | Dashboard + datos | `#/perfil` | semanas en memoria, `api/backups.php`, `api/import.php` | V ✓ · C ✓ · E ✓ · O ~ |
+| Perfil | Datos / cuenta | `#/perfil` | semanas en memoria, `api/backups.php`, `api/import.php` | V ✓ · C ✓ · E ✓ · O ~ |
 | Ajustes | Ajustes | `#/ajustes` | `api/settings.php`, `api/library.php`, `data/exercises-dataset.json` | V ~ · C ✓ · E ~ · O ✗ |
 | Info de ejercicio | Detalle (bottom sheet) | `#exercise-info-overlay` (sin ruta) | `data/exercises-dataset.json`, `api/exercise_media.php` | V ✓ · C ✓ · E ✓ · O ✗ |
 | Confirmación / texto | Diálogo (bottom sheet) | `#confirm-overlay` (sin ruta) | — | n/a |
@@ -76,7 +76,8 @@ abren **Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
 
 - **Hoy:** registro (formulario) + resumen (dashboard) + utilidades
   (conversor, gestión de semanas).
-- **Perfil:** análisis (Hitos, Horarios) + administración (datos, backups,
-  sesión, changelog).
+- ~~Perfil: análisis (Hitos, Horarios) + administración~~ — resuelto
+  (1.56.0, [ADR 0011](adr/0011-hitos-horarios-a-progreso.md)): Hitos y
+  Horarios se movieron a Progreso; Perfil quedó solo con cuenta/datos.
 - **Ajustes:** configuración (Reglas, fuente de nombres) + contenido
   (librería de ejercicios).
