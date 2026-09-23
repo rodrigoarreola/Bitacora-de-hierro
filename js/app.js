@@ -414,6 +414,162 @@
   }
 
   // ============================================================
+  // Split (Ajustes) — ADR 0018. El split vigente vive en day_templates
+  // (api/split.php); los presets, solo acá (js/split-catalog.js). El
+  // preset marcado se deduce comparando, no se guarda aparte: si editas
+  // un día a mano, pasa solo a "Personalizado".
+  // ============================================================
+  const SPLITS = (window.SPLIT_CATALOG && window.SPLIT_CATALOG.SPLITS) || [];
+  let splitSaved = null;  // { [day_key]: {group_name, notes, template_key} } — lo último de api/split.php
+  let splitDraft = null;  // { [day_key]: {group_name, template_key} } — lo que se ve en el editor
+
+  function splitPresetDays(split){
+    const out = {};
+    DAY_ORDER.forEach(dk=>{ out[dk] = { group_name: split.dias[dk].group, template_key: split.dias[dk].plan || null }; });
+    return out;
+  }
+
+  function matchSplitPreset(days){
+    const found = SPLITS.find(sp => DAY_ORDER.every(dk =>
+      sp.dias[dk].group === days[dk].group_name && (sp.dias[dk].plan || null) === (days[dk].template_key || null)));
+    return found ? found.key : 'custom';
+  }
+
+  function currentRealWeekKey(){
+    const key = toISO(mondayOfWeek(new Date()));
+    return state.weeks[key] ? key : null;
+  }
+
+  async function loadSplitPanel(){
+    const host = document.getElementById('split-host');
+    if(!host) return;
+    try{
+      const res = await Api.get('api/split.php');
+      splitSaved = res.days;
+    }catch(err){
+      host.innerHTML = `<p class="split-msg">${escapeHtml(err.message)}</p>`;
+      return;
+    }
+    splitDraft = {};
+    DAY_ORDER.forEach(dk=>{ splitDraft[dk] = { group_name: splitSaved[dk].group_name, template_key: splitSaved[dk].template_key || null }; });
+    renderSplitPanel();
+  }
+
+  // Vista previa: qué ejercicios trae cada día del split que estás viendo
+  // (aún sin guardar). Mismo cálculo que la Guía del día —
+  // suggestForSlot() con tu historial—, así lo que ves aquí es lo que
+  // propondrá "Llenar con la guía". Qué días están abiertos se recuerda
+  // entre re-renders del panel.
+  const splitPreviewOpen = new Set();
+
+  function splitPreviewHtml(){
+    const days = DAY_ORDER.filter(dk => DAY_PLANS[splitDraft[dk].template_key]);
+    if(!days.length) return `<p class="split-msg">Ningún día tiene guía todavía.</p>`;
+    return days.map(dk=>{
+      const plan = DAY_PLANS[splitDraft[dk].template_key];
+      const taken = new Set();
+      const totalSeries = plan.slots.reduce((sum, slot) => sum + (parseInt(slot.series, 10) || 0), 0);
+      const rows = plan.slots.map(slot=>{
+        const name = suggestForSlot(slot, taken);
+        taken.add(normalizeExerciseName(name));
+        return `
+          <div class="split-preview-row">
+            <div class="split-preview-muscle">
+              <span>${escapeHtml(slot.label)}</span>
+              <span class="split-preview-meta">${slot.tipo === 'compuesto' ? 'Compuesto' : 'Aislamiento'} · ${slot.series} × ${slot.reps}</span>
+            </div>
+            <span class="split-preview-ex">${escapeHtml(name)}</span>
+          </div>`;
+      }).join('');
+      return `
+        <details class="split-preview-day" data-day="${dk}"${splitPreviewOpen.has(dk) ? ' open' : ''}>
+          <summary>
+            <span class="split-day-name">${DAY_SHORT[dk]}</span>
+            <span class="split-preview-title">${escapeHtml(splitDraft[dk].group_name || plan.label)}</span>
+            <span class="split-preview-count">${plan.slots.length} ej · ${totalSeries} series</span>
+            <i class="icon fa-solid fa-chevron-down guide-chevron"></i>
+          </summary>
+          <div class="split-preview-rows">${rows}</div>
+        </details>`;
+    }).join('');
+  }
+
+  function renderSplitPreview(){
+    const el = document.getElementById('split-preview');
+    if(el) el.innerHTML = splitPreviewHtml();
+  }
+
+  function renderSplitPanel(){
+    const host = document.getElementById('split-host');
+    if(!host || !splitDraft) return;
+    const choice = matchSplitPreset(splitDraft);
+    const option = (value, label, extra, desc) => `
+      <label class="source-option split-option">
+        <input type="radio" name="split-choice" value="${value}"${choice === value ? ' checked' : ''}>
+        <span class="split-option-text">
+          <span class="source-option-label">${escapeHtml(label)}${extra ? ` <span class="split-option-days">${extra}</span>` : ''}</span>
+          <span class="split-option-desc">${escapeHtml(desc)}</span>
+        </span>
+      </label>`;
+    const planOptions = (selected) => `<option value="">Sin guía</option>` + Object.entries(DAY_PLANS)
+      .map(([key, plan]) => `<option value="${key}"${selected === key ? ' selected' : ''}>${escapeHtml(plan.label)}</option>`).join('');
+    const weekKey = currentRealWeekKey();
+    host.innerHTML = `
+      <div class="source-options split-options">
+        ${SPLITS.map(sp => option(sp.key, sp.label, `${sp.dias_semana} días`, sp.desc)).join('')}
+        ${option('custom', 'Personalizado', '', 'Tus propios nombres y plantillas por día.')}
+      </div>
+      <div class="split-editor">
+        ${DAY_ORDER.map(dk => `
+          <div class="split-day-row">
+            <span class="split-day-name">${DAY_SHORT[dk]}</span>
+            <input type="text" class="split-day-group" data-day="${dk}" maxlength="80" value="${escapeHtml(splitDraft[dk].group_name)}" aria-label="Nombre del ${DAY_NAMES[dk]}">
+            <select class="split-day-plan" data-day="${dk}" aria-label="Guía del ${DAY_NAMES[dk]}">${planOptions(splitDraft[dk].template_key)}</select>
+          </div>`).join('')}
+      </div>
+      <div class="split-preview-head">Vista previa · qué ejercicios trae cada día</div>
+      <div class="split-preview" id="split-preview">${splitPreviewHtml()}</div>
+      ${weekKey ? `
+        <label class="split-apply">
+          <input type="checkbox" id="split-apply-current">
+          <span>Aplicar también a esta semana (${escapeHtml(weekLabel(weekKey))})</span>
+        </label>` : ''}
+      <p class="split-msg">Las semanas pasadas conservan sus nombres. El split aplica a las semanas que crees de aquí en adelante.</p>
+      <button type="button" class="btn btn--block perfil-btn rules-save-btn" id="split-save-btn"><i class="icon fa-solid fa-floppy-disk"></i>Guardar split</button>`;
+  }
+
+  async function saveSplit(){
+    const btn = document.getElementById('split-save-btn');
+    const days = {};
+    for(const dk of DAY_ORDER){
+      const group = splitDraft[dk].group_name.trim();
+      if(!group){ showToast(`Ponle nombre al ${DAY_NAMES[dk].toLowerCase()}.`); return; }
+      days[dk] = { group_name: group, template_key: splitDraft[dk].template_key || null };
+      // Las notas son de la rutina de ese día ("Filas sin marcar: …"): si
+      // el día cambia de grupo, dejan de aplicar y se borran.
+      if(group !== splitSaved[dk].group_name) days[dk].notes = null;
+    }
+    const applyBox = document.getElementById('split-apply-current');
+    const applyTo = applyBox && applyBox.checked ? currentRealWeekKey() : null;
+    btn.disabled = true;
+    try{
+      const res = await Api.put('api/split.php', applyTo ? { days, apply_to_week: applyTo } : { days });
+      splitSaved = res.days;
+      if(applyTo){
+        const detail = await Api.get(`api/weeks.php?date=${encodeURIComponent(applyTo)}`);
+        applyWeekDetail(applyTo, detail);
+        renderAll();
+        renderHistorial();
+      }
+      showToast(applyTo ? 'Split guardado y aplicado a esta semana.' : 'Split guardado — aplica a las semanas nuevas.');
+    }catch(err){
+      showToast(err.message);
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  // ============================================================
   // Helpers de fecha
   // ============================================================
   function toISO(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
@@ -523,6 +679,7 @@
       const d = detail.days[dk];
       days[dk] = {
         group: d.group_name, notes: d.notes, migratedFrom: d.migrated_from, exercises: d.exercises,
+        templateKey: d.template_key || null,
         startTime: d.start_time ? d.start_time.slice(0,5) : null,
         endTime: d.end_time ? d.end_time.slice(0,5) : null,
         durationMin: d.duration_min,
@@ -1193,7 +1350,7 @@
         ${migratedFrom ? `<i class="icon migrated-mark fa-solid fa-right-left" title="Migrado de ${DAY_NAMES[migratedFrom]}"></i>` : ''}
         <div class="plate">${DAY_LETTER[dk]}</div>
         <div class="dname">${DAY_SHORT[dk]}</div>
-        <span class="muted-tag">${week.days[dk].group.split(' ')[0]}</span>
+        <span class="muted-tag">${escapeHtml(week.days[dk].group.split(' ')[0])}</span>
       `;
       // El riel de días vive en Resumen (desde 1.59.0): tocar un día
       // puntual manda a ver sus ejercicios, así que salta a la pestaña
@@ -1278,6 +1435,137 @@
       </div>${detailHtml}`;
   }
 
+  // ============================================================
+  // Guía del día (ADR 0018): los "huecos" de la plantilla del día
+  // (js/split-catalog.js → DAY_PLANS) contra los ejercicios que ya tiene.
+  // Series × reps son solo referencia — nunca se escriben en los campos.
+  // El músculo de cada ejercicio sale de NAME_MAPPING (campo `target`,
+  // copiado del dataset) para no tener que bajar el dataset de ~1MB; un
+  // ejercicio sin mapeo simplemente no cubre ningún hueco.
+  // ============================================================
+  const DAY_PLANS = (window.SPLIT_CATALOG && window.SPLIT_CATALOG.DAY_PLANS) || {};
+  let guideOpen = true;
+  try{ guideOpen = localStorage.getItem('bitacora.guideOpen') !== '0'; }catch(err){}
+  let guideBusy = false;
+
+  function exerciseTarget(name){
+    const entry = NAME_MAPPING[normalizeExerciseName(name)];
+    return entry ? (entry.target || null) : null;
+  }
+
+  // Cada ejercicio cubre como mucho un hueco. Primero se asignan los que
+  // coinciden con el sugerido de un hueco (así el press inclinado cae en
+  // "Pecho (inclinado)" aunque esté primero en el día); después, el resto
+  // al primer hueco libre que acepte su músculo. 3 ejercicios de pecho
+  // cubren los 3 huecos de pecho, no el mismo tres veces.
+  function computeGuide(day){
+    const plan = DAY_PLANS[day.templateKey];
+    if(!plan) return null;
+    const used = new Set();
+    const assigned = plan.slots.map(slot=>{
+      const sugNorm = normalizeExerciseName(slot.sugerido);
+      const ex = day.exercises.find(e => !used.has(e) && normalizeExerciseName(e.name) === sugNorm);
+      if(ex) used.add(ex);
+      return ex || null;
+    });
+    const rows = plan.slots.map((slot, i)=>{
+      let ex = assigned[i];
+      if(!ex){
+        ex = day.exercises.find(e => !used.has(e) && slot.targets.includes(exerciseTarget(e.name))) || null;
+        if(ex) used.add(ex);
+      }
+      return { slot, ex };
+    });
+    return { plan, rows, covered: rows.filter(r => r.ex).length };
+  }
+
+  // Qué ejercicio proponer para un hueco vacío: el sugerido de la plantilla
+  // si lo haces (o si tu historial no tiene nada para ese músculo); si no,
+  // el que más repites de ese músculo en las últimas 12 semanas. `taken`
+  // (nombres normalizados) evita proponer algo que ya está en el día.
+  function suggestForSlot(slot, taken){
+    const counts = new Map();
+    state.order.slice(0, 12).forEach(wk=>{
+      const week = state.weeks[wk];
+      if(!week) return;
+      DAY_ORDER.forEach(dk=> week.days[dk].exercises.forEach(e=>{
+        const norm = normalizeExerciseName(e.name);
+        if(!norm || !slot.targets.includes(exerciseTarget(e.name))) return;
+        const c = counts.get(norm) || { name: e.name, n: 0 };
+        c.n++;
+        counts.set(norm, c);
+      }));
+    });
+    const sugNorm = normalizeExerciseName(slot.sugerido);
+    if(!taken.has(sugNorm) && (counts.size === 0 || counts.has(sugNorm))){
+      return counts.has(sugNorm) ? counts.get(sugNorm).name : slot.sugerido;
+    }
+    const best = [...counts.entries()]
+      .filter(([norm]) => !taken.has(norm))
+      .sort((a, b) => b[1].n - a[1].n)[0];
+    return best ? best[1].name : slot.sugerido;
+  }
+
+  function guideHtml(day, guide){
+    if(!guide) return '';
+    const taken = new Set(day.exercises.map(e => normalizeExerciseName(e.name)));
+    const rows = guide.rows.map(r=>{
+      const meta = `${r.slot.tipo === 'compuesto' ? 'Compuesto' : 'Aislamiento'} · ${r.slot.series} × ${r.slot.reps}`;
+      let right;
+      if(r.ex){
+        right = `<span class="guide-ex">${escapeHtml(r.ex.name)}</span>`;
+      } else {
+        const name = suggestForSlot(r.slot, taken);
+        taken.add(normalizeExerciseName(name));
+        right = `<button class="guide-add" type="button" data-action="guide-add" data-name="${escapeHtml(name)}" aria-label="Agregar ${escapeHtml(name)}"><i class="icon fa-solid fa-plus"></i><span>${escapeHtml(name)}</span></button>`;
+      }
+      return `
+        <div class="guide-row${r.ex ? ' covered' : ''}">
+          <i class="icon guide-check ${r.ex ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i>
+          <div class="guide-main">
+            <span class="guide-muscle">${escapeHtml(r.slot.label)}</span>
+            <span class="guide-meta">${meta}</span>
+          </div>
+          ${right}
+        </div>`;
+    }).join('');
+    const complete = guide.covered === guide.rows.length;
+    return `
+      <details class="day-guide"${guideOpen ? ' open' : ''}>
+        <summary>
+          <i class="icon fa-solid fa-list-check"></i>
+          <span class="guide-title">Guía · ${escapeHtml(guide.plan.label)}</span>
+          <span class="guide-count${complete ? ' complete' : ''}">${guide.covered}/${guide.rows.length}</span>
+          <i class="icon fa-solid fa-chevron-down guide-chevron"></i>
+        </summary>
+        <div class="guide-rows">${rows}</div>
+        <p class="guide-foot">Series × reps son solo referencia. Toca un ejercicio sugerido para agregarlo.</p>
+      </details>`;
+  }
+
+  // Agrega ejercicios con solo el nombre (kg/reps/series vacíos), en orden.
+  async function addGuideExercises(names){
+    if(!state.activeWeek || !names.length || guideBusy) return;
+    guideBusy = true;
+    const weekKey = state.activeWeek;
+    const dayKey = state.activeDay;
+    const day = state.weeks[weekKey].days[dayKey];
+    try{
+      for(const name of names){
+        let created;
+        try{ created = await Api.post('api/exercises.php', { monday_date: weekKey, day_key: dayKey, name }); }
+        catch(err){ showToast(err.message); break; }
+        day.exercises.push(created);
+      }
+    } finally {
+      guideBusy = false;
+    }
+    renderDayPanel();
+    updateStreakBadge();
+    renderWeeklyRecap();
+    names.forEach(name => addToLibrary(name)); // no-op si ya está en la librería
+  }
+
   function renderDayPanel(){
     const host = document.getElementById('day-panel-host');
 
@@ -1303,6 +1591,7 @@
     const ringTier = done <= 2 ? 'tier-red' : done <= 5 ? 'tier-yellow' : 'tier-green';
 
     let bodyHtml;
+    const guide = computeGuide(day);
     if(total === 0){
       const prevKey = getPrevWeekKey(state.activeWeek);
       bodyHtml = `
@@ -1310,14 +1599,17 @@
           <p>Todavía no hay ejercicios para este día.</p>
           <div class="day-empty-actions">
             ${prevKey ? `<button class="btn btn--primary" type="button" data-action="copy-week">Copiar semana pasada</button>` : ''}
+            ${guide ? `<button class="btn${prevKey ? '' : ' btn--primary'}" type="button" data-action="guide-fill"><i class="icon fa-solid fa-list-check"></i>Llenar con la guía</button>` : ''}
             <button class="btn" type="button" data-action="add-ex">+ Agregar ejercicio</button>
           </div>
-        </div>`;
+        </div>
+        ${guideHtml(day, guide)}`;
     } else {
       bodyHtml = `
         <div class="col-heads"><span></span><span>Ejercicio</span><span>Kg</span><span>Rep</span><span>Ser</span><span></span><span></span></div>
         ${day.exercises.map(exerciseRowHtml).join('')}
         <div class="add-ex-row" data-action="add-ex"><i class="icon fa-solid fa-plus"></i>Agregar ejercicio</div>
+        ${guideHtml(day, guide)}
         ${day.notes ? `<div class="day-notes">${day.notes}</div>` : ''}`;
     }
 
@@ -1361,7 +1653,7 @@
       <div class="card day-panel">
         <div class="day-panel-head">
           <div>
-            <div class="grp">${day.group}</div>
+            <div class="grp">${escapeHtml(day.group)}</div>
             <div class="day-stats"><span id="day-stat-series">0</span> series · <span id="day-stat-volume">0 kg</span></div>
           </div>
           <div class="day-panel-head-actions">
@@ -1901,6 +2193,13 @@
       renderDayPanel();
       return;
     }
+    const guideAdd = e.target.closest('[data-action="guide-add"]');
+    if(guideAdd){ addGuideExercises([guideAdd.dataset.name]); return; }
+    if(e.target.closest('[data-action="guide-fill"]')){
+      const names = [...dayPanelHost.querySelectorAll('[data-action="guide-add"]')].map(b => b.dataset.name);
+      addGuideExercises(names);
+      return;
+    }
     if(e.target.closest('[data-action="add-ex"]')){ addExercise(); return; }
     if(e.target.closest('[data-action="copy-week"]')){ copyPreviousWeek(); return; }
     if(e.target.closest('[data-action="share-day"]')){
@@ -1916,6 +2215,14 @@
       return;
     }
   });
+
+  // "toggle" no burbujea — se escucha en captura para recordar si la guía
+  // quedó abierta o cerrada entre días y recargas.
+  dayPanelHost.addEventListener('toggle', (e)=>{
+    if(!e.target.classList || !e.target.classList.contains('day-guide')) return;
+    guideOpen = e.target.open;
+    try{ localStorage.setItem('bitacora.guideOpen', guideOpen ? '1' : '0'); }catch(err){}
+  }, true);
 
   dayPanelHost.addEventListener('input', (e)=>{
     const input = e.target.closest('input[data-field]');
@@ -2090,6 +2397,41 @@
   // ============================================================
   document.getElementById('rules-save-btn').addEventListener('click', saveRules);
 
+  // Split: eventos de la vista Ajustes (delegados — el panel se re-renderiza)
+  const splitHost = document.getElementById('split-host');
+  splitHost.addEventListener('change', (e)=>{
+    if(e.target.name === 'split-choice'){
+      const preset = SPLITS.find(sp => sp.key === e.target.value);
+      if(preset) splitDraft = splitPresetDays(preset);
+      renderSplitPanel();
+      return;
+    }
+    if(e.target.classList.contains('split-day-plan')){
+      const dk = e.target.dataset.day;
+      splitDraft[dk].template_key = e.target.value || null;
+      if(splitDraft[dk].template_key) splitPreviewOpen.add(dk); // abre el día que acabas de cambiar
+      const radio = splitHost.querySelector(`input[name="split-choice"][value="${matchSplitPreset(splitDraft)}"]`);
+      if(radio) radio.checked = true;
+      renderSplitPreview();
+    }
+  });
+  // "toggle" no burbujea — en captura, para recordar qué días de la vista previa están abiertos.
+  splitHost.addEventListener('toggle', (e)=>{
+    if(!e.target.classList || !e.target.classList.contains('split-preview-day')) return;
+    if(e.target.open) splitPreviewOpen.add(e.target.dataset.day);
+    else splitPreviewOpen.delete(e.target.dataset.day);
+  }, true);
+  splitHost.addEventListener('input', (e)=>{
+    if(!e.target.classList.contains('split-day-group')) return;
+    splitDraft[e.target.dataset.day].group_name = e.target.value;
+    const radio = splitHost.querySelector(`input[name="split-choice"][value="${matchSplitPreset(splitDraft)}"]`);
+    if(radio) radio.checked = true;
+    renderSplitPreview();
+  });
+  splitHost.addEventListener('click', (e)=>{
+    if(e.target.closest('#split-save-btn')) saveSplit();
+  });
+
   // Fuente de nombres de ejercicios (Ajustes)
   document.getElementById('exercise-source-options').addEventListener('change', (e)=>{
     const input = e.target.closest('input[name="exercise-source"]');
@@ -2176,6 +2518,7 @@
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.getElementById('view-' + name).classList.add('active');
     if(name === 'perfil') loadBackupsList(); // la lista de backups se pide de nuevo cada vez que se abre Perfil
+    if(name === 'ajustes') loadSplitPanel(); // igual: el split se lee fresco cada vez que se abre Ajustes
   }
 
   function switchToView(name){
@@ -3275,6 +3618,7 @@
       const week = state.weeks[key];
       const days = {};
       const overrides = {};
+      const groups = {};
       DAY_ORDER.forEach(dk=>{
         const day = week.days[dk];
         // Cada día se exporta como {exercises, start_time?, end_time?,
@@ -3293,11 +3637,17 @@
         // default de day_templates) — se exportan aparte para que un
         // reimport los restaure igual, en vez de perder la migración.
         if(day.migratedFrom){
-          overrides[dk] = { group_name: day.group, notes: day.notes, migrated_from: day.migratedFrom };
+          overrides[dk] = { group_name: day.group, notes: day.notes, template_key: day.templateKey, migrated_from: day.migratedFrom };
+        } else {
+          // Grupo congelado de la semana (ADR 0018). Un día migrado no lo
+          // trae: el estado solo tiene el del override, y al reimportar ese
+          // día toma el split vigente — nunca se ve mientras el override exista.
+          groups[dk] = { group_name: day.group, notes: day.notes, template_key: day.templateKey };
         }
       });
       const weekPayload = { monday_date: key, days };
       if(Object.keys(overrides).length) weekPayload.overrides = overrides;
+      weekPayload.groups = groups;
       if(week.note) weekPayload.note = week.note;
       return weekPayload;
     });

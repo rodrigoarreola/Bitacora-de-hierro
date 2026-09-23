@@ -41,7 +41,7 @@ cargado.
 | Progreso | línea de gráfica | Evolución por ejercicio |
 | Calendario | calendario | Mes + heatmap anual |
 | _(header, izquierda)_ Perfil | logo Bitácora | Datos, backups, cuenta |
-| _(header, derecha)_ Ajustes | engranaje | Reglas, fuente de nombres, librería |
+| _(header, derecha)_ Ajustes | engranaje | Split, reglas, fuente de nombres, librería |
 
 ---
 

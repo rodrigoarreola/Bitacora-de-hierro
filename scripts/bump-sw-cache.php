@@ -25,6 +25,7 @@ $shellFiles = [
     'css/views/historial.css',
     'css/views/progreso.css',
     'js/changelog-data.js',
+    'js/split-catalog.js',
     'js/app.js',
     'js/api.js',
     'js/offline-queue.js',

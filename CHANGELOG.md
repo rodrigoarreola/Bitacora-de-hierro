@@ -2,6 +2,36 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.64.0] - 2026-09-22 — Splits y Guía del día
+
+### En la app: elige tu split y cada día te dice qué ejercicios le tocan
+
+- Nuevo panel "Split" en Ajustes: Bro Split (el tuyo de siempre), Full Body, Torso/Pierna, PHUL, Torso/Pierna + PPL, Push/Pull/Legs ×2 o Personalizado (nombre y guía por día). Aplica a las semanas nuevas; con una casilla, también a la semana en curso. Las semanas pasadas conservan sus nombres.
+- Antes de guardar, la vista previa del panel Split muestra qué ejercicios trae cada día (músculo, series × reps y el ejercicio que se sugeriría), y se actualiza al cambiar de preset o de guía.
+- Cada día con guía muestra su "Guía": los músculos que le tocan, series × reps de referencia (solo guía, no se escriben en tus campos) y ✓ en los que ya cubriste.
+- Toca un ejercicio sugerido para agregarlo (solo el nombre); en un día vacío, "Llenar con la guía" agrega todos. Las sugerencias salen de lo que más haces para ese músculo.
+
+### Added
+
+- **`js/split-catalog.js`**: `DAY_PLANS` (12 plantillas de día como huecos músculo + tipo + series × reps + sugerido) y `SPLITS` (6 presets).
+- **`api/split.php`**: `GET`/`PUT` del split vigente (`day_templates`), con `apply_to_week` opcional.
+- **`api/db/schema.sql`**: `day_templates.template_key`, tabla `week_day_groups` (grupo/notas/plantilla congelados por semana, con backfill) y `week_day_overrides.template_key` (un día migrado se lleva su guía).
+- **`data/exercise-name-mapping.json`**: campo `target` (músculo del dataset) en cada entrada, para saber qué hueco cubre un ejercicio sin bajar el dataset completo.
+- **ADR 0018** y bloque idempotente nuevo en el README (`Pendiente de correr en producción`).
+
+### Changed
+
+- **`api/week_helpers.php`**: `fetch_week_detail()`/`fetch_all_weeks_detail()` leen override > grupo congelado > split vigente y devuelven `template_key`; nuevas `split_schema_ready()` (el código funciona igual si la migración aún no se corrió) y `materialize_week_groups()`.
+- **`api/weeks.php`** congela los grupos al crear una semana; **`api/migrate_day.php`** copia grupo y plantilla efectivos del día de origen.
+- Export (Perfil y `api/db/backup_export.php`) incluye `groups` por semana y `template_key` en overrides; **`api/import.php`** los acepta (opcionales — backups viejos toman el split vigente).
+- El nombre del grupo en el panel del día y el riel se escapa, ahora que es editable.
+
+### Verificado (local)
+
+- Cambiar a Torso/Pierna deja la semana del 14 sep con sus grupos Bro; una semana nueva sale con Torso/Pierna.
+- "Llenar con la guía" en un día de Pierna vacío agrega 6 ejercicios con kg/reps/series vacíos y la guía queda 6/6.
+- Import con `groups`, migrar lunes → sábado (se lleva `pecho_triceps`) y sin errores en consola.
+
 ## [1.63.0] - 2026-09-22 — Cookie "recordarme": la sesión ya no se cierra sola
 
 ### En la app: ya no debería pedirte login a las pocas horas

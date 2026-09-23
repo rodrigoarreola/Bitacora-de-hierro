@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/config.php';
 require __DIR__ . '/auth.php';
+require __DIR__ . '/week_helpers.php';
 
 require_login();
 
@@ -24,7 +25,12 @@ const REQUIRED_DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie'];
  * "overrides" es opcional (backups de antes de "Migrar día" no lo
  * tienen): { [day_key]: {group_name, notes, migrated_from} } — solo
  * para días cuyo grupo/notas no son los del template por defecto,
- * porque recibieron contenido migrado de otro día esa semana.
+ * porque recibieron contenido migrado de otro día esa semana. Desde la
+ * 1.64.0 también traen template_key (plantilla de la Guía del día).
+ * "groups" es opcional (backups de antes de los splits no lo tienen):
+ * { [day_key]: {group_name, notes?, template_key?} } — grupo congelado de
+ * cada día de esa semana (week_day_groups, ADR 0018). Si falta, la semana
+ * toma el split vigente, igual que una semana recién creada.
  *
  * <día> acepta dos formas, para no romper backups viejos:
  *   - Legacy: una lista plana de ejercicios [{name,kg,reps,series,note,done}].
@@ -107,6 +113,16 @@ foreach ($weeks as $i => $w) {
             }
         }
     }
+    if (isset($w['groups'])) {
+        if (!is_array($w['groups'])) {
+            respond_error("Semana {$mondayDate}: \"groups\" debe ser un objeto.", 422);
+        }
+        foreach ($w['groups'] as $dayKey => $g) {
+            if (!in_array($dayKey, DAY_KEYS, true) || !is_array($g) || !isset($g['group_name'])) {
+                respond_error("Semana {$mondayDate}: grupo de \"{$dayKey}\" con formato inválido.", 422);
+            }
+        }
+    }
 }
 
 $findWeek = $pdo->prepare('SELECT id FROM weeks WHERE monday_date = :d');
@@ -115,10 +131,19 @@ $updateWeekNote = $pdo->prepare('UPDATE weeks SET note = :n WHERE id = :id');
 $deleteExercises = $pdo->prepare('DELETE FROM exercises WHERE week_id = :w');
 $deleteOverrides = $pdo->prepare('DELETE FROM week_day_overrides WHERE week_id = :w');
 $deleteSessions = $pdo->prepare('DELETE FROM week_day_sessions WHERE week_id = :w');
+$withGroups = split_schema_ready($pdo);
 $insertOverride = $pdo->prepare(
-    'INSERT INTO week_day_overrides (week_id, day_key, group_name, notes, migrated_from)
-     VALUES (:week_id, :day_key, :group_name, :notes, :migrated_from)'
+    $withGroups
+    ? 'INSERT INTO week_day_overrides (week_id, day_key, group_name, notes, template_key, migrated_from)
+       VALUES (:week_id, :day_key, :group_name, :notes, :template_key, :migrated_from)'
+    : 'INSERT INTO week_day_overrides (week_id, day_key, group_name, notes, migrated_from)
+       VALUES (:week_id, :day_key, :group_name, :notes, :migrated_from)'
 );
+$deleteGroups = $withGroups ? $pdo->prepare('DELETE FROM week_day_groups WHERE week_id = :w') : null;
+$insertGroup = $withGroups ? $pdo->prepare(
+    'INSERT INTO week_day_groups (week_id, day_key, group_name, notes, template_key)
+     VALUES (:week_id, :day_key, :group_name, :notes, :template_key)'
+) : null;
 $insertSession = $pdo->prepare(
     'INSERT INTO week_day_sessions (week_id, day_key, start_time, end_time, duration_min)
      VALUES (:week_id, :day_key, :start_time, :end_time, :duration_min)'
@@ -148,18 +173,39 @@ try {
             $deleteExercises->execute(['w' => $weekId]);
             $deleteOverrides->execute(['w' => $weekId]);
             $deleteSessions->execute(['w' => $weekId]);
+            if ($deleteGroups) {
+                $deleteGroups->execute(['w' => $weekId]);
+            }
+        }
+
+        if ($insertGroup) {
+            foreach (($w['groups'] ?? []) as $dayKey => $g) {
+                $insertGroup->execute([
+                    'week_id'      => $weekId,
+                    'day_key'      => $dayKey,
+                    'group_name'   => (string) $g['group_name'],
+                    'notes'        => isset($g['notes']) && $g['notes'] !== '' ? (string) $g['notes'] : null,
+                    'template_key' => isset($g['template_key']) && $g['template_key'] !== '' ? (string) $g['template_key'] : null,
+                ]);
+            }
+            // Días que no vinieron en "groups" (o backup sin "groups"): split vigente.
+            materialize_week_groups($pdo, $weekId);
         }
 
         $updateWeekNote->execute(['n' => (string) ($w['note'] ?? ''), 'id' => $weekId]);
 
         foreach (($w['overrides'] ?? []) as $dayKey => $ov) {
-            $insertOverride->execute([
+            $params = [
                 'week_id'       => $weekId,
                 'day_key'       => $dayKey,
                 'group_name'    => (string) $ov['group_name'],
                 'notes'         => isset($ov['notes']) && $ov['notes'] !== '' ? (string) $ov['notes'] : null,
                 'migrated_from' => $ov['migrated_from'] ?? null,
-            ]);
+            ];
+            if ($withGroups) {
+                $params['template_key'] = isset($ov['template_key']) && $ov['template_key'] !== '' ? (string) $ov['template_key'] : null;
+            }
+            $insertOverride->execute($params);
         }
 
         foreach (DAY_KEYS as $dayKey) {

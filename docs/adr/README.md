@@ -24,6 +24,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0015](0015-semana-resumen-hoy.md) | La vista Hoy pasa a llamarse Semana; Resumen abre por default | Aceptada |
 | [0016](0016-resumen-primero-medalla-unica.md) | Resumen como primera pestaña visual; una sola medalla más grande | Aceptada |
 | [0017](0017-cookie-recordarme.md) | Cookie "recordarme" independiente del archivo de sesión de PHP | Aceptada |
+| [0018](0018-splits-y-guia-del-dia.md) | Splits elegibles y Guía del día | Aceptada |
 
 ## Formato
 

@@ -2,6 +2,17 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.64.0",
+        "date": "2026-09-22",
+        "title": "elige tu split y cada día te dice qué ejercicios le tocan",
+        "items": [
+            "Nuevo panel \"Split\" en Ajustes: Bro Split (el tuyo de siempre), Full Body, Torso/Pierna, PHUL, Torso/Pierna + PPL, Push/Pull/Legs ×2 o Personalizado (nombre y guía por día). Aplica a las semanas nuevas; con una casilla, también a la semana en curso. Las semanas pasadas conservan sus nombres.",
+            "Antes de guardar, la vista previa del panel Split muestra qué ejercicios trae cada día (músculo, series × reps y el ejercicio que se sugeriría), y se actualiza al cambiar de preset o de guía.",
+            "Cada día con guía muestra su \"Guía\": los músculos que le tocan, series × reps de referencia (solo guía, no se escriben en tus campos) y ✓ en los que ya cubriste.",
+            "Toca un ejercicio sugerido para agregarlo (solo el nombre); en un día vacío, \"Llenar con la guía\" agrega todos. Las sugerencias salen de lo que más haces para ese músculo."
+        ]
+    },
+    {
         "version": "1.63.0",
         "date": "2026-09-22",
         "title": "ya no debería pedirte login a las pocas horas",

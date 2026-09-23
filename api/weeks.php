@@ -92,6 +92,7 @@ if ($method === 'POST') {
     $stmt = $pdo->prepare('INSERT INTO weeks (monday_date) VALUES (:d)');
     $stmt->execute(['d' => $mondayDate]);
     $weekId = (int) $pdo->lastInsertId();
+    materialize_week_groups($pdo, $weekId);
 
     respond_ok(fetch_week_detail($pdo, $weekId, $mondayDate), 201);
 }

@@ -17,6 +17,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require __DIR__ . '/../config.php';
+require __DIR__ . '/../week_helpers.php';
 
 const BACKUP_RETENTION = 14;
 $backupDir = __DIR__ . '/backups';
@@ -29,7 +30,15 @@ const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 $weeks = $pdo->query('SELECT id, monday_date, note FROM weeks ORDER BY monday_date')->fetchAll();
 $payload = [];
 $exStmt = $pdo->prepare('SELECT day_key, name, kg, reps, series, note, done FROM exercises WHERE week_id = :w ORDER BY day_key, sort_order, id');
-$ovStmt = $pdo->prepare('SELECT day_key, group_name, notes, migrated_from FROM week_day_overrides WHERE week_id = :w');
+$withGroups = split_schema_ready($pdo);
+$ovStmt = $pdo->prepare(
+    $withGroups
+    ? 'SELECT day_key, group_name, notes, template_key, migrated_from FROM week_day_overrides WHERE week_id = :w'
+    : 'SELECT day_key, group_name, notes, NULL AS template_key, migrated_from FROM week_day_overrides WHERE week_id = :w'
+);
+$grpStmt = $withGroups
+    ? $pdo->prepare('SELECT day_key, group_name, notes, template_key FROM week_day_groups WHERE week_id = :w')
+    : null;
 $sessStmt = $pdo->prepare('SELECT day_key, start_time, end_time, duration_min FROM week_day_sessions WHERE week_id = :w');
 
 foreach ($weeks as $w) {
@@ -69,10 +78,26 @@ foreach ($weeks as $w) {
     $ovStmt->execute(['w' => $weekId]);
     $overrides = [];
     foreach ($ovStmt->fetchAll() as $o) {
-        $overrides[$o['day_key']] = ['group_name' => $o['group_name'], 'notes' => $o['notes'], 'migrated_from' => $o['migrated_from']];
+        $overrides[$o['day_key']] = [
+            'group_name' => $o['group_name'], 'notes' => $o['notes'],
+            'template_key' => $o['template_key'], 'migrated_from' => $o['migrated_from'],
+        ];
     }
     if ($overrides) {
         $entry['overrides'] = (object) $overrides;
+    }
+
+    // Grupo congelado de cada día (ADR 0018), para que un reimport no le
+    // ponga a una semana vieja el split vigente.
+    if ($grpStmt) {
+        $grpStmt->execute(['w' => $weekId]);
+        $groups = [];
+        foreach ($grpStmt->fetchAll() as $g) {
+            $groups[$g['day_key']] = ['group_name' => $g['group_name'], 'notes' => $g['notes'], 'template_key' => $g['template_key']];
+        }
+        if ($groups) {
+            $entry['groups'] = (object) $groups;
+        }
     }
     $payload[] = $entry;
 }

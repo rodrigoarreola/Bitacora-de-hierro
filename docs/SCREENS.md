@@ -30,12 +30,12 @@ abren **Semana → Hoy** en esa semana y día; "Ver progreso" en un ejercicio ab
 |---|---|---|---|---|
 | Arranque | Estado | `#boot-screen` (sin ruta) | `api/session.php`, copia local | V n/a · C ✓ · E ✓ (Reintentar) · O ✓ |
 | Login | Formulario | `#view-login` (sin ruta) | `api/session.php`, `api/login.php` | V n/a · C ✓ · E ✓ · O ~ |
-| Semana | Dashboard + formulario (2 pestañas: Resumen default, Hoy) | `#/hoy` | `api/weeks.php`, `api/exercises.php`, `api/migrate_day.php`, `api/library.php`, `api/settings.php` | V ✓ · C ✓ · E ~ · O ~ |
+| Semana | Dashboard + formulario (2 pestañas: Resumen default, Hoy) | `#/hoy` | `api/weeks.php`, `api/exercises.php`, `api/migrate_day.php`, `api/library.php`, `api/settings.php`, `js/split-catalog.js` (Guía del día) | V ✓ · C ✓ · E ~ · O ~ |
 | Historial | Lista | `#/historial` | semanas ya cargadas (memoria) | V ✓ · C ✓ · E n/a · O ✓ |
 | Progreso | Dashboard / detalle (3 pestañas: Ejercicios, Constancia, Horarios) | `#/progreso` | semanas en memoria + Chart.js (CDN, en caché del SW) | V ✓ · C ✓ · E ✓ · O ✓ |
 | Calendario | Dashboard | `#/calendario` | semanas en memoria | V ~ · C ✓ · E n/a · O ✓ |
 | Perfil | Datos / cuenta | `#/perfil` | semanas en memoria, `api/backups.php`, `api/import.php` | V ✓ · C ✓ · E ✓ · O ~ |
-| Ajustes | Ajustes | `#/ajustes` | `api/settings.php`, `api/library.php`, `data/exercises-dataset.json` | V ~ · C ✓ · E ~ · O ✗ |
+| Ajustes | Ajustes | `#/ajustes` | `api/split.php`, `api/settings.php`, `api/library.php`, `data/exercises-dataset.json` | V ~ · C ✓ · E ~ · O ✗ |
 | Info de ejercicio | Detalle (bottom sheet) | `#exercise-info-overlay` (sin ruta) | `data/exercises-dataset.json`, `api/exercise_media.php` | V ✓ · C ✓ · E ✓ · O ✗ |
 | Confirmación / texto | Diálogo (bottom sheet) | `#confirm-overlay` (sin ruta) | — | n/a |
 

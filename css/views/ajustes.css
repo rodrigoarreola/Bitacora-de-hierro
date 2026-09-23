@@ -1,4 +1,4 @@
-/* Vista Ajustes (#/ajustes): reglas, fuente de nombres y librería de ejercicios.
+/* Vista Ajustes (#/ajustes): split, reglas, fuente de nombres y librería de ejercicios.
    Se carga después de tokens.css, components.css y base.css. */
 
 /* ---------- Reglas (Ajustes) ---------- */
@@ -55,3 +55,40 @@
 .lib-del:hover{ color:var(--danger); }
 .lib-empty{ padding:22px var(--sp-4-5); text-align:center; font-size:var(--fs-md); color:var(--text-faint); margin:0; }
 .lib-count{ font-size:var(--fs-xs); color:var(--text-faint); padding:0 var(--sp-4-5) var(--sp-3); text-transform:uppercase; letter-spacing:.04em; }
+
+/* ---------- Split (Ajustes) ---------- */
+.split-panel{ margin-bottom:var(--sp-4); }
+.split-options{ padding-bottom:var(--sp-2); }
+.split-option{ align-items:flex-start; }
+.split-option input{ margin-top:2px; }
+.split-option-text{ display:flex; flex-direction:column; gap:var(--sp-0-5); min-width:0; }
+.split-option-days{ font-size:var(--fs-xs); color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-left:var(--sp-1); }
+.split-option-desc{ font-size:var(--fs-sm); color:var(--text-dim); line-height:1.4; }
+.split-editor{ padding:var(--sp-2) var(--sp-4-5) 0; display:flex; flex-direction:column; gap:var(--sp-2); }
+.split-day-row{ display:grid; grid-template-columns:34px minmax(0,1fr) minmax(0,1fr); gap:var(--sp-2); align-items:center; }
+.split-day-name{ font-size:var(--fs-sm); color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+.split-day-group, .split-day-plan{
+  min-width:0; width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md);
+  padding:var(--sp-2) var(--sp-2-5); color:var(--text); font-size:var(--fs-md); font-family:var(--font-body);
+}
+.split-day-group:focus, .split-day-plan:focus{ outline:none; border-color:var(--accent-dim); }
+.split-apply{ display:flex; align-items:center; gap:var(--sp-2-5); padding:var(--sp-3-5) var(--sp-4-5) 0; font-size:var(--fs-md); color:var(--text); cursor:pointer; }
+.split-apply input{ accent-color:var(--accent); width:16px; height:16px; flex-shrink:0; }
+.split-msg{ margin:0; padding:var(--sp-3) var(--sp-4-5) 0; font-size:var(--fs-sm); color:var(--text-faint); line-height:1.5; }
+
+/* Vista previa del split: un <details> por día con guía */
+.split-preview-head{ padding:var(--sp-4) var(--sp-4-5) var(--sp-2); font-size:var(--fs-xs); color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+.split-preview{ margin:0 var(--sp-4-5); border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden; }
+.split-preview > .split-msg{ padding:var(--sp-3); }
+.split-preview-day + .split-preview-day{ border-top:1px solid var(--line); }
+.split-preview-day summary{
+  display:flex; align-items:center; gap:var(--sp-2); padding:var(--sp-2-5) var(--sp-3); cursor:pointer; list-style:none; background:var(--surface-2);
+}
+.split-preview-day summary::-webkit-details-marker{ display:none; }
+.split-preview-title{ flex:1; min-width:0; font-size:var(--fs-md); color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.split-preview-count{ font-size:var(--fs-xs); color:var(--text-faint); font-family:var(--font-mono); flex-shrink:0; }
+.split-preview-day[open] .guide-chevron{ transform:rotate(180deg); }
+.split-preview-row{ display:flex; align-items:center; gap:var(--sp-2-5); padding:var(--sp-2) var(--sp-3); border-top:1px dashed var(--line); }
+.split-preview-muscle{ display:flex; flex-direction:column; gap:1px; flex:0 0 auto; min-width:104px; font-size:var(--fs-md); color:var(--text); font-weight:600; }
+.split-preview-meta{ font-size:var(--fs-xs); color:var(--text-faint); font-family:var(--font-mono); font-weight:400; }
+.split-preview-ex{ flex:1; min-width:0; text-align:right; font-size:var(--fs-sm); color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

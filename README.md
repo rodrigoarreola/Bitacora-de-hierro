@@ -74,7 +74,7 @@ El frontend (`index.html` + `css/` + `js/app.js` + `js/api.js`) está **conectad
 
 ### Esquema de base de datos
 
-Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO; incluye `note`, texto libre para la nota de la semana completa), `day_templates` (grupo muscular y notas **por defecto** de cada uno de los 7 días — Lun–Dom —, sembrados desde la rutina base; sábado/domingo llevan un valor genérico ya que no tienen rutina fija), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre para permitir formatos no numéricos; `updated_at` se actualiza solo en cada cambio y es la base del last-write-wins de la edición offline), `exercise_library` (nombres para autocompletar), `week_day_overrides` (group_name/notes específicos de una semana puntual — solo existe una fila cuando ese día recibió contenido migrado de otro día vía "Migrar día"; sin fila, el día usa el valor por defecto de `day_templates`), `week_day_sessions` (hora de inicio/fin y duración de un día puntual — sin fila, ese día no tiene horario registrado) y `app_settings` (reglas editables desde Ajustes — `setting_key`/`setting_value`; sin fila para una clave, se usa el default definido en `api/settings.php`).
+Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único usuario), `weeks` (una fila por semana, identificada por el lunes en formato ISO; incluye `note`, texto libre para la nota de la semana completa), `day_templates` (grupo muscular y notas **por defecto** de cada uno de los 7 días — Lun–Dom —, sembrados desde la rutina base; sábado/domingo llevan un valor genérico ya que no tienen rutina fija), `exercises` (filas editables por semana+día; `kg`/`reps`/`series` son texto libre para permitir formatos no numéricos; `updated_at` se actualiza solo en cada cambio y es la base del last-write-wins de la edición offline), `exercise_library` (nombres para autocompletar), `week_day_overrides` (group_name/notes específicos de una semana puntual — solo existe una fila cuando ese día recibió contenido migrado de otro día vía "Migrar día"; sin fila, el día usa el valor por defecto de `day_templates`), `week_day_sessions` (hora de inicio/fin y duración de un día puntual — sin fila, ese día no tiene horario registrado), `week_day_groups` (grupo, notas y plantilla de cada día congelados al crear la semana, para que cambiar de split en Ajustes no renombre semanas pasadas — ver ADR 0018) y `app_settings` (reglas editables desde Ajustes — `setting_key`/`setting_value`; sin fila para una clave, se usa el default definido en `api/settings.php`).
 
 ### Puesta en marcha del backend (una sola vez por entorno)
 
@@ -292,6 +292,63 @@ SET @sql = IF(@exists = 0,
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- Splits y Guía del día (api/split.php, ADR 0018). El orden importa:
+-- 1) plantilla del split actual en day_templates (solo la primera vez —
+--    si la columna ya existía, el split pudo haberse cambiado desde Ajustes
+--    y no se pisa), 2) congelar el grupo de cada semana existente,
+--    3) plantilla de los días migrados.
+SET @exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'day_templates' AND COLUMN_NAME = 'template_key'
+);
+SET @sql = IF(@exists = 0,
+  'ALTER TABLE day_templates ADD COLUMN template_key VARCHAR(30) NULL AFTER notes',
+  'SELECT "day_templates.template_key ya existe, se omite"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+SET @sql = IF(@exists = 0,
+  'UPDATE day_templates SET template_key = CASE day_key WHEN ''lun'' THEN ''pecho_triceps'' WHEN ''mar'' THEN ''pierna'' WHEN ''mie'' THEN ''espalda_biceps'' WHEN ''jue'' THEN ''hombro'' WHEN ''vie'' THEN ''full_body'' ELSE NULL END',
+  'SELECT "plantillas de day_templates ya sembradas, se omite"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+CREATE TABLE IF NOT EXISTS week_day_groups (
+  week_id      INT UNSIGNED NOT NULL,
+  day_key      ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
+  group_name   VARCHAR(80) NOT NULL,
+  notes        TEXT NULL,
+  template_key VARCHAR(30) NULL,
+  PRIMARY KEY (week_id, day_key),
+  CONSTRAINT fk_week_day_groups_week
+    FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- INSERT IGNORE: correrlo de nuevo no duplica ni pisa grupos ya congelados.
+INSERT IGNORE INTO week_day_groups (week_id, day_key, group_name, notes, template_key)
+  SELECT w.id, dt.day_key, dt.group_name, dt.notes, dt.template_key
+  FROM weeks w CROSS JOIN day_templates dt;
+
+SET @exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'week_day_overrides' AND COLUMN_NAME = 'template_key'
+);
+SET @sql = IF(@exists = 0,
+  'ALTER TABLE week_day_overrides ADD COLUMN template_key VARCHAR(30) NULL AFTER notes',
+  'SELECT "week_day_overrides.template_key ya existe, se omite"');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+UPDATE week_day_overrides wo
+  SET wo.template_key = (
+    SELECT wg.template_key FROM week_day_groups wg
+    WHERE wg.group_name = wo.group_name AND wg.template_key IS NOT NULL
+    LIMIT 1
+  )
+  WHERE wo.template_key IS NULL;
 ```
 
 Cada bloque devuelve un mensaje (`SELECT "..."`) cuando se salta, así que se puede ver en el resultado de phpMyAdmin exactamente cuáles se aplicaron y cuáles ya estaban. `DEFAULT`/`NULL` en las columnas nuevas dejan las filas existentes sin backfill manual — mismo criterio que ya tenían las versiones no defensivas de estos `ALTER`.

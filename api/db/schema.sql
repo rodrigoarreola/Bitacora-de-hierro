@@ -169,3 +169,55 @@ CREATE TABLE week_day_sessions (
 ALTER TABLE users
   ADD COLUMN remember_token_hash VARCHAR(64) NULL,
   ADD COLUMN remember_token_expires DATETIME NULL;
+
+-- ============================================================
+-- Splits (ver ADR 0018). day_templates pasa a ser "el split vigente":
+-- se edita desde Ajustes (api/split.php) y template_key dice qué
+-- plantilla de día (js/split-catalog.js → DAY_PLANS) usa la Guía del
+-- día. NULL = el día no tiene guía (Recuperación, Descanso).
+-- ============================================================
+ALTER TABLE day_templates ADD COLUMN template_key VARCHAR(30) NULL AFTER notes;
+
+UPDATE day_templates SET template_key = CASE day_key
+  WHEN 'lun' THEN 'pecho_triceps'
+  WHEN 'mar' THEN 'pierna'
+  WHEN 'mie' THEN 'espalda_biceps'
+  WHEN 'jue' THEN 'hombro'
+  WHEN 'vie' THEN 'full_body'
+  ELSE NULL END;
+
+-- ============================================================
+-- week_day_groups: grupo, notas y plantilla de cada día, congelados al crear
+-- la semana (copia de day_templates en ese momento). Sin esto, cambiar
+-- de split en Ajustes renombraría todas las semanas pasadas, porque el
+-- grupo se leía de day_templates en vivo. Prioridad al leer:
+-- week_day_overrides (día migrado) > week_day_groups > day_templates.
+-- ============================================================
+CREATE TABLE week_day_groups (
+  week_id      INT UNSIGNED NOT NULL,
+  day_key      ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
+  group_name   VARCHAR(80) NOT NULL,
+  notes        TEXT NULL,
+  template_key VARCHAR(30) NULL,
+  PRIMARY KEY (week_id, day_key),
+  CONSTRAINT fk_week_day_groups_week
+    FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Backfill: las semanas que ya existen quedan fijas con el split de hoy.
+INSERT IGNORE INTO week_day_groups (week_id, day_key, group_name, notes, template_key)
+  SELECT w.id, dt.day_key, dt.group_name, dt.notes, dt.template_key
+  FROM weeks w CROSS JOIN day_templates dt;
+
+-- Un día migrado se lleva también su plantilla (si no, "Lunes → Sábado"
+-- mostraría la guía del sábado). Backfill de los overrides ya existentes
+-- por nombre de grupo, no por migrated_from: en una migración en cadena
+-- migrated_from es el día inmediato anterior, no el de origen.
+ALTER TABLE week_day_overrides ADD COLUMN template_key VARCHAR(30) NULL AFTER notes;
+
+UPDATE week_day_overrides wo
+  SET wo.template_key = (
+    SELECT wg.template_key FROM week_day_groups wg
+    WHERE wg.group_name = wo.group_name AND wg.template_key IS NOT NULL
+    LIMIT 1
+  );

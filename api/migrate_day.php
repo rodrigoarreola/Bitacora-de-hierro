@@ -28,28 +28,64 @@ const MIGRATE_DAY_LABELS = [
 
 function move_day_content(PDO $pdo, int $weekId, string $fromKey, string $toKey): void
 {
-    $effective = $pdo->prepare(
-        'SELECT COALESCE(wo.group_name, dt.group_name) AS group_name,
-                COALESCE(wo.notes, dt.notes) AS notes
-         FROM day_templates dt
-         LEFT JOIN week_day_overrides wo ON wo.week_id = :w AND wo.day_key = dt.day_key
-         WHERE dt.day_key = :from_day'
-    );
-    $effective->execute(['w' => $weekId, 'from_day' => $fromKey]);
+    // Mismo orden de prioridad que fetch_week_detail(): override > grupo
+    // congelado de la semana (week_day_groups) > split vigente.
+    if (split_schema_ready($pdo)) {
+        $effective = $pdo->prepare(
+            'SELECT COALESCE(wo.group_name, wg.group_name, dt.group_name) AS group_name,
+                    CASE WHEN wo.week_id IS NOT NULL THEN COALESCE(wo.notes, dt.notes)
+                         WHEN wg.week_id IS NOT NULL THEN wg.notes
+                         ELSE dt.notes END AS notes,
+                    CASE WHEN wo.week_id IS NOT NULL THEN wo.template_key
+                         WHEN wg.week_id IS NOT NULL THEN wg.template_key
+                         ELSE dt.template_key END AS template_key
+             FROM day_templates dt
+             LEFT JOIN week_day_overrides wo ON wo.week_id = :w AND wo.day_key = dt.day_key
+             LEFT JOIN week_day_groups wg ON wg.week_id = :w2 AND wg.day_key = dt.day_key
+             WHERE dt.day_key = :from_day'
+        );
+        $effective->execute(['w' => $weekId, 'w2' => $weekId, 'from_day' => $fromKey]);
+    } else {
+        $effective = $pdo->prepare(
+            'SELECT COALESCE(wo.group_name, dt.group_name) AS group_name,
+                    COALESCE(wo.notes, dt.notes) AS notes
+             FROM day_templates dt
+             LEFT JOIN week_day_overrides wo ON wo.week_id = :w AND wo.day_key = dt.day_key
+             WHERE dt.day_key = :from_day'
+        );
+        $effective->execute(['w' => $weekId, 'from_day' => $fromKey]);
+    }
     $source = $effective->fetch();
 
-    $upsert = $pdo->prepare(
-        'INSERT INTO week_day_overrides (week_id, day_key, group_name, notes, migrated_from)
-         VALUES (:w, :to_day, :group_name, :notes, :from_day)
-         ON DUPLICATE KEY UPDATE group_name = VALUES(group_name), notes = VALUES(notes), migrated_from = VALUES(migrated_from)'
-    );
-    $upsert->execute([
-        'w'          => $weekId,
-        'to_day'     => $toKey,
-        'group_name' => $source['group_name'],
-        'notes'      => $source['notes'],
-        'from_day'   => $fromKey,
-    ]);
+    if (split_schema_ready($pdo)) {
+        $upsert = $pdo->prepare(
+            'INSERT INTO week_day_overrides (week_id, day_key, group_name, notes, template_key, migrated_from)
+             VALUES (:w, :to_day, :group_name, :notes, :template_key, :from_day)
+             ON DUPLICATE KEY UPDATE group_name = VALUES(group_name), notes = VALUES(notes),
+                                     template_key = VALUES(template_key), migrated_from = VALUES(migrated_from)'
+        );
+        $upsert->execute([
+            'w'            => $weekId,
+            'to_day'       => $toKey,
+            'group_name'   => $source['group_name'],
+            'notes'        => $source['notes'],
+            'template_key' => $source['template_key'],
+            'from_day'     => $fromKey,
+        ]);
+    } else {
+        $upsert = $pdo->prepare(
+            'INSERT INTO week_day_overrides (week_id, day_key, group_name, notes, migrated_from)
+             VALUES (:w, :to_day, :group_name, :notes, :from_day)
+             ON DUPLICATE KEY UPDATE group_name = VALUES(group_name), notes = VALUES(notes), migrated_from = VALUES(migrated_from)'
+        );
+        $upsert->execute([
+            'w'          => $weekId,
+            'to_day'     => $toKey,
+            'group_name' => $source['group_name'],
+            'notes'      => $source['notes'],
+            'from_day'   => $fromKey,
+        ]);
+    }
 
     $pdo->prepare('DELETE FROM week_day_overrides WHERE week_id = :w AND day_key = :from_day')
         ->execute(['w' => $weekId, 'from_day' => $fromKey]);
