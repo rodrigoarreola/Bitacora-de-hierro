@@ -27,6 +27,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0018](0018-splits-y-guia-del-dia.md) | Splits elegibles y Guía del día | Aceptada |
 | [0019](0019-nombres-estandar-de-ejercicios.md) | Nombres estándar de ejercicios, con el original guardado | Aceptada |
 | [0020](0020-ajustes-en-pestanas.md) | Ajustes en 3 pestañas con enlace propio | Aceptada |
+| [0021](0021-catalogo-de-ejercicios-fase-1.md) | Catálogo de ejercicios y ejercicios del usuario (Fase 1) | Propuesta |
 
 ## Formato
 
