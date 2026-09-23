@@ -18,7 +18,7 @@ Sin un hash válido se abre `#/hoy`.
 | Progreso | barra inferior | `#/progreso` |
 | Calendario | barra inferior | `#/calendario` |
 | Perfil | logo (header, izquierda) | `#/perfil` |
-| Ajustes | ícono de engranaje (header, derecha) | `#/ajustes` |
+| Ajustes | ícono de engranaje (header, derecha) | `#/ajustes/split` · `/reglas` · `/ejercicios` (ADR 0020) |
 
 Atajos entre vistas: una tarjeta de Historial o un día de Calendario/Heatmap
 abren **Semana → Hoy** en esa semana y día; "Ver progreso" en un ejercicio abre
@@ -35,7 +35,7 @@ abren **Semana → Hoy** en esa semana y día; "Ver progreso" en un ejercicio ab
 | Progreso | Dashboard / detalle (3 pestañas: Ejercicios, Constancia, Horarios) | `#/progreso` | semanas en memoria + Chart.js (CDN, en caché del SW) | V ✓ · C ✓ · E ✓ · O ✓ |
 | Calendario | Dashboard | `#/calendario` | semanas en memoria | V ~ · C ✓ · E n/a · O ✓ |
 | Perfil | Datos / cuenta | `#/perfil` | semanas en memoria, `api/backups.php`, `api/import.php` | V ✓ · C ✓ · E ✓ · O ~ |
-| Ajustes | Ajustes | `#/ajustes` | `api/split.php`, `api/settings.php`, `api/library.php`, `data/exercises-dataset.json` | V ~ · C ✓ · E ~ · O ✗ |
+| Ajustes | Ajustes (3 pestañas) | `#/ajustes/<pestaña>` | `api/split.php`, `api/settings.php`, `api/library.php`, `data/exercises-dataset.json` | V ~ · C ✓ · E ~ · O ✗ |
 | Info de ejercicio | Detalle (bottom sheet) | `#exercise-info-overlay` (sin ruta) | `data/exercises-dataset.json`, `api/exercise_media.php` | V ✓ · C ✓ · E ✓ · O ✗ |
 | Confirmación / texto | Diálogo (bottom sheet) | `#confirm-overlay` (sin ruta) | — | n/a |
 

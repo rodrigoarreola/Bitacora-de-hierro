@@ -1,4 +1,5 @@
-/* Vista Ajustes (#/ajustes): split, reglas, fuente de nombres y librería de ejercicios.
+/* Vista Ajustes (#/ajustes/split|reglas|ejercicios): 3 pestañas (.seg-tabs) — Split; Reglas;
+   Ejercicios (fuente de nombres + librería).
    Se carga después de tokens.css, components.css y base.css. */
 
 /* ---------- Reglas (Ajustes) ---------- */
@@ -92,3 +93,13 @@
 .split-preview-muscle{ display:flex; flex-direction:column; gap:1px; flex:0 0 auto; min-width:104px; font-size:var(--fs-md); color:var(--text); font-weight:600; }
 .split-preview-meta{ font-size:var(--fs-xs); color:var(--text-faint); font-family:var(--font-mono); font-weight:400; }
 .split-preview-ex{ flex:1; min-width:0; text-align:right; font-size:var(--fs-sm); color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ---------- Pestañas de Ajustes (ADR 0020) ---------- */
+/* Punto de "cambios sin guardar" en la pestaña y en su botón Guardar. */
+#ajustes-tabs .seg-tab.dirty::after{
+  content:''; display:inline-block; width:6px; height:6px; border-radius:var(--r-full);
+  background:var(--pending); margin-left:var(--sp-1-5); vertical-align:middle;
+}
+#ajustes-tabs .seg-tab.dirty.active::after{ background:var(--accent-ink); }
+.btn.is-dirty::after{ content:'•'; margin-left:var(--sp-1-5); color:var(--pending); font-size:var(--fs-xl); line-height:0; }
+#view-ajustes [role="tabpanel"] > .lib-panel:first-child{ margin-top:0; }

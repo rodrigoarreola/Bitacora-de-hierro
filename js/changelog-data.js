@@ -2,6 +2,17 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.66.0",
+        "date": "2026-09-23",
+        "title": "Ajustes ahora tiene 3 pestañas: Split, Reglas y Ejercicios",
+        "items": [
+            "Ajustes se divide en Split, Reglas y Ejercicios (fuente de nombres + librería), en vez de una sola columna larga.",
+            "Cada pestaña tiene su propio enlace, el botón atrás recorre las pestañas y el engranaje abre la última que usaste.",
+            "Si cambias el split o una regla sin guardar, su pestaña y su botón Guardar muestran un punto, y el cambio no se pierde al moverte entre pestañas.",
+            "La Guía del día tiene un enlace \"Cambiar split\" que te lleva directo a esa pestaña."
+        ]
+    },
+    {
         "version": "1.65.0",
         "date": "2026-09-23",
         "title": "tus ejercicios tienen nombre estándar, y su historial ya no está partido",

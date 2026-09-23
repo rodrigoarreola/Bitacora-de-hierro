@@ -2,6 +2,28 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.66.0] - 2026-09-23 — Ajustes en pestañas
+
+### En la app: Ajustes ahora tiene 3 pestañas: Split, Reglas y Ejercicios
+
+- Ajustes se divide en Split, Reglas y Ejercicios (fuente de nombres + librería), en vez de una sola columna larga.
+- Cada pestaña tiene su propio enlace, el botón atrás recorre las pestañas y el engranaje abre la última que usaste.
+- Si cambias el split o una regla sin guardar, su pestaña y su botón Guardar muestran un punto, y el cambio no se pierde al moverte entre pestañas.
+- La Guía del día tiene un enlace "Cambiar split" que te lleva directo a esa pestaña.
+
+### Changed
+
+- **`index.html`**: `#view-ajustes` con `.seg-tabs` (`#ajustes-tabs`) y tres `tabpanel` (`#ajustes-tab-split`, `-reglas`, `-ejercicios`).
+- **`js/app.js`**: `AJUSTES_TABS`, `ajustesTabFromHash()`, `setAjustesTab()` (con `pushState` al tocar una pestaña) y `renderAjustesTabs()`; `showView()` resuelve la pestaña del hash o la última usada (`localStorage` `bitacora.ajustesTab`) y recarga el split solo al entrar desde otra pantalla y sin borrador pendiente; `switchToView('ajustes')` escribe `#/ajustes/<pestaña>`. Nuevas `splitIsDirty()`, `rulesIsDirty()` y `updateAjustesDirty()`. La vista previa del split abre solo el primer día la primera vez.
+- **`css/views/ajustes.css`**: punto de cambios pendientes (`.seg-tab.dirty`, `.btn.is-dirty`); **`css/views/hoy.css`**: `.guide-link`.
+- **ADR 0020**.
+
+### Verificado (local)
+
+- Engranaje → `#/ajustes/split`; tocar Reglas → `#/ajustes/reglas`; atrás vuelve a Split; recargar en `#/ajustes/reglas` abre Reglas.
+- Cambiar el preset sin guardar marca el punto y se conserva al ir a Ejercicios, volver con atrás, e incluso al salir a Semana y regresar.
+- Editar una regla marca el punto; devolverla a su valor lo quita.
+
 ## [1.65.0] - 2026-09-23 — Nombres estándar de ejercicios
 
 ### En la app: tus ejercicios tienen nombre estándar, y su historial ya no está partido

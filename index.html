@@ -263,69 +263,81 @@
 
   <!-- ================= VIEW: AJUSTES → Librería de ejercicios ================= -->
   <div class="view" id="view-ajustes">
-    <div class="card lib-panel split-panel">
-      <div class="lib-head">
-        <div class="lib-title">Split</div>
-        <p class="lib-sub">Cómo repartes los grupos musculares en la semana. Cada día trae una Guía con los ejercicios que le tocan y series × reps de referencia.</p>
-      </div>
-      <div id="split-host"><p class="split-msg">Cargando…</p></div>
+    <div class="seg-tabs" id="ajustes-tabs" role="tablist">
+      <button type="button" class="seg-tab active" role="tab" aria-selected="true" aria-controls="ajustes-tab-split" data-ajustes-tab="split">Split</button>
+      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="ajustes-tab-reglas" data-ajustes-tab="reglas">Reglas</button>
+      <button type="button" class="seg-tab" role="tab" aria-selected="false" aria-controls="ajustes-tab-ejercicios" data-ajustes-tab="ejercicios">Ejercicios</button>
     </div>
 
-    <div class="card lib-panel rules-panel">
-      <div class="lib-head">
-        <div class="lib-title">Reglas</div>
-        <p class="lib-sub">Controlan cómo se calculan la racha, qué cuenta como día cumplido y los períodos de Hitos. Los cambios aplican de inmediato a toda la app.</p>
-      </div>
-      <div class="rules-list" id="rules-list">
-        <label class="rule-row">
-          <span class="rule-label">Ejercicios mínimos por día para considerarlo cumplido</span>
-          <input type="number" class="rule-input" id="rule-min_done_per_day" min="1" max="15" step="1">
-        </label>
-        <label class="rule-row">
-          <span class="rule-label">Días de la semana mínimos para no romper la racha</span>
-          <input type="number" class="rule-input" id="rule-week_streak_min_days" min="1" max="6" step="1">
-        </label>
-        <label class="rule-row">
-          <span class="rule-label">Días/semana mínimos para contar como semana fuerte en Hitos</span>
-          <input type="number" class="rule-input" id="rule-milestone_strong_min" min="1" max="6" step="1">
-        </label>
-        <label class="rule-row">
-          <span class="rule-label">Semanas seguidas mínimas para mostrar un período en Hitos</span>
-          <input type="number" class="rule-input" id="rule-milestone_min_run_weeks" min="1" max="10" step="1">
-        </label>
-      </div>
-      <button type="button" class="btn btn--block perfil-btn rules-save-btn" id="rules-save-btn"><i class="icon fa-solid fa-floppy-disk"></i>Guardar reglas</button>
-    </div>
-
-    <div class="card lib-panel">
-      <div class="lib-head">
-        <div class="lib-title">Fuente de nombres de ejercicios</div>
-        <p class="lib-sub">Qué lista se usa para autocompletar al agregar un ejercicio. El ícono <i class="icon fa-solid fa-eye"></i> con GIF y datos del ejercicio aparece igual con cualquiera de las dos, si hay coincidencia.</p>
-      </div>
-      <div class="source-options" id="exercise-source-options">
-        <label class="source-option">
-          <input type="radio" name="exercise-source" value="custom" id="exercise-source-custom">
-          <span class="source-option-label">Personalizada (la mía)</span>
-        </label>
-        <label class="source-option">
-          <input type="radio" name="exercise-source" value="dataset" id="exercise-source-dataset">
-          <span class="source-option-label">Dataset (1.324 ejercicios, con GIF)</span>
-        </label>
+    <div id="ajustes-tab-split" role="tabpanel">
+      <div class="card lib-panel split-panel">
+        <div class="lib-head">
+          <div class="lib-title">Split</div>
+          <p class="lib-sub">Cómo repartes los grupos musculares en la semana. Cada día trae una Guía con los ejercicios que le tocan y series × reps de referencia.</p>
+        </div>
+        <div id="split-host"><p class="split-msg">Cargando…</p></div>
       </div>
     </div>
 
-    <div class="card lib-panel">
-      <div class="lib-head">
-        <div class="lib-title">Librería de ejercicios</div>
-        <p class="lib-sub">Se usa para autocompletar al agregar ejercicios en cualquier día. Escribe uno nuevo en un día y se guarda aquí solo.</p>
+    <div id="ajustes-tab-reglas" role="tabpanel" class="hidden">
+      <div class="card lib-panel rules-panel">
+        <div class="lib-head">
+          <div class="lib-title">Reglas</div>
+          <p class="lib-sub">Controlan cómo se calculan la racha, qué cuenta como día cumplido y los períodos de Hitos. Los cambios aplican de inmediato a toda la app.</p>
+        </div>
+        <div class="rules-list" id="rules-list">
+          <label class="rule-row">
+            <span class="rule-label">Ejercicios mínimos por día para considerarlo cumplido</span>
+            <input type="number" class="rule-input" id="rule-min_done_per_day" min="1" max="15" step="1">
+          </label>
+          <label class="rule-row">
+            <span class="rule-label">Días de la semana mínimos para no romper la racha</span>
+            <input type="number" class="rule-input" id="rule-week_streak_min_days" min="1" max="6" step="1">
+          </label>
+          <label class="rule-row">
+            <span class="rule-label">Días/semana mínimos para contar como semana fuerte en Hitos</span>
+            <input type="number" class="rule-input" id="rule-milestone_strong_min" min="1" max="6" step="1">
+          </label>
+          <label class="rule-row">
+            <span class="rule-label">Semanas seguidas mínimas para mostrar un período en Hitos</span>
+            <input type="number" class="rule-input" id="rule-milestone_min_run_weeks" min="1" max="10" step="1">
+          </label>
+        </div>
+        <button type="button" class="btn btn--block perfil-btn rules-save-btn" id="rules-save-btn"><i class="icon fa-solid fa-floppy-disk"></i>Guardar reglas</button>
       </div>
-      <div class="lib-add">
-        <input type="text" id="lib-new-input" placeholder="Agregar ejercicio…">
-        <button type="button" class="btn btn--primary" id="lib-add-btn" aria-label="Agregar a la librería"><i class="icon fa-solid fa-plus"></i></button>
+    </div>
+
+    <div id="ajustes-tab-ejercicios" role="tabpanel" class="hidden">
+      <div class="card lib-panel">
+        <div class="lib-head">
+          <div class="lib-title">Fuente de nombres de ejercicios</div>
+          <p class="lib-sub">Qué lista se usa para autocompletar al agregar un ejercicio. El ícono <i class="icon fa-solid fa-eye"></i> con GIF y datos del ejercicio aparece igual con cualquiera de las dos, si hay coincidencia.</p>
+        </div>
+        <div class="source-options" id="exercise-source-options">
+          <label class="source-option">
+            <input type="radio" name="exercise-source" value="custom" id="exercise-source-custom">
+            <span class="source-option-label">Personalizada (la mía)</span>
+          </label>
+          <label class="source-option">
+            <input type="radio" name="exercise-source" value="dataset" id="exercise-source-dataset">
+            <span class="source-option-label">Dataset (1.324 ejercicios, con GIF)</span>
+          </label>
+        </div>
       </div>
-      <input type="text" id="lib-search" class="lib-search" placeholder="Buscar en la librería…">
-      <div class="lib-count" id="lib-count"></div>
-      <div class="lib-list" id="lib-list"></div>
+
+      <div class="card lib-panel">
+        <div class="lib-head">
+          <div class="lib-title">Librería de ejercicios</div>
+          <p class="lib-sub">Se usa para autocompletar al agregar ejercicios en cualquier día. Escribe uno nuevo en un día y se guarda aquí solo.</p>
+        </div>
+        <div class="lib-add">
+          <input type="text" id="lib-new-input" placeholder="Agregar ejercicio…">
+          <button type="button" class="btn btn--primary" id="lib-add-btn" aria-label="Agregar a la librería"><i class="icon fa-solid fa-plus"></i></button>
+        </div>
+        <input type="text" id="lib-search" class="lib-search" placeholder="Buscar en la librería…">
+        <div class="lib-count" id="lib-count"></div>
+        <div class="lib-list" id="lib-list"></div>
+      </div>
     </div>
   </div>
 

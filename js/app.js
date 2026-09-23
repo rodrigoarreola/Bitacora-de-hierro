@@ -382,6 +382,7 @@
       const input = document.getElementById(`rule-${key}`);
       if(input) input.value = RULES[key];
     });
+    updateAjustesDirty();
   }
 
   async function saveRules(){
@@ -452,7 +453,39 @@
     }
     splitDraft = {};
     DAY_ORDER.forEach(dk=>{ splitDraft[dk] = { group_name: splitSaved[dk].group_name, template_key: splitSaved[dk].template_key || null }; });
+    // La primera vez, la vista previa abre solo el primer día con guía: así
+    // los presets y el botón Guardar se ven sin hacer scroll.
+    if(!splitPreviewInitialized){
+      splitPreviewInitialized = true;
+      const first = DAY_ORDER.find(dk => splitDraft[dk].template_key);
+      if(first) splitPreviewOpen.add(first);
+    }
     renderSplitPanel();
+  }
+
+  // Cambios sin guardar (Split y Reglas): un punto en la pestaña y en su
+  // botón Guardar, para que no se pierdan al cambiar de pestaña.
+  function splitIsDirty(){
+    if(!splitSaved || !splitDraft) return false;
+    return DAY_ORDER.some(dk =>
+      splitDraft[dk].group_name.trim() !== splitSaved[dk].group_name ||
+      (splitDraft[dk].template_key || null) !== (splitSaved[dk].template_key || null));
+  }
+
+  function rulesIsDirty(){
+    return Object.keys(RULES).some(key=>{
+      const input = document.getElementById(`rule-${key}`);
+      return input && input.value !== '' && parseInt(input.value, 10) !== RULES[key];
+    });
+  }
+
+  function updateAjustesDirty(){
+    const split = splitIsDirty();
+    const rules = rulesIsDirty();
+    document.querySelector('[data-ajustes-tab="split"]')?.classList.toggle('dirty', split);
+    document.querySelector('[data-ajustes-tab="reglas"]')?.classList.toggle('dirty', rules);
+    document.getElementById('split-save-btn')?.classList.toggle('is-dirty', split);
+    document.getElementById('rules-save-btn')?.classList.toggle('is-dirty', rules);
   }
 
   // Vista previa: qué ejercicios trae cada día del split que estás viendo
@@ -461,6 +494,7 @@
   // propondrá "Llenar con la guía". Qué días están abiertos se recuerda
   // entre re-renders del panel.
   const splitPreviewOpen = new Set();
+  let splitPreviewInitialized = false;
 
   function splitPreviewHtml(){
     const days = DAY_ORDER.filter(dk => DAY_PLANS[splitDraft[dk].template_key]);
@@ -536,6 +570,7 @@
         </label>` : ''}
       <p class="split-msg">Las semanas pasadas conservan sus nombres. El split aplica a las semanas que crees de aquí en adelante.</p>
       <button type="button" class="btn btn--block perfil-btn rules-save-btn" id="split-save-btn"><i class="icon fa-solid fa-floppy-disk"></i>Guardar split</button>`;
+    updateAjustesDirty();
   }
 
   async function saveSplit(){
@@ -555,6 +590,7 @@
     try{
       const res = await Api.put('api/split.php', applyTo ? { days, apply_to_week: applyTo } : { days });
       splitSaved = res.days;
+      updateAjustesDirty();
       if(applyTo){
         const detail = await Api.get(`api/weeks.php?date=${encodeURIComponent(applyTo)}`);
         applyWeekDetail(applyTo, detail);
@@ -1539,7 +1575,7 @@
           <i class="icon fa-solid fa-chevron-down guide-chevron"></i>
         </summary>
         <div class="guide-rows">${rows}</div>
-        <p class="guide-foot">Series × reps son solo referencia. Toca un ejercicio sugerido para agregarlo.</p>
+        <p class="guide-foot">Series × reps son solo referencia. Toca un ejercicio sugerido para agregarlo. <a href="#/ajustes/split" class="guide-link">Cambiar split</a></p>
       </details>`;
   }
 
@@ -2397,6 +2433,9 @@
   // ============================================================
   document.getElementById('rules-save-btn').addEventListener('click', saveRules);
 
+  // Reglas: marcar cambios sin guardar mientras se escribe
+  document.getElementById('rules-list').addEventListener('input', updateAjustesDirty);
+
   // Split: eventos de la vista Ajustes (delegados — el panel se re-renderiza)
   const splitHost = document.getElementById('split-host');
   splitHost.addEventListener('change', (e)=>{
@@ -2413,6 +2452,7 @@
       const radio = splitHost.querySelector(`input[name="split-choice"][value="${matchSplitPreset(splitDraft)}"]`);
       if(radio) radio.checked = true;
       renderSplitPreview();
+      updateAjustesDirty();
     }
   });
   // "toggle" no burbujea — en captura, para recordar qué días de la vista previa están abiertos.
@@ -2427,6 +2467,7 @@
     const radio = splitHost.querySelector(`input[name="split-choice"][value="${matchSplitPreset(splitDraft)}"]`);
     if(radio) radio.checked = true;
     renderSplitPreview();
+    updateAjustesDirty();
   });
   splitHost.addEventListener('click', (e)=>{
     if(e.target.closest('#split-save-btn')) saveSplit();
@@ -2509,6 +2550,57 @@
     return m && VIEWS.includes(m[1]) ? m[1] : null;
   }
 
+  // Ajustes tiene 3 pestañas con enlace propio (#/ajustes/split,
+  // #/ajustes/reglas, #/ajustes/ejercicios). Sin pestaña en el hash
+  // (#/ajustes a secas, el engranaje del header) abre la última usada,
+  // recordada en localStorage. Ver ADR 0020.
+  const AJUSTES_TABS = ['split', 'reglas', 'ejercicios'];
+  let ajustesTab = 'split';
+  try{
+    const saved = localStorage.getItem('bitacora.ajustesTab');
+    if(AJUSTES_TABS.includes(saved)) ajustesTab = saved;
+  }catch(err){}
+
+  function ajustesTabFromHash(){
+    const m = /^#\/ajustes\/([a-z]+)/.exec(location.hash);
+    return m && AJUSTES_TABS.includes(m[1]) ? m[1] : null;
+  }
+
+  function renderAjustesTabs(){
+    document.querySelectorAll('#ajustes-tabs .seg-tab').forEach(b=>{
+      const on = b.dataset.ajustesTab === ajustesTab;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    AJUSTES_TABS.forEach(t=>{
+      document.getElementById('ajustes-tab-' + t).classList.toggle('hidden', t !== ajustesTab);
+    });
+  }
+
+  // push: registra la pestaña en el historial (clic en la pestaña), para
+  // que el botón atrás vuelva a la anterior. Desde el hash (atrás/adelante,
+  // enlace directo) no se registra de nuevo.
+  function setAjustesTab(tab, { push = false } = {}){
+    if(!AJUSTES_TABS.includes(tab)) return;
+    ajustesTab = tab;
+    try{ localStorage.setItem('bitacora.ajustesTab', tab); }catch(err){}
+    renderAjustesTabs();
+    if(!push) return;
+    const target = '#/ajustes/' + tab;
+    if(location.hash === target) return;
+    try{ history.pushState(null, '', target); }
+    catch(err){ location.hash = target; }
+  }
+
+  let currentView = null;
+
+  // Pestañas de Ajustes
+  document.getElementById('ajustes-tabs').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-ajustes-tab]');
+    if(btn) setAjustesTab(btn.dataset.ajustesTab, { push: true });
+  });
+  renderAjustesTabs();
+
   function showView(name){
     document.querySelectorAll('[data-view]').forEach(b=>{
       const on = b.dataset.view === name;
@@ -2517,13 +2609,20 @@
     });
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.getElementById('view-' + name).classList.add('active');
+    const entering = currentView !== name;
+    currentView = name;
     if(name === 'perfil') loadBackupsList(); // la lista de backups se pide de nuevo cada vez que se abre Perfil
-    if(name === 'ajustes') loadSplitPanel(); // igual: el split se lee fresco cada vez que se abre Ajustes
+    if(name === 'ajustes'){
+      setAjustesTab(ajustesTabFromHash() || ajustesTab);
+      // El split se lee fresco al entrar a Ajustes desde otra pantalla —
+      // no al cambiar de pestaña, y nunca encima de cambios sin guardar.
+      if(entering && !splitIsDirty()) loadSplitPanel();
+    }
   }
 
   function switchToView(name){
     showView(name);
-    const target = '#/' + name;
+    const target = name === 'ajustes' ? '#/ajustes/' + ajustesTab : '#/' + name;
     if(location.hash === target) return;
     try{ history.pushState(null, '', target); }
     catch(err){ location.hash = target; } // sin History API: hashchange vuelve a llamar a showView(), es idempotente

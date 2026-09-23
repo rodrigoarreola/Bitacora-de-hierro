@@ -232,6 +232,8 @@
 .guide-add .icon{ font-size:var(--fs-xs); flex-shrink:0; }
 .guide-add:hover{ border-color:var(--accent-dim); background:var(--accent-faint); }
 .guide-foot{ margin:0; padding:var(--sp-2) var(--sp-3-5) var(--sp-3); font-size:var(--fs-xs); color:var(--text-faint); border-top:1px dashed var(--line); }
+.guide-link{ color:var(--accent); font-weight:600; text-decoration:none; white-space:nowrap; }
+.guide-link:hover{ text-decoration:underline; }
 
 .migrate-row{ padding:var(--sp-2-5) var(--sp-4-5); border-top:1px solid var(--line); }
 .migrate-row.open{ display:flex; gap:var(--sp-2); align-items:center; }
