@@ -24,7 +24,7 @@ const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
  */
 
 if (!split_schema_ready($pdo)) {
-    respond_error('Falta correr la migración de splits en la base de datos (ver README).', 409);
+    respond_error('Falta correr la migración de splits en la base de datos (ver instrucciones de despliegue).', 409);
 }
 
 function read_split(PDO $pdo): array

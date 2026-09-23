@@ -48,4 +48,4 @@ para cada uno.
 - "Hip thrust en maquina" quedó sin equivalente (el dataset no tiene la
   máquina): no tiene imagen ni cuenta en la Guía del día. Pendiente,
   si se pide: ejercicios propios en el catálogo.
-- En producción: backup, luego el SQL de la migración (ver README).
+- En producción: backup, luego el SQL de la migración (ver DEPLOY.local.md).

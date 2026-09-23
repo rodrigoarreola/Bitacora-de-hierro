@@ -6,8 +6,8 @@ require __DIR__ . '/auth.php';
 
 // Bloqueo por intentos fallidos. Sin tracking de IP a propósito — hay una
 // sola cuenta posible de todos modos, así que un contador por cuenta ya
-// cubre el riesgo real (la app está expuesta públicamente en
-// tu-dominio.com/bitacora, sin este límite antes).
+// cubre el riesgo real (la app está expuesta públicamente en internet,
+// sin este límite antes).
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MINUTES = 15;
 

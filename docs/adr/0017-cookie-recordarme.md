@@ -59,7 +59,7 @@ Segunda cookie, `remember_token`, con un token propio (no relacionado con
 - **Esquema**: `users.remember_token_hash VARCHAR(64) NULL` +
   `remember_token_expires DATETIME NULL`, agregadas a `api/db/schema.sql`
   (para instalaciones nuevas) y como bloque idempotente en el
-  "Pendiente de correr en producción" del README (para la base ya viva).
+  "Pendiente de correr en producción" de DEPLOY.local.md (para la base ya viva).
 - **Las tres piezas nuevas de SQL** (en `login.php`, `logout.php` y el
   respaldo de `config.php`) van envueltas en `try { } catch (PDOException)`,
   sin re-lanzar. El código de este cambio y el `ALTER TABLE` en producción

@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Backup automático: vuelca todas las semanas a un JSON con el mismo
  * formato que exporta el frontend (Perfil > Exportar datos), en
  * api/db/backups/. Pensado para correr semanalmente vía cron (cPanel >
- * Cron Jobs no necesita acceso SSH, ver README). Guarda solo los
+ * Cron Jobs no necesita acceso SSH, ver DEPLOY.local.md). Guarda solo los
  * últimos BACKUP_RETENTION archivos y borra el resto.
  *
  * Uso: php backup_export.php

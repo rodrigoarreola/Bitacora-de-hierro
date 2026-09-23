@@ -9,11 +9,11 @@ Un solo usuario. Sin frameworks de frontend. Pensada para desplegarse como archi
 - **Frontend**: HTML/CSS/JS vanilla, sin framework — dependencias externas solo vía CDN, que el service worker guarda en un caché propio para que la app abra completa sin conexión (Google Fonts, Font Awesome, [Chart.js](https://www.chartjs.org/) 4.4.0 para la gráfica de Progreso, [html2canvas](https://html2canvas.hertzen.com/) 1.4.1 para "Compartir"). Edición offline vía IndexedDB (`js/offline-queue.js`), sin librería externa.
 - **Backend**: PHP + MySQL (PDO, sin framework).
 - **Auth**: login usuario/contraseña con sesión PHP — sin API keys expuestas ni OAuth.
-- **Hosting**: Hostgator, subcarpeta del dominio principal — `tu-dominio.com/bitacora`.
+- **Hosting**: hosting compartido con PHP y MySQL, en una subcarpeta del dominio.
 
 ## Estado actual
 
-**En producción**: `https://tu-dominio.com/bitacora/`.
+**En producción** (los detalles de despliegue viven en `DEPLOY.local.md`, no versionado).
 
 El frontend (`index.html` + `css/` + `js/app.js` + `js/api.js`) está **conectado a la API real**: requiere sesión (pantalla de login, persistente 30 días) y todo lo que se ve — semanas, ejercicios, librería — se lee y se escribe contra MySQL a través de `api/`. Ya no hay datos de ejemplo en memoria.
 
@@ -81,7 +81,7 @@ Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único us
 1. Crear la base de datos en cPanel (MySQL Databases) y un usuario con permisos sobre ella.
 2. Importar `api/db/schema.sql` (phpMyAdmin, o `mysql -u user -p nombre_bd < api/db/schema.sql`). **En Windows/PowerShell no uses `Get-Content -Raw | mysql`** — PowerShell 5.1 lee el archivo con la codepage del sistema en vez de UTF-8 y corrompe los acentos (`Tríceps` → `Tr??ceps`); si necesitas hacerlo desde PowerShell, usa `Get-Content -Raw -Encoding UTF8 | mysql ...` o mejor `cmd /c "mysql -u user -p nombre_bd < api/db/schema.sql"`.
 3. Copiar `api/config.local.php.example` a `api/config.local.php` y completar host/nombre/usuario/contraseña de la BD. Este archivo está en `.gitignore`, nunca se sube a git.
-4. Crear el usuario de la app por SSH/Terminal/Cron: `php api/db/create_user.php <usuario> <contraseña>`. **Sin acceso a shell** (caso típico en Hostgator sin plan con SSH): genera el hash localmente con `php -r "echo password_hash('tu-contraseña', PASSWORD_DEFAULT), PHP_EOL;"` y pégalo directo por phpMyAdmin → SQL: `INSERT INTO users (username, password_hash) VALUES ('usuario', 'el-hash-generado');`. El hash es portable entre máquinas/PHP, no hay problema de compatibilidad.
+4. Crear el usuario de la app por SSH/Terminal/Cron: `php api/db/create_user.php <usuario> <contraseña>`. **Sin acceso a shell** (caso típico en hosting compartido sin SSH): genera el hash localmente con `php -r "echo password_hash('tu-contraseña', PASSWORD_DEFAULT), PHP_EOL;"` y pégalo directo por phpMyAdmin → SQL: `INSERT INTO users (username, password_hash) VALUES ('usuario', 'el-hash-generado');`. El hash es portable entre máquinas/PHP, no hay problema de compatibilidad.
 
 ### Funcionalidad implementada
 
@@ -110,7 +110,7 @@ Ocho tablas (`api/db/schema.sql`): `users` (una fila, credenciales del único us
 - **Calendario**: vista de mes (lunes a domingo), navegable con flechas o swipe, por defecto en el mes actual (botón "Volver a hoy" cuando te alejás). Cada día lun–vie que pertenece a una semana ya creada pinta una línea de color según ejercicios marcados ese día: rojo (0), amarillo (1–5), verde (6+). Sábado se colorea igual, pero solo si tiene algún ejercicio esa semana (un sábado libre no es un día "fallado", así que se deja sin línea en vez de rojo). Domingo nunca lleva línea — el gimnasio no abre. Días futuros tampoco (no cuentan como "fallados" antes de pasar). Tocar un día que pertenece a una semana ya creada navega a Semana → Hoy con ese día exacto seleccionado, para verlo o editarlo — días sin semana no hacen nada. Debajo, una card de **heatmap anual**: riel de años como filtro (derivado de las semanas reales que hay en `state.order`, ya no una lista fija — el histórico 2022–2025 importado de Garmin aparece solo si hay datos ese año) y un grid vertical de 7 columnas (Lun–Dom) × 52/53 filas, una fila por semana, con cuadros verdes en los días cumplidos (mismo criterio que la racha) — sin niveles rojo/amarillo todavía.
 - **Progreso** tiene 3 pestañas (`.seg-tabs`, ver ADR 0011): **Ejercicios** (buscador + gráfica/dashboard, como antes), **Constancia** y **Horarios** — las dos últimas eran parte de Perfil hasta la 1.56.0. **Constancia**: estadísticas calculadas del lado del cliente desde `state.weeks` (mismo criterio de "día cumplido" que la racha, y con `fullWeekRange()` tratando cualquier semana sin fila en la base como una semana de 0 días, para que meses enteros sin registrar no queden invisibles): hasta 3 tramos de mayor constancia (semanas consecutivas seguidas, sin huecos, con ícono de trofeo dorado / medalla plata / medalla bronce según el lugar; formato de fecha en dos líneas — "Marzo a Junio 2026" arriba, "Lunes 23 al Viernes 05" abajo) y hasta 3 de menor constancia (medidos en días reales entre un entrenamiento y el siguiente, no en semanas — mismo cálculo que "Hueco más largo sin entrenar" quedándose con los 3 huecos más grandes), más una lista de hitos (primer entrenamiento, mejor racha con fechas y año, mes con más entrenamientos, hueco más largo sin entrenar con fechas y año, año más productivo). Incluye histórico 2022–2025 importado desde Garmin Connect como relleno de bajo esfuerzo (filas sintéticas `Garmin: <CATEGORÍA>`, sin peso ni detalle por ejercicio, grupo "Entrenamiento funcional") — ver el CHANGELOG para el detalle de cómo se generó. **Horarios**: filtro por año (solo los años con alguna sesión con horario registrado) y por mes (Ene–Dic, combinable con el de año), chips de tiempo total/promedio/sesión más larga/hora más frecuente, gráfica de duración por sesión (puntos visibles solo con año y mes filtrados a la vez) y barras de distribución por hora de inicio. Cambiar de pestaña vuelve a dibujar la gráfica de Horarios (Chart.js mide el canvas al crearlo, y un contenedor oculto mide 0×0).
 - **Perfil** queda con: **Tus datos** (exportar/importar; el nombre del archivo exportado incluye hora además de fecha), **Backups automáticos**, **Cerrar sesión** y **Changelog** — colapsado por defecto (solo "Changelog / Versión actual: X.X.X" + chevron); al abrirlo, versión actual + historial de versiones como acordeones (`<details>`/`<summary>` nativos, sin JS de toggle), resumen de cara al usuario del `CHANGELOG.md` técnico (`js/changelog-data.js`, generado — ver ADR 0006).
-- **Sesión persistente**: cookie de sesión de PHP de 30 días, más una segunda cookie "recordarme" (token propio, hash guardado en `users`) que la reestablece sola si el archivo de sesión desaparece antes de tiempo — el GC de sesiones de muchos hostings comparte-plan (Hostgator incluido) lo borra según su propio `php.ini`, sin importar lo que la app pida en caliente. Se extiende (ventana deslizante) cada vez que se usa, sin rotar el token — evita una condición de carrera entre las varias requests en paralelo que dispara la carga inicial. Ver [ADR 0017](docs/adr/0017-cookie-recordarme.md).
+- **Sesión persistente**: cookie de sesión de PHP de 30 días, más una segunda cookie "recordarme" (token propio, hash guardado en `users`) que la reestablece sola si el archivo de sesión desaparece antes de tiempo — el GC de sesiones de muchos hostings compartidos lo borra según su propio `php.ini`, sin importar lo que la app pida en caliente. Se extiende (ventana deslizante) cada vez que se usa, sin rotar el token — evita una condición de carrera entre las varias requests en paralelo que dispara la carga inicial. Ver [ADR 0017](docs/adr/0017-cookie-recordarme.md).
 - **Protección contra fuerza bruta en login**: 5 intentos fallidos seguidos bloquean la cuenta 15 minutos (`failed_attempts`/`locked_until` en `users`). Sin tracking de IP a propósito — hay una sola cuenta posible de todos modos.
 - **Historial**: una tarjeta por semana (más reciente primero), con 6 indicadores de día — Lun–Sáb, sin domingo — (verde si ese día quedó "cumplido"), el total de ejercicios marcados/total de la semana y un botón "Compartir" que captura la tarjeta como imagen PNG. Riel de meses arriba para filtrar (mismo estilo que el riel de semanas de Semana → Resumen), con "Todas" como opción por defecto — una semana que cruza dos meses (ej. 27 abr–3 may) aparece en ambos filtros. Tocar un día específico de la tarjeta te manda a Semana → Hoy con ese día exacto seleccionado; tocar el resto de la tarjeta cae en lunes. Al final, un panel de **balance por grupo muscular**: una barra por grupo con cuántos días "cumplidos" tuvo, en el mismo período que ya filtra el riel de meses.
 - **Edición offline** (alcance acotado): si se pierde la conexión al editar un ejercicio ya existente (marcar hecho, cambiar nombre/kg/reps/series/nota, borrar) o la nota de una semana, el cambio se guarda en una cola local (IndexedDB) y se reintenta solo al reconectar. Conflictos se resuelven con last-write-wins por timestamp (`exercises.updated_at`). Un banner arriba de la app avisa "Sin conexión" y cuántos cambios están pendientes. Quedan fuera de la cola (siguen fallando sin conexión, como antes): crear semana, agregar ejercicio, migrar día, copiar semana pasada, importar datos y la librería de ejercicios.
@@ -164,193 +164,12 @@ Para no tener que loguearse cada vez en local, agregar `define('DEV_AUTOLOGIN', 
 
 ## Despliegue
 
-Destino: `tu-dominio.com/bitacora`, vía FTP/SFTP. Como todas las rutas del proyecto son relativas, no hace falta tocar ni una línea de código por vivir en una subcarpeta en vez de un subdominio.
+Archivos sueltos en cualquier hosting compartido con PHP 8 y MySQL, en la raíz del dominio o en una subcarpeta (todas las rutas son relativas). A grandes rasgos:
 
-1. **Base de datos**: en cPanel → MySQL Databases, crear la base y un usuario con permisos sobre ella (igual que en local, con `bitacora_app` como referencia de nombre).
-2. **Subir archivos**: todo el árbol del repo tal como está en git a la carpeta `/bitacora` del hosting, **excepto** lo que ya está en `.gitignore` (`api/config.local.php`, `.claude/`) y sobre todo **la carpeta `.git/`** — nunca se sube, ni por accidente al arrastrar la carpeta completa del proyecto (expone todo el historial del repo). Si FileZilla se desconecta a medias subiendo/borrando algo, siempre reconectar y confirmar el listado remoto antes de seguir.
+1. Crear la base de datos y su usuario, e importar `api/db/schema.sql` (ver "Puesta en marcha del backend").
+2. Subir el árbol versionado, o un paquete armado desde un tag `vX.Y.Z`. **Nunca** subir `.git/` ni `api/config.local.php`.
+3. Crear `api/config.local.php` directo en el servidor, a partir de `api/config.local.php.example`.
+4. Crear el usuario de la app (paso 4 de "Puesta en marcha del backend").
+5. Antes de usar una versión que cambia el esquema, correr en la base su SQL pendiente (bloques idempotentes; las migraciones de datos viven en `api/db/migrations/`).
 
-   Alternativa a FileZilla: `scripts/deploy-ftp.ps1` sube por SFTP solo lo que cambió desde el último deploy (usando `curl`, que ya trae soporte SFTP). Copiar `scripts/deploy.local.json.example` a `scripts/deploy.local.json` (gitignorado — nunca se sube) con los mismos datos que en FileZilla, correr una vez con `-Full` (sube todo el árbol versionado) y de ahí en más sin parámetros. `-DryRun` muestra qué se subiría sin conectarse. Para subir el zip de "Armar el paquete de producción" en su lugar, seguir usando FileZilla o el cliente SFTP que prefieras.
-3. **Importar el esquema**: `api/db/schema.sql` vía phpMyAdmin (Importar → seleccionar el archivo). Evita hacerlo desde PowerShell con `Get-Content -Raw | mysql` — ver la nota de encoding más abajo.
-4. **Config local de producción**: crear `api/config.local.php` directo en el servidor (editor de archivos de cPanel, o edítalo local y súbelo por FTP aparte — nunca por git) a partir de `api/config.local.php.example`, con las credenciales reales de la base. Si alguna vez se rota la contraseña de la BD, hay que actualizar este archivo en el servidor también — el sitio da 500 ("no se pudo conectar a la base de datos") hasta que coincidan.
-5. **Usuario de la app**: ver el paso 4 de "Puesta en marcha del backend" arriba (SSH/Terminal/Cron, o el `INSERT` vía phpMyAdmin si no hay acceso a shell).
-6. **Verificar**: entrar a `https://tu-dominio.com/bitacora/`, confirmar que carga por HTTPS, que el login funciona, y que el manifest/service worker se registran (DevTools → Application → Manifest / Service Workers, o una auditoría Lighthouse → PWA).
-
-`.htaccess` no necesita ajustes para la subcarpeta: la regla de HTTPS usa `%{HTTP_HOST}%{REQUEST_URI}` (no una ruta fija) y el bloqueo de `config.local.php`/`*.sql` es por nombre de archivo.
-
-### Armar el paquete de producción
-
-Cada versión se empaqueta desde su **tag** (no desde el directorio de trabajo, para que no se cuele nada sin commitear) en `producción/bitacora-vX.Y.Z-AAAA-MM-DD/` más su `.zip` (la carpeta `producción/` está en `.gitignore`):
-
-```bash
-VER=X.Y.Z; DEST="producción/bitacora-v$VER-$(date +%F)"
-mkdir -p "$DEST"
-git -c core.autocrlf=false -c core.eol=lf archive --format=tar "v$VER" | tar -x -C "$DEST"
-rm -rf "$DEST"/{.githooks,.gitignore,docs,scripts,README.md,CHANGELOG.md}   # no hacen falta en el servidor
-python -c "import zipfile,os,sys; d=sys.argv[1]; z=zipfile.ZipFile(d+'.zip','w',zipfile.ZIP_DEFLATED); [z.write(os.path.join(r,f), os.path.relpath(os.path.join(r,f),d)) for r,_,fs in os.walk(d) for f in fs]" "$DEST"
-```
-
-- **`-c core.autocrlf=false` es obligatorio en Windows**: con `core.autocrlf=true`, `git archive` convierte todo a CRLF y el paquete deja de coincidir byte a byte con lo commiteado.
-- El `.zip` queda con los archivos en la raíz (sin la carpeta contenedora) y con `/` como separador, listo para descomprimir en `/bitacora` desde cPanel.
-- **No incluye** `api/config.local.php` (nunca está en git; el del servidor se conserva) ni `api/db/backups/` ni `api/media_cache/` (ignorados).
-
-**Antes de subirlo**, comprobar: que `git status` esté limpio y el tag apunte a `HEAD`; sintaxis (`node --check js/*.js sw.js`, `php -l` a cada `.php`); `php scripts/bump-sw-cache.php` y `php scripts/build-changelog.php` sin cambios; que todo lo de `SHELL_ASSETS` y lo que carga `index.html` exista en el paquete; que cada archivo del paquete sea idéntico a `git show vX.Y.Z:<archivo>`; que no haya `config.local.php`, `DEV_AUTOLOGIN` activo ni contraseñas; y que las revisiones de esquema SQL pendientes (abajo) ya estén corridas si el cambio las requiere.
-
-### Backup automático (cron)
-
-`api/db/backup_export.php` vuelca todas las semanas a un JSON (mismo formato que exportar desde Perfil) en `api/db/backups/`, protegida por su propio `.htaccess` (`Require all denied` — no es accesible por navegador; el script además se niega a correr fuera de CLI). Guarda solo los últimos 14 backups, borra el resto solo.
-
-No requiere acceso SSH — cPanel → **Cron Jobs** funciona por sí solo (es un panel distinto a Terminal/SSH, disponible en la mayoría de los planes de Hostgator):
-
-1. cPanel → Cron Jobs → Add New Cron Job.
-2. Frecuencia sugerida: semanal (ej. "Once Per Week" — domingos 3:00 AM).
-3. Comando: `php /home/<usuario_cpanel>/<ruta_a_bitacora>/api/db/backup_export.php` (ajustar la ruta real del hosting; se puede confirmar con `pwd` en Terminal si hay acceso, o preguntándole a soporte de Hostgator la ruta absoluta de la cuenta).
-4. Los backups quedan disponibles para descargar desde la app (Perfil → "Backups automáticos") vía `api/backups.php`, sin necesitar FTP.
-
-### Pendiente de correr en producción
-
-Estos cambios ya se hicieron en local pero todavía no en el servidor — no hay certeza de cuáles ya se corrieron en producción en algún deploy anterior, así que el bloque de abajo es **idempotente**: cada `ALTER` se salta solo si la columna ya existe (chequeo contra `information_schema.COLUMNS` + SQL dinámico — funciona igual en MySQL y MariaDB, a diferencia de `ADD COLUMN IF NOT EXISTS`, que no está disponible en todas las versiones). Correr entero, de una sola vez, vía phpMyAdmin → SQL, sobre la base de producción:
-
-```sql
--- app_settings: reglas editables desde Ajustes (api/settings.php).
--- CREATE TABLE IF NOT EXISTS ya es idempotente por sí solo.
-CREATE TABLE IF NOT EXISTS app_settings (
-  setting_key   VARCHAR(60)  NOT NULL PRIMARY KEY,
-  setting_value VARCHAR(255) NOT NULL,
-  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- weeks.note: nota libre de la semana, editable desde Semana → Resumen (api/weeks.php).
-SET @exists = (
-  SELECT COUNT(*) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'weeks' AND COLUMN_NAME = 'note'
-);
-SET @sql = IF(@exists = 0,
-  'ALTER TABLE weeks ADD COLUMN note TEXT NULL AFTER monday_date',
-  'SELECT "weeks.note ya existe, se omite"');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- exercises.updated_at: last-write-wins de la edición offline (api/exercises.php).
-SET @exists = (
-  SELECT COUNT(*) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exercises' AND COLUMN_NAME = 'updated_at'
-);
-SET @sql = IF(@exists = 0,
-  'ALTER TABLE exercises ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at',
-  'SELECT "exercises.updated_at ya existe, se omite"');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- users.failed_attempts / users.locked_until: fuerza bruta en login (api/login.php).
-SET @exists = (
-  SELECT COUNT(*) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'failed_attempts'
-);
-SET @sql = IF(@exists = 0,
-  'ALTER TABLE users ADD COLUMN failed_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0',
-  'SELECT "users.failed_attempts ya existe, se omite"');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-SET @exists = (
-  SELECT COUNT(*) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'locked_until'
-);
-SET @sql = IF(@exists = 0,
-  'ALTER TABLE users ADD COLUMN locked_until DATETIME NULL',
-  'SELECT "users.locked_until ya existe, se omite"');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- week_day_sessions: hora de inicio/fin y duración por día (botón
--- "Iniciar/Finalizar entrenamiento" en api/weeks.php).
--- CREATE TABLE IF NOT EXISTS ya es idempotente por sí solo.
-CREATE TABLE IF NOT EXISTS week_day_sessions (
-  week_id      INT UNSIGNED NOT NULL,
-  day_key      ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
-  start_time   TIME NULL,
-  end_time     TIME NULL,
-  duration_min SMALLINT UNSIGNED NULL,
-  PRIMARY KEY (week_id, day_key),
-  CONSTRAINT fk_week_day_sessions_week
-    FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- users.remember_token_hash / remember_token_expires: cookie "recordarme"
--- independiente del archivo de sesión de PHP (api/config.php, ADR 0017).
-SET @exists = (
-  SELECT COUNT(*) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'remember_token_hash'
-);
-SET @sql = IF(@exists = 0,
-  'ALTER TABLE users ADD COLUMN remember_token_hash VARCHAR(64) NULL, ADD COLUMN remember_token_expires DATETIME NULL',
-  'SELECT "users.remember_token_hash ya existe, se omite"');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Splits y Guía del día (api/split.php, ADR 0018). El orden importa:
--- 1) plantilla del split actual en day_templates (solo la primera vez —
---    si la columna ya existía, el split pudo haberse cambiado desde Ajustes
---    y no se pisa), 2) congelar el grupo de cada semana existente,
---    3) plantilla de los días migrados.
-SET @exists = (
-  SELECT COUNT(*) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'day_templates' AND COLUMN_NAME = 'template_key'
-);
-SET @sql = IF(@exists = 0,
-  'ALTER TABLE day_templates ADD COLUMN template_key VARCHAR(30) NULL AFTER notes',
-  'SELECT "day_templates.template_key ya existe, se omite"');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-SET @sql = IF(@exists = 0,
-  'UPDATE day_templates SET template_key = CASE day_key WHEN ''lun'' THEN ''pecho_triceps'' WHEN ''mar'' THEN ''pierna'' WHEN ''mie'' THEN ''espalda_biceps'' WHEN ''jue'' THEN ''hombro'' WHEN ''vie'' THEN ''full_body'' ELSE NULL END',
-  'SELECT "plantillas de day_templates ya sembradas, se omite"');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-CREATE TABLE IF NOT EXISTS week_day_groups (
-  week_id      INT UNSIGNED NOT NULL,
-  day_key      ENUM('lun','mar','mie','jue','vie','sab','dom') NOT NULL,
-  group_name   VARCHAR(80) NOT NULL,
-  notes        TEXT NULL,
-  template_key VARCHAR(30) NULL,
-  PRIMARY KEY (week_id, day_key),
-  CONSTRAINT fk_week_day_groups_week
-    FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- INSERT IGNORE: correrlo de nuevo no duplica ni pisa grupos ya congelados.
-INSERT IGNORE INTO week_day_groups (week_id, day_key, group_name, notes, template_key)
-  SELECT w.id, dt.day_key, dt.group_name, dt.notes, dt.template_key
-  FROM weeks w CROSS JOIN day_templates dt;
-
-SET @exists = (
-  SELECT COUNT(*) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'week_day_overrides' AND COLUMN_NAME = 'template_key'
-);
-SET @sql = IF(@exists = 0,
-  'ALTER TABLE week_day_overrides ADD COLUMN template_key VARCHAR(30) NULL AFTER notes',
-  'SELECT "week_day_overrides.template_key ya existe, se omite"');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-UPDATE week_day_overrides wo
-  SET wo.template_key = (
-    SELECT wg.template_key FROM week_day_groups wg
-    WHERE wg.group_name = wo.group_name AND wg.template_key IS NOT NULL
-    LIMIT 1
-  )
-  WHERE wo.template_key IS NULL;
-```
-
-**Después del bloque de arriba** (ADR 0019): hacer un backup (Perfil → Exportar datos) y correr completo `api/db/migrations/2026-09-23-renombrar-ejercicios.sql` en phpMyAdmin → SQL. Agrega `exercises.original_name` y estandariza los nombres de todo el historial (46 → 40 nombres), guardando el nombre anterior de cada fila. Es idempotente y va en una transacción: si algo falla, no cambia nada.
-
-Cada bloque devuelve un mensaje (`SELECT "..."`) cuando se salta, así que se puede ver en el resultado de phpMyAdmin exactamente cuáles se aplicaron y cuáles ya estaban. `DEFAULT`/`NULL` en las columnas nuevas dejan las filas existentes sin backfill manual — mismo criterio que ya tenían las versiones no defensivas de estos `ALTER`.
+Los pasos concretos de producción —dominio, hosting, paquete por tag, cron de backups y el SQL pendiente— están en `DEPLOY.local.md`, que no se versiona (`.gitignore`).

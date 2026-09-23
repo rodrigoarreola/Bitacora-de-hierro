@@ -34,3 +34,6 @@ scripts/deploy.local.json
 # Marca del último commit desplegado (usado por scripts/deploy-ftp.ps1
 # para saber qué subió incremental) — estado local, no código.
 scripts/.last-deploy-commit
+
+# Pasos de despliegue con el dominio y hosting reales (el repo es público).
+/DEPLOY.local.md
