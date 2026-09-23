@@ -3625,9 +3625,11 @@
         // duration_min?} — los campos de horario solo se incluyen si hay
         // dato, mismo criterio que ya usa "note"/"overrides" acá abajo.
         const dayPayload = {
-          exercises: day.exercises.map(e=>({
-            name: e.name, kg: e.kg, reps: e.reps, series: e.series, note: e.note, done: e.done,
-          })),
+          // original_name solo en filas renombradas por la estandarización (ADR 0019).
+          exercises: day.exercises.map(e=>Object.assign(
+            { name: e.name, kg: e.kg, reps: e.reps, series: e.series, note: e.note, done: e.done },
+            e.original_name ? { original_name: e.original_name } : {}
+          )),
         };
         if(day.startTime) dayPayload.start_time = day.startTime;
         if(day.endTime) dayPayload.end_time = day.endTime;

@@ -29,7 +29,10 @@ const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 
 $weeks = $pdo->query('SELECT id, monday_date, note FROM weeks ORDER BY monday_date')->fetchAll();
 $payload = [];
-$exStmt = $pdo->prepare('SELECT day_key, name, kg, reps, series, note, done FROM exercises WHERE week_id = :w ORDER BY day_key, sort_order, id');
+$exStmt = $pdo->prepare(
+    'SELECT day_key, name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done
+     FROM exercises WHERE week_id = :w ORDER BY day_key, sort_order, id'
+);
 $withGroups = split_schema_ready($pdo);
 $ovStmt = $pdo->prepare(
     $withGroups
@@ -47,10 +50,14 @@ foreach ($weeks as $w) {
     $exByDay = [];
     $exStmt->execute(['w' => $weekId]);
     foreach ($exStmt->fetchAll() as $row) {
-        $exByDay[$row['day_key']][] = [
+        $ex = [
             'name' => $row['name'], 'kg' => $row['kg'], 'reps' => $row['reps'],
             'series' => $row['series'], 'note' => $row['note'], 'done' => (bool) $row['done'],
         ];
+        if ($row['original_name'] !== null) {
+            $ex['original_name'] = $row['original_name']; // solo filas renombradas (ADR 0019)
+        }
+        $exByDay[$row['day_key']][] = $ex;
     }
 
     $sessStmt->execute(['w' => $weekId]);

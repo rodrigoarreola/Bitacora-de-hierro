@@ -2,6 +2,17 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.65.0",
+        "date": "2026-09-23",
+        "title": "tus ejercicios tienen nombre estándar, y su historial ya no está partido",
+        "items": [
+            "Los 46 nombres de tu historial pasan a 40 nombres estándar del catálogo de ejercicios, revisados uno por uno con fotos de tus máquinas.",
+            "Variantes del mismo ejercicio se juntan en uno solo (los tres curl femoral sentado, los dos acostado, Chin ups + Chin up con máquina…), así Progreso, \"semana pasada\" y tus récords ven todo el historial junto.",
+            "Se corrigieron varios que apuntaban a otro ejercicio, así que el ícono del ojo y la Guía del día ahora muestran el correcto (Pájaros en máquina era en realidad elevación lateral, entre otros).",
+            "Cada registro recuerda cómo lo llamabas antes; se conserva en tus backups."
+        ]
+    },
+    {
         "version": "1.64.0",
         "date": "2026-09-22",
         "title": "elige tu split y cada día te dice qué ejercicios le tocan",

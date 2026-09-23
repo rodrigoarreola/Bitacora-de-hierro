@@ -40,6 +40,22 @@ function split_schema_ready(PDO $pdo): bool
 }
 
 /**
+ * ¿Existe exercises.original_name (ADR 0019)? Mismo criterio que
+ * split_schema_ready(): el código puede llegar antes que el ALTER.
+ */
+function original_name_ready(PDO $pdo): bool
+{
+    static $ready = null;
+    if ($ready === null) {
+        $ready = (bool) $pdo->query(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exercises' AND COLUMN_NAME = 'original_name'"
+        )->fetchColumn();
+    }
+    return $ready;
+}
+
+/**
  * Congela el split vigente (day_templates) en week_day_groups para una
  * semana recién creada, así un cambio de split posterior no la renombra.
  * INSERT IGNORE: si la semana ya tenía sus grupos, no los toca.
@@ -126,7 +142,7 @@ function fetch_week_detail(PDO $pdo, int $weekId, string $mondayDate): array
     }
 
     $stmt = $pdo->prepare(
-        'SELECT id, day_key, name, kg, reps, series, note, done
+        'SELECT id, day_key, name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done
          FROM exercises WHERE week_id = :week_id ORDER BY day_key, sort_order, id'
     );
     $stmt->execute(['week_id' => $weekId]);
@@ -193,7 +209,7 @@ function fetch_all_weeks_detail(PDO $pdo): array
 
     $exercisesByWeek = [];
     $stmtExercises = $pdo->query(
-        'SELECT id, week_id, day_key, name, kg, reps, series, note, done
+        'SELECT id, week_id, day_key, name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done
          FROM exercises ORDER BY week_id, day_key, sort_order, id'
     );
     foreach ($stmtExercises as $row) {

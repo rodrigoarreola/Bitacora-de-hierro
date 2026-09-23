@@ -25,6 +25,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0016](0016-resumen-primero-medalla-unica.md) | Resumen como primera pestaña visual; una sola medalla más grande | Aceptada |
 | [0017](0017-cookie-recordarme.md) | Cookie "recordarme" independiente del archivo de sesión de PHP | Aceptada |
 | [0018](0018-splits-y-guia-del-dia.md) | Splits elegibles y Guía del día | Aceptada |
+| [0019](0019-nombres-estandar-de-ejercicios.md) | Nombres estándar de ejercicios, con el original guardado | Aceptada |
 
 ## Formato
 

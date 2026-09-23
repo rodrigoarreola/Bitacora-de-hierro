@@ -351,4 +351,6 @@ UPDATE week_day_overrides wo
   WHERE wo.template_key IS NULL;
 ```
 
+**Después del bloque de arriba** (ADR 0019): hacer un backup (Perfil → Exportar datos) y correr completo `api/db/migrations/2026-09-23-renombrar-ejercicios.sql` en phpMyAdmin → SQL. Agrega `exercises.original_name` y estandariza los nombres de todo el historial (46 → 40 nombres), guardando el nombre anterior de cada fila. Es idempotente y va en una transacción: si algo falla, no cambia nada.
+
 Cada bloque devuelve un mensaje (`SELECT "..."`) cuando se salta, así que se puede ver en el resultado de phpMyAdmin exactamente cuáles se aplicaron y cuáles ya estaban. `DEFAULT`/`NULL` en las columnas nuevas dejan las filas existentes sin backfill manual — mismo criterio que ya tenían las versiones no defensivas de estos `ALTER`.

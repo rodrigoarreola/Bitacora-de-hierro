@@ -221,3 +221,11 @@ UPDATE week_day_overrides wo
     WHERE wg.group_name = wo.group_name AND wg.template_key IS NOT NULL
     LIMIT 1
   );
+
+-- ============================================================
+-- exercises.original_name: nombre como estaba escrito antes de la
+-- estandarización de nombres (ADR 0019,
+-- api/db/migrations/2026-09-23-renombrar-ejercicios.sql). NULL = la fila
+-- nunca se renombró. Solo informativo: la app agrupa por `name`.
+-- ============================================================
+ALTER TABLE exercises ADD COLUMN original_name VARCHAR(150) NULL AFTER name;

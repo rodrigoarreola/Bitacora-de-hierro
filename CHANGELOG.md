@@ -2,6 +2,31 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.65.0] - 2026-09-23 — Nombres estándar de ejercicios
+
+### En la app: tus ejercicios tienen nombre estándar, y su historial ya no está partido
+
+- Los 46 nombres de tu historial pasan a 40 nombres estándar del catálogo de ejercicios, revisados uno por uno con fotos de tus máquinas.
+- Variantes del mismo ejercicio se juntan en uno solo (los tres curl femoral sentado, los dos acostado, Chin ups + Chin up con máquina…), así Progreso, "semana pasada" y tus récords ven todo el historial junto.
+- Se corrigieron varios que apuntaban a otro ejercicio, así que el ícono del ojo y la Guía del día ahora muestran el correcto (Pájaros en máquina era en realidad elevación lateral, entre otros).
+- Cada registro recuerda cómo lo llamabas antes; se conserva en tus backups.
+
+### Added
+
+- **`api/db/migrations/2026-09-23-renombrar-ejercicios.sql`**: `exercises.original_name` + 43 renombres (5 fusiones) + limpieza de la librería. Idempotente, en una transacción.
+- **ADR 0019** e instrucciones en el README.
+
+### Changed
+
+- **`data/exercise-name-mapping.json`** reconstruido con los IDs aprobados (`confidence: "confirmada"`), con llaves para el nombre nuevo y el viejo.
+- **`js/split-catalog.js`**: los `sugerido` usan los nombres nuevos; el hueco "Deltoides posterior" sugiere la apertura invertida y "Glúteo" (Pierna hipertrofia) la extensión de cadera en máquina.
+- `original_name` en `fetch_week_detail()`/`fetch_all_weeks_detail()`, `fetch_exercise()`, el export de Perfil, `api/db/backup_export.php` e `api/import.php` (opcional; con `original_name_ready()` el código funciona aunque la columna aún no exista).
+
+### Verificado (local, después de un backup)
+
+- 1,213 filas antes y después; 46 → 40 nombres; 1,122 filas con `original_name`. Correrla dos veces da lo mismo.
+- La semana del 21 de sep encuentra sus ejercicios en la del 14 con los nombres nuevos; Guía del día 5/5; sin errores en consola.
+
 ## [1.64.0] - 2026-09-22 — Splits y Guía del día
 
 ### En la app: elige tu split y cada día te dice qué ejercicios le tocan

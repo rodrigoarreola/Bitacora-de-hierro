@@ -148,9 +148,15 @@ $insertSession = $pdo->prepare(
     'INSERT INTO week_day_sessions (week_id, day_key, start_time, end_time, duration_min)
      VALUES (:week_id, :day_key, :start_time, :end_time, :duration_min)'
 );
+// original_name (ADR 0019) es opcional: solo lo traen las filas renombradas
+// por la estandarización de nombres.
+$withOriginal = original_name_ready($pdo);
 $insertEx = $pdo->prepare(
-    'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order)
-     VALUES (:week_id, :day_key, :name, :kg, :reps, :series, :note, :done, :sort_order)'
+    $withOriginal
+    ? 'INSERT INTO exercises (week_id, day_key, name, original_name, kg, reps, series, note, done, sort_order)
+       VALUES (:week_id, :day_key, :name, :original_name, :kg, :reps, :series, :note, :done, :sort_order)'
+    : 'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order)
+       VALUES (:week_id, :day_key, :name, :kg, :reps, :series, :note, :done, :sort_order)'
 );
 $libCheck = $pdo->prepare('SELECT id FROM exercise_library WHERE LOWER(name) = LOWER(:name)');
 $libInsert = $pdo->prepare('INSERT INTO exercise_library (name) VALUES (:name)');
@@ -224,7 +230,7 @@ try {
             $sortOrder = 0;
             foreach (day_exercises_list($dayValue) as $e) {
                 $name = trim((string) ($e['name'] ?? ''));
-                $insertEx->execute([
+                $exParams = [
                     'week_id'    => $weekId,
                     'day_key'    => $dayKey,
                     'name'       => $name,
@@ -234,7 +240,11 @@ try {
                     'note'       => (string) ($e['note'] ?? ''),
                     'done'       => !empty($e['done']) ? 1 : 0,
                     'sort_order' => $sortOrder++,
-                ]);
+                ];
+                if ($withOriginal) {
+                    $exParams['original_name'] = isset($e['original_name']) && $e['original_name'] !== '' ? (string) $e['original_name'] : null;
+                }
+                $insertEx->execute($exParams);
                 $exCount++;
 
                 // Los nombres "Garmin: ..." son filas sinteticas generadas al

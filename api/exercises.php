@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/config.php';
 require __DIR__ . '/auth.php';
+require __DIR__ . '/week_helpers.php';
 
 require_login();
 
@@ -18,7 +19,9 @@ function find_week_id_by_date(PDO $pdo, string $mondayDate): ?int
 
 function fetch_exercise(PDO $pdo, int $id): ?array
 {
-    $stmt = $pdo->prepare('SELECT id, week_id, day_key, name, kg, reps, series, note, done FROM exercises WHERE id = :id');
+    $stmt = $pdo->prepare(
+        'SELECT id, week_id, day_key, name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done FROM exercises WHERE id = :id'
+    );
     $stmt->execute(['id' => $id]);
     $row = $stmt->fetch();
     if (!$row) {
