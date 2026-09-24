@@ -106,3 +106,11 @@ Segunda cookie, `remember_token`, con un token propio (no relacionado con
   (sin condición de carrera); un token inexistente/expirado responde
   `authenticated:false` y borra la cookie; logout invalida el token en BD
   y limpia la cookie; el token viejo ya no reautentica después del logout.
+- **Pendiente:** hoy no existe endpoint para cambiar la contraseña desde la
+  app (`password_hash` solo se fija vía `api/db/create_user.php`, un script
+  CLI) — el día que exista uno, tiene que invalidar `remember_token_hash`/
+  `expires` igual que `api/logout.php`. Si no, cambiar la contraseña porque
+  se sospecha un acceso no autorizado no serviría de nada: el
+  `remember_token` viejo seguiría reautenticando solo, sin pedir la
+  contraseña nueva ni ninguna otra, precisamente porque este cookie fue
+  pensado para saltarse el login por completo.
