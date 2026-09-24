@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
 
+// Solo desde la terminal: si este archivo terminara en el servidor, una
+// visita por web no debe poder ejecutarlo (en la 1.67.1 una copia vieja de
+// scripts/bump-sw-cache.php reescribió sw.js en producción así). Ver
+// .htaccess, que además bloquea scripts/ entero.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit;
+}
+
 // Recalcula CACHE_NAME de sw.js a partir de un hash del contenido del app
 // shell (index.html, css, js, manifest e íconos), con la versión semver actual
 // (la misma que se ve en Perfil → Changelog) al frente para que sea legible en

@@ -8,3 +8,13 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 <FilesMatch "(^config\.local\.php$|\.sql$)">
   Require all denied
 </FilesMatch>
+
+# Nada de esto debe servirse por web (ver 1.67.2): los scripts de desarrollo
+# (scripts/, .githooks/) solo corren en la terminal, y la documentación y los
+# archivos ocultos (.md, .gitignore, error_log) son internos. Bloquea también
+# copias viejas que hayan quedado en el servidor de despliegues anteriores.
+RedirectMatch 403 (^|/)(scripts|docs|\.githooks|\.git|\.claude)(/|$)
+<FilesMatch "(\.md$|^\.|^error_log$)">
+  Require all denied
+</FilesMatch>
+

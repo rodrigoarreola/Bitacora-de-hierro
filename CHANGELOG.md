@@ -2,6 +2,22 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.67.2] - 2026-09-23 — Scripts de desarrollo y documentación fuera del alcance web
+
+### En la app: más protección en el servidor
+
+- Los archivos internos (scripts de desarrollo, documentación y archivos ocultos) ya no se pueden abrir ni ejecutar desde internet, aunque queden copias viejas en el servidor. No cambia nada de lo que ves en la app.
+
+### Security
+
+- **`.htaccess`**: `RedirectMatch 403` para `scripts/`, `docs/`, `.githooks/`, `.git/` y `.claude/`, y `Require all denied` para `*.md`, archivos ocultos y `error_log`.
+- **`scripts/*.php`** (`bump-sw-cache`, `build-changelog`, `build-exercises-dataset`, `build-catalog-sql`): responden 403 y salen si no corren desde la terminal (`PHP_SAPI !== 'cli'`), como ya hacían los de `api/db/`.
+- Motivo: una copia vieja de `scripts/bump-sw-cache.php` de un despliegue anterior seguía en el servidor y se ejecutaba con una simple visita, reescribiendo `sw.js` (le cambió el `CACHE_NAME`; se restauró desde el paquete 1.67.1). También quedaban expuestos `README.md`, otros `.md` viejos y `.gitignore`.
+
+### Verificado (local)
+
+- Los cuatro scripts responden 403 por web y siguen funcionando desde la terminal (el hook de commit los usa).
+
 ## [1.67.1] - 2026-09-23 — La comparación encuentra el ejercicio aunque cambie de día
 
 ### En la app: "Semana pasada" ya no se pierde cuando un día se recorre

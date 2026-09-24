@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
 
+// Solo desde la terminal: si este archivo terminara en el servidor, una
+// visita por web no debe poder ejecutarlo (en la 1.67.1 una copia vieja de
+// scripts/bump-sw-cache.php reescribió sw.js en producción así). Ver
+// .htaccess, que además bloquea scripts/ entero.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit;
+}
+
 /**
  * Genera la siembra del catálogo global de ejercicios (ADR 0021):
  * api/db/migrations/2026-09-23-catalogo.sql

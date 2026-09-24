@@ -2,6 +2,14 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.67.2",
+        "date": "2026-09-23",
+        "title": "más protección en el servidor",
+        "items": [
+            "Los archivos internos (scripts de desarrollo, documentación y archivos ocultos) ya no se pueden abrir ni ejecutar desde internet, aunque queden copias viejas en el servidor. No cambia nada de lo que ves en la app."
+        ]
+    },
+    {
         "version": "1.67.1",
         "date": "2026-09-23",
         "title": "\"Semana pasada\" ya no se pierde cuando un día se recorre",

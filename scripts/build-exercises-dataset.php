@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
 
+// Solo desde la terminal: si este archivo terminara en el servidor, una
+// visita por web no debe poder ejecutarlo (en la 1.67.1 una copia vieja de
+// scripts/bump-sw-cache.php reescribió sw.js en producción así). Ver
+// .htaccess, que además bloquea scripts/ entero.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit;
+}
+
 /**
  * Descarga (una vez, cacheado en scripts/.cache/) el dataset completo de
  * hasaneyldrm/exercises-dataset y lo recorta a data/exercises-dataset.json

@@ -1,5 +1,14 @@
 <?php
 declare(strict_types=1);
+
+// Solo desde la terminal: si este archivo terminara en el servidor, una
+// visita por web no debe poder ejecutarlo (en la 1.67.1 una copia vieja de
+// scripts/bump-sw-cache.php reescribió sw.js en producción así). Ver
+// .htaccess, que además bloquea scripts/ entero.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit;
+}
 // Genera js/changelog-data.js (el "Changelog" que se ve en la app: Perfil →
 // Changelog) a partir de CHANGELOG.md, que es la única fuente. Cada versión
 // que deba verse en la app lleva un bloque con este formato, justo debajo de
