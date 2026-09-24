@@ -28,6 +28,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0019](0019-nombres-estandar-de-ejercicios.md) | Nombres estándar de ejercicios, con el original guardado | Aceptada |
 | [0020](0020-ajustes-en-pestanas.md) | Ajustes en 3 pestañas con enlace propio | Aceptada |
 | [0021](0021-catalogo-de-ejercicios-fase-1.md) | Catálogo de ejercicios y ejercicios del usuario (Fase 1) | Aceptada |
+| [0022](0022-resumen-racha-primero.md) | Resumen rediseñado: la racha manda, luego qué sigue | Aceptada |
 
 ## Formato
 

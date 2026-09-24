@@ -2,6 +2,32 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.68.0] - 2026-09-23 — Resumen rediseñado: la racha primero
+
+### En la app: un Resumen nuevo, con la racha al frente
+
+- La racha ahora es lo primero y lo más grande, con tu medalla y una barra hacia la siguiente.
+- Debajo ves cuántos días te faltan esta semana para que la racha siga el lunes.
+- Los 7 días de la semana caben completos, con su fecha: cumplidos, hoy, el siguiente y los que quedaron sin registrar.
+- "Siguiente entrenamiento" te muestra qué te toca, con sus primeros ejercicios y cuánto sueles tardar. En el día de hoy, "Empezar" abre el día y arranca el cronómetro.
+- "Esta semana" compara tiempo, kilos y series con la semana pasada.
+- Las semanas se eligen desde un menú, que también muestra cuántos días cumpliste en cada una. "Eliminar esta semana" se movió ahí.
+
+### Changed
+
+- **`index.html`**, **`js/app.js`**, **`css/views/hoy.css`**: Resumen de Semana rediseñado según la maqueta aprobada ([ADR 0022](docs/adr/0022-resumen-racha-primero.md)). Selector de semana con sheet (`openWeekSheet()`), card de racha con condición semanal (`renderStreakWeek()`), riel de 7 días con estados (`renderDayRack()`), "Siguiente entrenamiento" (`renderNextWorkout()`), "Esta semana" con tiempo/volumen/series (`renderWeeklyRecap()`).
+- **Compartir resumen**: la imagen ahora es header, semana, racha, días y "Esta semana".
+
+### Removed
+
+- Riel de semanas en Resumen (`renderWeekPills()`), la comparación de adherencia y el botón "Eliminar esta semana" al final de Resumen (pasó al sheet de semanas).
+- `cloneRailForShare()`, `pairedFlexItems()` y `SHARE_CONTENT_WIDTH`: ya no hay rieles con scroll que recortar en la imagen.
+
+### Verificado (local, 375 px)
+
+- Racha 42 con medalla de plata y barra al oro; "Te faltan 3 días" (2/5); días con sus estados; siguiente entrenamiento Hombros (≈ 56 min) y Full Body; "Esta semana" 1 h 46 / 14,250 kg / 30 series contra la semana pasada.
+- Sheet de semanas (79), cambiar de semana, "Ver día" abre Hoy en ese día, imagen de compartir; sin errores en consola.
+
 ## [1.67.3] - 2026-09-23 — Limpieza: fuera la librería vieja
 
 ### En la app: la app carga un poco menos

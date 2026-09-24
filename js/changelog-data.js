@@ -2,6 +2,19 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.68.0",
+        "date": "2026-09-23",
+        "title": "un Resumen nuevo, con la racha al frente",
+        "items": [
+            "La racha ahora es lo primero y lo más grande, con tu medalla y una barra hacia la siguiente.",
+            "Debajo ves cuántos días te faltan esta semana para que la racha siga el lunes.",
+            "Los 7 días de la semana caben completos, con su fecha: cumplidos, hoy, el siguiente y los que quedaron sin registrar.",
+            "\"Siguiente entrenamiento\" te muestra qué te toca, con sus primeros ejercicios y cuánto sueles tardar. En el día de hoy, \"Empezar\" abre el día y arranca el cronómetro.",
+            "\"Esta semana\" compara tiempo, kilos y series con la semana pasada.",
+            "Las semanas se eligen desde un menú, que también muestra cuántos días cumpliste en cada una. \"Eliminar esta semana\" se movió ahí."
+        ]
+    },
+    {
         "version": "1.67.3",
         "date": "2026-09-23",
         "title": "la app carga un poco menos",

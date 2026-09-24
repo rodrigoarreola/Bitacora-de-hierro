@@ -79,39 +79,48 @@
     </div>
 
     <div id="hoy-tab-resumen" role="tabpanel">
-      <div class="week-rail" id="week-rail">
+      <div class="week-select-row">
+        <button type="button" class="week-select" id="week-select-btn" aria-haspopup="dialog" aria-controls="week-overlay">
+          <span id="week-select-label">—</span><i class="icon fa-solid fa-chevron-down"></i>
+        </button>
         <button class="add-week" id="add-week-btn" type="button">
-          <i class="icon fa-solid fa-plus"></i>Nueva semana
+          <i class="icon fa-solid fa-plus"></i>Nueva
           <input type="date" id="new-week-date" aria-label="Elegir lunes de inicio de semana">
         </button>
-        <div id="week-pills" style="display:contents"></div>
+        <button type="button" class="btn btn--icon share-btn" id="share-dashboard-btn" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-share-nodes"></i></button>
       </div>
-
-      <div class="day-rack" id="day-rack"></div>
 
       <div class="card streak-hero" id="streak-hero-card">
         <div class="streak-hero-top">
-          <div>
-            <div class="streak-hero-n" id="streak-badge">0 días</div>
-            <div class="streak-hero-l">racha actual</div>
+          <div class="streak-hero-main">
+            <div class="streak-hero-l">Racha actual</div>
+            <div class="streak-hero-n-row">
+              <span class="streak-hero-n" id="streak-badge">0</span>
+              <span class="streak-hero-unit" id="streak-unit">días</span>
+            </div>
+            <div class="streak-hero-best" id="sum-best-streak"></div>
           </div>
-          <div class="streak-hero-top-right">
-            <div class="streak-hero-badges" id="streak-badges"></div>
-            <button type="button" class="btn btn--icon share-btn" id="share-dashboard-btn" aria-label="Copiar resumen de la semana"><i class="icon fa-solid fa-share-nodes"></i></button>
-          </div>
+          <div class="streak-hero-medal" id="streak-badges"></div>
         </div>
-        <div class="streak-hero-best">Mejor racha: <strong id="sum-best-streak">0 días</strong></div>
-        <div class="streak-hero-next" id="streak-next-badge"></div>
+        <div class="streak-next" id="streak-next-badge"></div>
+        <div class="streak-week" id="streak-week"></div>
       </div>
 
-      <div class="card card--compact recap-card hidden" id="weekly-recap-host"></div>
+      <div class="day-rack" id="day-rack"></div>
+      <div class="day-rack-legend" id="day-rack-legend">
+        <span><i class="dot dot--done"></i>Cumplido</span>
+        <span><i class="dot dot--next"></i>Siguiente</span>
+        <span><i class="dot dot--missed"></i>Sin registrar</span>
+      </div>
+
+      <section class="next-workout hidden" id="next-workout-host"></section>
+
+      <section class="week-stats hidden" id="weekly-recap-host"></section>
 
       <div class="card card--compact week-note-panel hidden" id="week-note-panel">
         <label for="week-note-input" class="week-note-label">Nota de la semana</label>
         <textarea id="week-note-input" class="week-note-input" rows="2" placeholder="Cómo te sentiste, lesiones, ajustes…"></textarea>
       </div>
-
-      <button class="btn btn--ghost btn--block btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
     </div>
 
     <div id="hoy-tab-registro" class="hidden" role="tabpanel">
@@ -338,6 +347,18 @@
 
   <div class="sheet-overlay ex-info-overlay hidden" id="exercise-info-overlay">
     <div class="sheet ex-info-panel" id="exercise-info-panel"></div>
+  </div>
+
+  <!-- Semanas: lista para cambiar de semana, crear una nueva o eliminar la activa — ver openWeekSheet() en js/app.js (ADR 0022) -->
+  <div class="sheet-overlay hidden" id="week-overlay">
+    <div class="sheet week-sheet" role="dialog" aria-modal="true" aria-labelledby="week-sheet-title">
+      <div class="catalog-head">
+        <div class="confirm-title" id="week-sheet-title">Semanas</div>
+        <button type="button" class="btn btn--icon" data-action="close-week-sheet" aria-label="Cerrar"><i class="icon fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="week-list" id="week-list"></div>
+      <button class="btn btn--ghost btn--block btn-delete-week" type="button" id="delete-week-btn"><i class="icon fa-solid fa-trash"></i>Eliminar esta semana</button>
+    </div>
   </div>
 
   <!-- Catálogo de ejercicios: buscar para agregar a "Mis ejercicios" o para vincular uno — ver openCatalogSheet() en js/app.js (ADR 0021) -->

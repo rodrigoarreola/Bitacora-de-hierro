@@ -15,7 +15,7 @@
 // primera vez se guardan en la instalación, leyendo las URLs del propio
 // index.html, para que la app abra completa sin conexión desde la primera visita.
 
-const CACHE_NAME = 'bitacora-shell-v1.67.3-bac71ab094';
+const CACHE_NAME = 'bitacora-shell-v1.68.0-511dce581c';
 const SHELL_ASSETS = [
   './',
   'index.html',

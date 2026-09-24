@@ -1482,13 +1482,14 @@
   // Render
   // ============================================================
   function renderAll(){
-    renderWeekPills();
+    renderWeekSelect();
     renderDayRack();
     renderDaySwitcher();
     renderDayPanel();
     renderWeekNote();
     updateStreakBadge();
     renderWeeklyRecap();
+    renderNextWorkout();
   }
 
   // Nota libre de la semana activa (separada de la nota por ejercicio).
@@ -1503,40 +1504,76 @@
     if(document.activeElement !== el) el.value = week.note || '';
   }
 
-  function renderWeekPills(){
-    const host = document.getElementById('week-pills');
-    host.innerHTML = '';
-    state.order.forEach(key=>{
-      const pill = document.createElement('div');
-      pill.className = 'week-pill' + (key === state.activeWeek ? ' active' : '');
-      pill.dataset.week = key;
-
-      const label = document.createElement('span');
-      label.textContent = weekLabel(key);
-      pill.appendChild(label);
-
-      if(key === state.activeWeek && state.order.length > 1){
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'wp-del';
-        del.setAttribute('aria-label', 'Eliminar semana');
-        del.innerHTML = '<i class="icon fa-solid fa-xmark"></i>';
-        del.addEventListener('click', (e)=>{ e.stopPropagation(); deleteWeek(key); });
-        pill.appendChild(del);
-      }
-
-      pill.addEventListener('click', ()=> selectWeek(key));
-      host.appendChild(pill);
-    });
+  // Selector compacto de semana (Resumen, ADR 0022): reemplaza al riel de
+  // píldoras — con decenas de semanas el riel era puro scroll, y la que
+  // importa casi siempre es la actual. La lista completa, "Eliminar esta
+  // semana" incluido, vive en el sheet (openWeekSheet()).
+  function weekSelectLabel(key){
+    if(key === todayMondayKey) return `Esta semana · ${weekLabel(key)}`;
+    const prev = new Date(mondayOfWeek(today)); prev.setDate(prev.getDate() - 7);
+    if(key === toISO(prev)) return `Semana pasada · ${weekLabel(key)}`;
+    const next = new Date(mondayOfWeek(today)); next.setDate(next.getDate() + 7);
+    if(key === toISO(next)) return `Próxima semana · ${weekLabel(key)}`;
+    return `Semana · ${weekLabel(key)}`;
   }
+
+  // En la lista: "Esta semana"/"Semana pasada" donde aplica; si no, solo el
+  // rango, con año cuando no es el actual.
+  function weekListLabel(key){
+    const label = weekSelectLabel(key);
+    if(!label.startsWith('Semana · ')) return label;
+    const year = fromISO(key).getFullYear();
+    return weekLabel(key) + (year !== today.getFullYear() ? ` ${year}` : '');
+  }
+
+  function renderWeekSelect(){
+    const label = document.getElementById('week-select-label');
+    label.textContent = state.activeWeek ? weekSelectLabel(state.activeWeek) : 'Sin semanas';
+    if(!document.getElementById('week-overlay').classList.contains('hidden')) renderWeekSheet();
+  }
+
+  function weekDoneDays(week){
+    return DAY_ORDER.filter(dk => week.days[dk].exercises.filter(e=>e.done).length >= RULES.min_done_per_day).length;
+  }
+
+  function renderWeekSheet(){
+    const host = document.getElementById('week-list');
+    host.innerHTML = state.order.map(key=>{
+      const week = state.weeks[key];
+      const done = week ? weekDoneDays(week) : 0;
+      const met = done >= RULES.week_streak_min_days;
+      return `
+        <button type="button" class="week-list-row${key === state.activeWeek ? ' active' : ''}" data-week="${key}">
+          <span class="week-list-name">${escapeHtml(weekListLabel(key))}</span>
+          <span class="week-list-days${met ? ' met' : ''}">${done}/${RULES.week_streak_min_days} días</span>
+        </button>`;
+    }).join('');
+    document.getElementById('delete-week-btn').classList.toggle('hidden', state.order.length <= 1);
+  }
+
+  function openWeekSheet(){
+    renderWeekSheet();
+    document.getElementById('week-overlay').classList.remove('hidden');
+    document.querySelector('#week-list .week-list-row.active')?.scrollIntoView({ block:'center' });
+  }
+
+  function closeWeekSheet(){
+    document.getElementById('week-overlay').classList.add('hidden');
+  }
+
+  document.getElementById('week-select-btn').addEventListener('click', openWeekSheet);
+  const weekOverlay = document.getElementById('week-overlay');
+  weekOverlay.addEventListener('click', (e)=>{
+    if(e.target === weekOverlay || e.target.closest('[data-action="close-week-sheet"]')){ closeWeekSheet(); return; }
+    const row = e.target.closest('.week-list-row');
+    if(row){ closeWeekSheet(); selectWeek(row.dataset.week); }
+  });
 
   function selectWeek(key){
     if(!state.weeks[key] || key === state.activeWeek) return;
     state.activeWeek = key;
     migratePickerOpen = false;
     renderAll();
-    const el = document.querySelector(`.week-pill[data-week="${key}"]`);
-    if(el) el.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
   }
 
   // Navega a "Hoy" con la semana/día de una fecha puntual ya seleccionados
@@ -1553,14 +1590,11 @@
     setHoyTab('registro'); // el destino es un día puntual — Resumen no muestra ejercicios
     renderAll();
     switchToView('hoy');
-    const el = document.querySelector(`.week-pill[data-week="${wk}"]`);
-    if(el) el.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
   }
 
-  // doubleConfirm: el botón chico (X) del riel de semanas se queda con un
-  // solo diálogo — ya requiere abrir el riel y apuntarle a un ícono
-  // pequeño. El botón grande al final de "Hoy" es mucho más fácil de tocar
-  // sin querer, así que pide dos confirmaciones seguidas en vez de una.
+  // doubleConfirm: el botón de "Eliminar esta semana" (sheet de semanas)
+  // pide dos confirmaciones seguidas en vez de una — es un botón grande,
+  // fácil de tocar sin querer.
   async function deleteWeek(key, { doubleConfirm = false } = {}){
     if(pendingDelete) finalizePendingDelete(); // evita resucitar un ejercicio en una semana que está por desaparecer
     if(state.order.length <= 1){ showToast('Debe quedar al menos una semana.'); return; }
@@ -1620,38 +1654,65 @@
   document.getElementById('day-switch-prev').addEventListener('click', ()=> stepActiveDay(-1));
   document.getElementById('day-switch-next').addEventListener('click', ()=> stepActiveDay(1));
 
+  // Riel de 7 días (Resumen, ADR 0022): día + número de fecha, un estado
+  // por día — cumplido (relleno), hoy (anillo), el siguiente a entrenar
+  // (contorno), pasado sin registrar (punteado), futuro, o día sin plan
+  // (apagado: descanso, domingo). Tocar uno abre ese día en Hoy.
+  function dayHasPlan(day){
+    return !!day.templateKey || day.exercises.length > 0;
+  }
+
+  function isDayCompleted(day){
+    return day.exercises.filter(e=>e.done).length >= RULES.min_done_per_day;
+  }
+
   function renderDayRack(){
     const host = document.getElementById('day-rack');
     host.innerHTML = '';
     const week = currentWeek();
+    document.getElementById('day-rack-legend').classList.toggle('hidden', !week);
     if(!week) return;
+    const next = nextWorkoutDays(1)[0];
     DAY_ORDER.forEach(dk=>{
-      const doneCount = week.days[dk].exercises.filter(e=>e.done).length;
-      const isCompleted = doneCount >= RULES.min_done_per_day;
-      const migratedFrom = week.days[dk].migratedFrom;
-      const tab = document.createElement('div');
-      tab.className = 'day-tab' + (dk === state.activeDay ? ' active' : '') + (isCompleted ? ' completed' : '');
+      const day = week.days[dk];
+      const date = dayDate(state.activeWeek, dk);
+      const isToday = date.getTime() === today.getTime();
+      let status;
+      if(isDayCompleted(day)) status = 'done';
+      else if(next && next.weekKey === state.activeWeek && next.dayKey === dk) status = 'next';
+      else if(!dayHasPlan(day)) status = 'rest';
+      else if(date < today) status = 'missed';
+      else status = 'future';
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.className = `day-tab day-tab--${status}` + (isToday ? ' today' : '');
       tab.dataset.day = dk;
+      tab.setAttribute('aria-label', `${DAY_NAMES[dk]} ${date.getDate()} · ${day.group}`);
       tab.innerHTML = `
-        ${migratedFrom ? `<i class="icon migrated-mark fa-solid fa-right-left" title="Migrado de ${DAY_NAMES[migratedFrom]}"></i>` : ''}
-        <div class="plate">${DAY_LETTER[dk]}</div>
-        <div class="dname">${DAY_SHORT[dk]}</div>
-        <span class="muted-tag">${escapeHtml(week.days[dk].group.split(' ')[0])}</span>
+        ${day.migratedFrom ? `<i class="icon migrated-mark fa-solid fa-right-left" title="Migrado de ${DAY_NAMES[day.migratedFrom]}"></i>` : ''}
+        <span class="dname">${isToday ? 'Hoy' : DAY_SHORT[dk]}</span>
+        <span class="dnum">${date.getDate()}</span>
       `;
-      // El riel de días vive en Resumen (desde 1.59.0): tocar un día
-      // puntual manda a ver sus ejercicios, así que salta a la pestaña
-      // Hoy — mismo criterio que goToDate() desde Historial/Calendario.
-      tab.addEventListener('click', ()=>{
-        state.activeDay = dk;
-        migratePickerOpen = false;
-        setHoyTab('registro');
-        renderDayRack();
-        renderDaySwitcher();
-        renderDayPanel();
-        renderWeeklyRecap();
-      });
+      tab.addEventListener('click', ()=> openDayInHoy(state.activeWeek, dk));
       host.appendChild(tab);
     });
+  }
+
+  // Abre un día puntual en la pestaña Hoy — el riel de días y las cards de
+  // "Siguiente entrenamiento" viven en Resumen, que no muestra ejercicios.
+  function openDayInHoy(weekKey, dayKey){
+    if(!state.weeks[weekKey]) return;
+    const weekChanged = weekKey !== state.activeWeek;
+    state.activeWeek = weekKey;
+    state.activeDay = dayKey;
+    migratePickerOpen = false;
+    setHoyTab('registro');
+    window.scrollTo({ top: 0 });
+    if(weekChanged){ renderAll(); return; }
+    renderDayRack();
+    renderDaySwitcher();
+    renderDayPanel();
+    renderWeeklyRecap();
   }
 
   function exerciseRowHtml(ex){
@@ -2081,10 +2142,11 @@
 
   document.getElementById('delete-week-btn').addEventListener('click', ()=>{
     if(!state.activeWeek) return;
+    closeWeekSheet();
     deleteWeek(state.activeWeek, { doubleConfirm: true });
   });
 
-  // "Compartir resumen semanal": vive en la card de racha (Resumen), fuera
+  // "Compartir resumen semanal": vive junto al selector de semana (Resumen), fuera
   // de #day-panel-host — listener propio en vez de la delegación de ese
   // contenedor (que solo cubre lo que está dentro de él).
   document.getElementById('share-dashboard-btn').addEventListener('click', shareDashboardAsImage);
@@ -2106,53 +2168,96 @@
   }
 
   // Umbrales de medallas de racha (bronce/plata/oro a 7/30/100 días) — un
-  // solo arreglo para no repetir los números en renderStreakBadges() (la
-  // medalla ya ganada) y renderNextBadgeProgress() (cuánto falta para la
-  // siguiente).
+  // solo arreglo para la medalla ya ganada y para cuánto falta a la siguiente.
   const STREAK_BADGE_TIERS = [
-    { days: 7,   icon: 'fa-medal',  cls: 'bronze', label: 'Racha de 7+ días',   short: 'bronce (7 días)' },
-    { days: 30,  icon: 'fa-medal',  cls: 'silver', label: 'Racha de 30+ días',  short: 'plata (30 días)' },
-    { days: 100, icon: 'fa-trophy', cls: 'gold',   label: 'Racha de 100+ días', short: 'oro (100 días)' },
+    { days: 7,   icon: 'fa-medal',  cls: 'bronze', name: 'Bronce', label: 'Racha de 7+ días' },
+    { days: 30,  icon: 'fa-medal',  cls: 'silver', name: 'Plata',  label: 'Racha de 30+ días' },
+    { days: 100, icon: 'fa-trophy', cls: 'gold',   name: 'Oro',    label: 'Racha de 100+ días' },
   ];
 
-  // Solo la medalla más alta ya ganada (no las anteriores apiladas): a los
-  // 100 días se ve solo el trofeo dorado, no bronce+plata+oro juntos —
-  // ahora que el ícono es grande (a la altura de la racha), mostrar varios
-  // competía por espacio con el número.
+  // Medalla grande a la derecha del número: la más alta ya ganada. Sin
+  // ninguna todavía, la de bronce apagada (a qué se apunta).
   function renderStreakBadges(current){
     const host = document.getElementById('streak-badges');
     if(!host) return;
     const tier = [...STREAK_BADGE_TIERS].reverse().find(t => current >= t.days);
-    host.innerHTML = tier
-      ? `<i class="icon streak-hero-badge-ico milestone-ico ${tier.cls} fa-solid ${tier.icon}" title="${tier.label}" aria-label="${tier.label}"></i>`
-      : '';
+    const shown = tier || STREAK_BADGE_TIERS[0];
+    host.className = `streak-hero-medal ${shown.cls}${tier ? '' : ' locked'}`;
+    host.title = tier ? tier.label : `Medalla de bronce a los ${shown.days} días`;
+    host.innerHTML = `
+      <span class="medal-disc"><i class="icon fa-solid ${shown.icon}" aria-hidden="true"></i></span>
+      <span class="medal-name">${tier ? shown.name : 'Sin medalla'}</span>`;
   }
 
-  // Cuánto falta para la próxima medalla — complementa el ícono grande de
-  // arriba con algo concreto por lo que seguir. Vacío al llegar a la de
-  // oro (no hay "siguiente" después de esa).
+  // Barra hacia la próxima medalla, del color de esa medalla. Vacía al
+  // llegar a la de oro (no hay "siguiente" después de esa).
   function renderNextBadgeProgress(current){
     const host = document.getElementById('streak-next-badge');
     if(!host) return;
-    const next = STREAK_BADGE_TIERS.find(t => current < t.days);
-    if(!next){ host.textContent = ''; return; }
+    const idx = STREAK_BADGE_TIERS.findIndex(t => current < t.days);
+    if(idx === -1){ host.innerHTML = ''; return; }
+    const next = STREAK_BADGE_TIERS[idx];
+    const from = idx > 0 ? STREAK_BADGE_TIERS[idx - 1].days : 0;
+    const pct = Math.max(0, Math.min(100, ((current - from) / (next.days - from)) * 100));
     const remaining = next.days - current;
-    host.textContent = `Faltan ${remaining} día${remaining === 1 ? '' : 's'} para la medalla de ${next.short}.`;
+    host.innerHTML = `
+      <div class="streak-next-bar ${next.cls}"><span style="width:${pct.toFixed(1)}%"></span></div>
+      <div class="streak-next-text">Faltan <strong>${diasLabel(remaining)}</strong> para la medalla de ${next.name.toLowerCase()}</div>`;
+  }
+
+  // Condición de la racha: la semana en curso (la de calendario, no la que
+  // se esté viendo) necesita RULES.week_streak_min_days días cumplidos
+  // para que la racha siga el lunes — un segmento por día requerido.
+  function renderStreakWeek(){
+    const host = document.getElementById('streak-week');
+    if(!host) return;
+    const need = RULES.week_streak_min_days;
+    const week = state.weeks[todayMondayKey];
+    const done = week ? weekDoneDays(week) : 0;
+    const todayIdx = DAY_ORDER.indexOf(WEEKDAY_TO_KEY[today.getDay()] || 'dom');
+    const todayDone = week ? isDayCompleted(week.days[DAY_ORDER[todayIdx]]) : false;
+    const daysLeft = DAY_ORDER.length - todayIdx - (todayDone ? 1 : 0);
+    const missing = Math.max(0, need - done);
+    const faltan = `Te ${missing === 1 ? 'falta' : 'faltan'} <em>${diasLabel(missing)}</em> esta semana`;
+    let title, sub;
+    if(!missing){
+      title = 'Semana cumplida';
+      sub = 'La racha sigue el lunes. Lo que entrenes de aquí al domingo suma.';
+    } else if(missing > daysLeft){
+      title = faltan;
+      sub = 'Ya no alcanzan los días: la racha vuelve a empezar el lunes.';
+    } else {
+      title = faltan;
+      sub = `Llega a ${need} para que la racha siga el lunes.`;
+    }
+    const segs = Array.from({ length: need }, (_, i) => `<span class="${i < done ? 'on' : ''}"></span>`).join('');
+    host.innerHTML = `
+      <div class="streak-week-top">
+        <span class="streak-week-title${missing ? '' : ' met'}">${title}</span>
+        <span class="streak-week-count">${Math.min(done, need)}/${need}</span>
+      </div>
+      <div class="streak-week-segs">${segs}</div>
+      <div class="streak-week-sub">${sub}</div>`;
   }
 
   function updateStreakBadge(){
     const { current, best } = computeStreaks();
 
     const badge = document.getElementById('streak-badge');
-    badge.textContent = diasLabel(current);
+    badge.textContent = current;
     badge.classList.toggle('complete', current > 0);
+    document.getElementById('streak-unit').textContent = current === 1 ? 'día' : 'días';
     renderStreakBadges(current);
     renderNextBadgeProgress(current);
+    renderStreakWeek();
 
-    document.getElementById('sum-best-streak').textContent = diasLabel(best);
+    document.getElementById('sum-best-streak').innerHTML = current > 0 && current >= best
+      ? '<i class="icon fa-solid fa-star"></i>Tu mejor racha de siempre'
+      : `Mejor racha: <strong>${diasLabel(best)}</strong>`;
 
     // Los cards de día, el calendario, el historial, progreso e hitos dependen del mismo estado, así que se refrescan aquí también
     renderDayRack();
+    renderNextWorkout();
     renderCalendar();
     renderHeatmap();
     renderHistorial();
@@ -2291,56 +2396,232 @@
     return { done: doneDays.length, total: relevantDays.length };
   }
 
+  function computeWeekMinutes(week, days){
+    return days.reduce((sum, dk) => sum + (week.days[dk].durationMin || 0), 0);
+  }
+
+  function computeWeekSeries(week, days){
+    let n = 0;
+    days.forEach(dk => week.days[dk].exercises.forEach(e=>{
+      if(!e.done) return;
+      const series = parseInt(e.series, 10);
+      if(!isNaN(series)) n += series;
+    }));
+    return n;
+  }
+
+  function fmtMinutes(min){
+    if(!min) return '0 min';
+    const h = Math.floor(min / 60), m = min % 60;
+    return h ? `${h} h${m ? ` ${String(m).padStart(2, '0')}` : ''}` : `${m} min`;
+  }
+
+  // "Esta semana": tiempo, volumen y series de la semana activa, cada uno
+  // contra la semana anterior. Si la activa es la semana en curso, las dos
+  // se miden solo hasta hoy (ej. miércoles: lun–mié en ambas) — sin eso, una
+  // semana a medio andar siempre se ve "peor" que una ya cerrada.
   function renderWeeklyRecap(){
     const host = document.getElementById('weekly-recap-host');
     if(!host) return;
 
     const curKey = state.activeWeek;
     const curWeek = curKey ? state.weeks[curKey] : null;
-    const prevKey = curKey ? getPrevWeekKey(curKey) : null;
+    if(!curWeek){ host.classList.add('hidden'); host.innerHTML = ''; return; }
+    const prevKey = getPrevWeekKey(curKey);
     const prevWeek = prevKey ? state.weeks[prevKey] : null;
 
     // Solo cuenta como "semana pasada" real si el lunes anterior cae
     // EXACTAMENTE 7 días antes — getPrevWeekKey() da la entrada adyacente
     // en state.order, que puede saltar un hueco (mes entero sin semanas).
-    const isAdjacent = !!(curWeek && prevWeek && (fromISO(curKey) - fromISO(prevKey)) === 7 * 86400000);
+    const isAdjacent = !!(prevWeek && (fromISO(curKey) - fromISO(prevKey)) === 7 * 86400000);
 
-    if(!isAdjacent){ host.classList.add('hidden'); host.innerHTML = ''; return; }
-
-    // Si la semana activa es la semana en curso, comparar solo hasta hoy
-    // (ej. si hoy es miércoles, ambas semanas se miden lun-mié) — sin esto,
-    // una semana a mitad de andar siempre se ve "peor" que una ya cerrada.
-    // Una semana pasada y ya terminada se compara completa (lun-dom),
-    // porque ahí no hay nada a medio registrar todavía.
-    const allDays = DAY_ORDER;
-    const isCurrentWeek = curKey === toISO(mondayOfWeek(today));
-    let days = allDays;
+    const isCurrentWeek = curKey === todayMondayKey;
+    let days = DAY_ORDER;
     if(isCurrentWeek){
-      const todayDow = today.getDay(); // 0=domingo..6=sábado
-      const cutoffKey = WEEKDAY_TO_KEY[todayDow] || 'dom';
-      days = allDays.slice(0, allDays.indexOf(cutoffKey) + 1);
+      const cutoffKey = WEEKDAY_TO_KEY[today.getDay()] || 'dom';
+      days = DAY_ORDER.slice(0, DAY_ORDER.indexOf(cutoffKey) + 1);
     }
 
-    const curVol = computeWeekVolume(curWeek, days), prevVol = computeWeekVolume(prevWeek, days);
-    const volDelta = prevVol > 0 ? ((curVol - prevVol) / prevVol) * 100 : null;
-    const curAdh = computeWeekAdherence(curWeek, days), prevAdh = computeWeekAdherence(prevWeek, days);
-    const deltaColor = (volDelta ?? 0) >= 0 ? 'var(--ok)' : 'var(--danger)';
+    const measure = (week)=> ({ min: computeWeekMinutes(week, days), vol: computeWeekVolume(week, days), series: computeWeekSeries(week, days) });
+    const cur = measure(curWeek);
+    const prev = isAdjacent ? measure(prevWeek) : null;
+
+    const delta = (diff, text)=>{
+      if(diff === null) return '';
+      const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+      return ` · <span class="stat-delta ${cls}">${diff > 0 ? '+' : diff < 0 ? '−' : '='}${diff ? text : ''}</span>`;
+    };
+    const minDiff = prev ? cur.min - prev.min : null;
+    const volPct = prev && prev.vol > 0 ? Math.round(((cur.vol - prev.vol) / prev.vol) * 100) : null;
+    const seriesDiff = prev ? cur.series - prev.series : null;
+
+    const title = isCurrentWeek ? 'Esta semana' : `Semana ${weekLabel(curKey)}`;
+    const vs = prev
+      ? `vs. la anterior${days.length < DAY_ORDER.length ? `, hasta el ${DAY_NAMES[days[days.length-1]].toLowerCase()}` : ''}`
+      : 'sin semana anterior para comparar';
 
     host.classList.remove('hidden');
     host.innerHTML = `
-      <div class="recap-title">Esta semana vs. la pasada${days.length < allDays.length ? ` (hasta ${DAY_NAMES[days[days.length-1]]})` : ''}</div>
-      <div class="recap-row">
-        <div class="recap-item">
-          <div class="k">Volumen</div>
-          <div class="v">${Math.round(curVol).toLocaleString('es-MX')} kg${volDelta === null ? '' :
-            ` <span class="recap-delta" style="color:${deltaColor}">${volDelta >= 0 ? '+' : ''}${volDelta.toFixed(0)}%</span>`}</div>
+      <div class="section-head">
+        <span class="section-title">${title}</span>
+        <span class="section-aside">${vs}</span>
+      </div>
+      <div class="week-stats-row">
+        <div class="week-stat">
+          <span class="stat-ico"><i class="icon fa-regular fa-clock"></i></span>
+          <span class="stat-v">${fmtMinutes(cur.min)}</span>
+          <span class="stat-k">Tiempo${delta(minDiff, `${Math.abs(minDiff ?? 0)} min`)}</span>
         </div>
-        <div class="recap-item">
-          <div class="k">Adherencia</div>
-          <div class="v">${curAdh.done}/${curAdh.total} <span class="recap-vs">(antes ${prevAdh.done}/${prevAdh.total})</span></div>
+        <div class="week-stat">
+          <span class="stat-ico"><i class="icon fa-solid fa-dumbbell"></i></span>
+          <span class="stat-v">${Math.round(cur.vol).toLocaleString('es-MX')}</span>
+          <span class="stat-k">kg${delta(volPct, `${Math.abs(volPct ?? 0)}%`)}</span>
+        </div>
+        <div class="week-stat">
+          <span class="stat-ico"><i class="icon fa-solid fa-list"></i></span>
+          <span class="stat-v">${cur.series}</span>
+          <span class="stat-k">Series${delta(seriesDiff, `${Math.abs(seriesDiff ?? 0)}`)}</span>
         </div>
       </div>`;
   }
+
+  // ============================================================
+  // Siguiente entrenamiento (Resumen, ADR 0022)
+  // ============================================================
+  // Próximos días por entrenar, desde hoy: con plan (plantilla del split o
+  // ejercicios ya cargados) y todavía sin cumplir. Recorre la semana en
+  // curso y, si ya existe, la siguiente.
+  function nextWorkoutDays(limit){
+    const out = [];
+    const nextMonday = new Date(mondayOfWeek(today)); nextMonday.setDate(nextMonday.getDate() + 7);
+    [todayMondayKey, toISO(nextMonday)].forEach(wk=>{
+      const week = state.weeks[wk];
+      if(!week) return;
+      DAY_ORDER.forEach(dk=>{
+        if(out.length >= limit) return;
+        const date = dayDate(wk, dk);
+        const day = week.days[dk];
+        if(date < today || !dayHasPlan(day) || isDayCompleted(day)) return;
+        out.push({ weekKey: wk, dayKey: dk, date, day });
+      });
+    });
+    return out;
+  }
+
+  // Músculos del día a partir de las etiquetas de los huecos de su
+  // plantilla: "Pecho (inclinado)" → pecho, "Cuádriceps / glúteo" → los dos.
+  function planMuscles(plan){
+    const seen = [];
+    plan.slots.forEach(slot=>{
+      slot.label.replace(/\s*\(.*\)\s*/g, '').split('/').forEach(part=>{
+        const m = part.trim();
+        if(!m) return;
+        const low = m.toLowerCase();
+        if(!seen.includes(low)) seen.push(low);
+      });
+    });
+    return seen;
+  }
+
+  // Qué se va a hacer: los ejercicios ya cargados en el día (con su
+  // series×reps si los tienen) o, si está vacío, la guía de su plantilla.
+  function plannedExercises(day){
+    const named = day.exercises.filter(e => (e.name || '').trim());
+    if(named.length){
+      return named.map(e => ({ name: e.name, sets: e.series && e.reps ? `${e.series} × ${e.reps}` : '' }));
+    }
+    const guide = computeGuide(day);
+    if(!guide) return [];
+    const taken = new Set();
+    return guide.rows.map(r=>{
+      const sug = suggestForSlot(r.slot, taken);
+      if(sug) taken.add(sug.key);
+      return { name: sug ? sug.name : r.slot.label, sets: `${r.slot.series} × ${r.slot.reps}` };
+    });
+  }
+
+  // Duración estimada: promedio de las últimas 8 veces que registraste el
+  // mismo grupo con horario (inicio y fin).
+  function estimateDuration(day){
+    const samples = [];
+    for(const wk of state.order){
+      const week = state.weeks[wk];
+      if(!week) continue;
+      for(const dk of [...DAY_ORDER].reverse()){
+        const d = week.days[dk];
+        if(d !== day && d.group === day.group && d.durationMin > 0) samples.push(d.durationMin);
+        if(samples.length >= 8) break;
+      }
+      if(samples.length >= 8) break;
+    }
+    if(!samples.length) return null;
+    return Math.round(samples.reduce((a, b) => a + b, 0) / samples.length);
+  }
+
+  function nextWorkoutWhen(date){
+    const diff = Math.round((date - today) / 86400000);
+    const name = `${DAY_NAMES[DAY_ORDER[(date.getDay() + 6) % 7]]} ${date.getDate()}`;
+    if(diff === 0) return `Hoy · ${name}`;
+    if(diff === 1) return `Mañana · ${name}`;
+    return name;
+  }
+
+  function renderNextWorkout(){
+    const host = document.getElementById('next-workout-host');
+    if(!host) return;
+    const items = nextWorkoutDays(3);
+    if(!items.length){ host.classList.add('hidden'); host.innerHTML = ''; return; }
+    const cards = items.map((it, i)=>{
+      const plan = DAY_PLANS[it.day.templateKey];
+      const muscles = plan ? planMuscles(plan) : [];
+      const head = `
+          <div class="nw-when">${nextWorkoutWhen(it.date)}</div>
+          <div class="nw-group">${escapeHtml(it.day.group)}</div>
+          ${muscles.length ? `<div class="nw-muscles">${escapeHtml(muscles.join(', ').replace(/^./, c => c.toUpperCase()))}</div>` : ''}`;
+      // Las que siguen van compactas (cuándo, grupo, músculos): se asoman a
+      // la derecha para invitar al scroll sin competir con la primera.
+      if(i > 0){
+        return `<button type="button" class="card nw-card nw-card--peek" data-action="nw-open" data-week="${it.weekKey}" data-day="${it.dayKey}">${head}</button>`;
+      }
+      const exs = plannedExercises(it.day);
+      const shown = exs.slice(0, 2);
+      const more = exs.length - shown.length;
+      const est = estimateDuration(it.day);
+      const isToday = it.date.getTime() === today.getTime();
+      const inProgress = isToday && !!it.day.startTime && !it.day.endTime;
+      const btn = isToday
+        ? `<button type="button" class="btn btn--primary nw-go" data-action="nw-start" data-week="${it.weekKey}" data-day="${it.dayKey}"><i class="icon fa-solid ${inProgress ? 'fa-arrow-right' : 'fa-play'}"></i>${inProgress ? 'Continuar' : 'Empezar'}</button>`
+        : `<button type="button" class="btn nw-go" data-action="nw-open" data-week="${it.weekKey}" data-day="${it.dayKey}">Ver día<i class="icon fa-solid fa-arrow-right"></i></button>`;
+      return `
+        <article class="card nw-card">${head}
+          ${shown.length ? `<ul class="nw-list">${shown.map(e => `<li><span class="nw-name">${escapeHtml(e.name)}</span>${e.sets ? `<span class="nw-sets">${escapeHtml(e.sets)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+          ${more > 0 ? `<div class="nw-more">+ ${more} ejercicio${more === 1 ? '' : 's'}</div>` : ''}
+          <div class="nw-foot">
+            <span class="nw-est">${est ? `<i class="icon fa-regular fa-clock"></i>≈ ${est} min` : ''}</span>
+            ${btn}
+          </div>
+        </article>`;
+    }).join('');
+    host.classList.remove('hidden');
+    host.innerHTML = `
+      <div class="section-head">
+        <span class="section-title">Siguiente entrenamiento</span>
+        ${items.length > 1 ? `<span class="section-aside">${items.length - 1} más</span>` : ''}
+      </div>
+      <div class="nw-rail${items.length > 1 ? ' nw-rail--many' : ''}">${cards}</div>`;
+  }
+
+  document.getElementById('next-workout-host').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action^="nw-"]');
+    if(!btn) return;
+    openDayInHoy(btn.dataset.week, btn.dataset.day);
+    // "Empezar" solo existe en la card de hoy: arranca el cronómetro de la
+    // sesión (mismo efecto que el botón ▶ de Hoy) si no estaba corriendo.
+    const day = currentDay();
+    if(btn.dataset.action === 'nw-start' && day && !day.startTime){
+      saveDaySession({ start_time: nowHHMM(), end_time: null, duration_min: null });
+    }
+  });
 
   // ============================================================
   // Acciones sobre ejercicios
@@ -3505,144 +3786,23 @@
     return clone;
   }
 
-  // Empareja los ítems reales del flex de un riel con sus clones: por lo
-  // general son los hijos directos, pero #week-rail mete los pills
-  // adentro de un #week-pills{display:contents} (para no armar el botón
-  // "+ Nueva semana" desde JS) — un nodo con display:contents no genera
-  // caja propia, así que sus HIJOS son los que cuentan como ítems del
-  // flex, no él. El display computado se mira siempre sobre el nodo VIVO
-  // (`liveEl`): sobre un clon todavía fuera del DOM, `getComputedStyle`
-  // no siempre resuelve `display:contents` bien (algunos navegadores
-  // devuelven el valor inicial en vez del que trae el `style` inline),
-  // así que el clon se recorre en paralelo por posición en vez de
-  // preguntarle a él directamente.
-  function pairedFlexItems(liveEl, cloneEl){
-    const live = [];
-    const clone = [];
-    Array.from(liveEl.children).forEach((liveChild, i)=>{
-      const cloneChild = cloneEl.children[i];
-      if(getComputedStyle(liveChild).display === 'contents'){
-        const sub = pairedFlexItems(liveChild, cloneChild);
-        live.push(...sub.live);
-        clone.push(...sub.clone);
-      } else {
-        live.push(liveChild);
-        clone.push(cloneChild);
-      }
-    });
-    return { live, clone };
-  }
-
-  // Ancho de contenido de .dashboard-share: 520px de card menos su
-  // padding horizontal (14px a cada lado) — ver esa regla en
-  // css/styles.css. Si esos valores cambian ahí, hay que actualizar este
-  // número también.
-  const SHARE_CONTENT_WIDTH = 520 - 14 * 2;
-
-  // Igual que cloneForShare, pero para un riel horizontal (.week-rail,
-  // .day-rack). Antes recortaba con overflow+scrollLeft dejando el último
-  // ítem cortado a la mitad, y fijaba el ancho del clon al `clientWidth`
-  // EN VIVO del riel real — si el celular de origen es más angosto que la
-  // card exportada (520px, fija), el clon quedaba encogido a ese ancho
-  // angosto adentro de una card más ancha, dejando un hueco vacío a la
-  // derecha (bug real, encontrado con capturas reales del usuario). Los
-  // dos casos se resuelven distinto porque los ítems de cada riel se
-  // comportan distinto:
-  function cloneRailForShare(el, { stretch = false } = {}){
-    const clone = cloneForShare(el);
-    const { live: liveItems, clone: cloneItems } = pairedFlexItems(el, clone);
-    const eps = 2; // tolerancia por redondeo subpixel
-
-    if(stretch){
-      // .day-rack: los tabs son porcentuales (`flex:0 0 calc((100% -
-      // 24px)/5)` en css/styles.css), su ancho en vivo escala con el
-      // contenedor y no sirve para calcular cuántos entran en un
-      // contenedor de otro ancho — pero como escalan, siempre entran
-      // exactamente los mismos "de los 7" sea cual sea el ancho (Lun-Vie
-      // por defecto, Sáb/Dom solo si el riel real está scrolleado hasta
-      // ahí). Por eso el conjunto se decide igual que antes —
-      // getBoundingClientRect() contra el propio riel, no offsetLeft:
-      // ninguno de los dos riels tiene position:relative/absolute, así
-      // que el offsetParent real de sus hijos es algún ancestro más
-      // arriba, y offsetLeft quedaba medido contra ESE ancestro (bug
-      // real: se perdía el día "vie" por 14px de sesgo fijo) — y lo que
-      // cambia es que el clon se ensancha al 100% del ancho real de la
-      // card (no al `clientWidth` angosto del celular de origen) y esos
-      // tabs reparten ESE ancho entre ellos.
-      const containerRect = el.getBoundingClientRect();
-      liveItems.forEach((liveItem, i)=>{
-        const r = liveItem.getBoundingClientRect();
-        const fullyVisible = r.left >= containerRect.left - eps && r.right <= containerRect.right + eps;
-        if(!fullyVisible) cloneItems[i].remove();
-      });
-      clone.style.width = '100%';
-      clone.style.overflow = 'hidden';
-      Array.from(clone.children).forEach(item => { item.style.flex = '1 1 0'; });
-      return clone;
-    }
-
-    // .week-rail: los pills tienen ancho propio por su texto
-    // (`flex-shrink:0`, no escalan con el contenedor), así que si el
-    // celular de origen es más angosto que la card exportada entraban
-    // menos pills de los que en realidad caben en la imagen final. En vez
-    // de recortar contra el ancho angosto del celular, se arranca en el
-    // mismo pill donde el riel real ya está scrolleado (mismo criterio de
-    // "qué se ve hoy") y se van sumando anchos reales (con su gap) hasta
-    // llenar SHARE_CONTENT_WIDTH — así entran más semanas si el export
-    // tiene más lugar que el celular de origen.
-    const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
-    const containerLeft = el.getBoundingClientRect().left;
-    let startIndex = liveItems.findIndex(item => item.getBoundingClientRect().right > containerLeft + eps);
-    if(startIndex === -1) startIndex = 0;
-    let used = 0;
-    let endIndex = startIndex;
-    for(let i = startIndex; i < liveItems.length; i++){
-      const w = liveItems[i].getBoundingClientRect().width;
-      const next = used + (i > startIndex ? gap : 0) + w;
-      if(next > SHARE_CONTENT_WIDTH + eps) break;
-      used = next;
-      endIndex = i + 1;
-    }
-    cloneItems.forEach((item, i) => { if(i < startIndex || i >= endIndex) item.remove(); });
-    clone.style.width = '100%';
-    clone.style.overflow = 'hidden';
-    return clone;
-  }
-
-  // Arma, fuera de pantalla, el mismo bloque que se ve arriba de "Hoy":
-  // header con racha, riel de semanas, riel de días, tira de resumen y
-  // (si hay datos) la card de comparación semanal. Clona el DOM real en
-  // vez de reconstruir HTML a mano para que el export nunca se desalinee
-  // de lo que la app ya renderiza.
+  // Arma, fuera de pantalla, el resumen de la semana: header, semana, racha,
+  // riel de días y "Esta semana". Clona el DOM real en vez de reconstruir
+  // HTML a mano para que el export nunca se desalinee de lo que la app ya
+  // renderiza. cloneNode no depende de la visibilidad del original, así que
+  // funciona sin importar qué pestaña de Semana esté activa.
   function buildDashboardShareContainer(){
     const card = document.createElement('div');
     card.className = 'dashboard-share';
     const headerClone = cloneForShare(document.querySelector('header.app-head'));
     headerClone.querySelector('.head-settings')?.remove(); // el ícono de Ajustes no tiene sentido en una imagen
     card.appendChild(headerClone);
-    const weekRailClone = cloneRailForShare(document.getElementById('week-rail'));
-    // El <input type="date"> de "+ Nueva semana" es invisible en la app real
-    // gracias a #new-week-date{opacity:0} (selector por id) — como
-    // cloneForShare() quita los ids para evitar duplicados, esa regla ya no
-    // aplica al clon y el input aparecería como una caja blanca suelta. No
-    // tiene sentido en una imagen estática de todos modos, así que se saca.
-    weekRailClone.querySelector('input[type="date"]')?.remove();
-    card.appendChild(weekRailClone);
-    card.appendChild(cloneRailForShare(document.getElementById('day-rack'), { stretch: true }));
-    // La racha vivía en el header (siempre se clonaba); ahora es su propia
-    // card en la pestaña Resumen — se agrega aparte para no perderla de la
-    // imagen. Funciona sin importar qué pestaña de Hoy esté activa: cloneNode
-    // no depende de la visibilidad del original (ver shareDashboardAsImage()).
-    // Los chips de Series/Volumen del día ya no existen como bloque aparte
-    // (viven en la cabecera del panel del día, dato de HOY, no de la
-    // semana) — se sacaron de la imagen porque nunca fueron parte del
-    // "resumen semanal" que este botón arma.
-    const streakHero = document.getElementById('streak-hero-card');
-    if(streakHero){
-      const streakHeroClone = cloneForShare(streakHero);
-      streakHeroClone.querySelector('.share-btn')?.remove(); // el propio botón de compartir no tiene sentido en la imagen (cloneForShare() ya quitó los ids)
-      card.appendChild(streakHeroClone);
-    }
+    const weekLabelEl = document.createElement('div');
+    weekLabelEl.className = 'dashboard-share-week';
+    weekLabelEl.textContent = document.getElementById('week-select-label').textContent;
+    card.appendChild(weekLabelEl);
+    card.appendChild(cloneForShare(document.getElementById('streak-hero-card')));
+    card.appendChild(cloneForShare(document.getElementById('day-rack')));
     const recapHost = document.getElementById('weekly-recap-host');
     if(recapHost && !recapHost.classList.contains('hidden') && recapHost.innerHTML.trim()){
       card.appendChild(cloneForShare(recapHost));
@@ -3678,8 +3838,8 @@
     }, 'image/png');
   }
 
-  // Resumen semanal (header + riel de semanas + riel de días + tira de
-  // resumen + comparación semanal) como una sola imagen PNG, copiada al
+  // Resumen semanal (header + semana + racha + riel de días + "Esta
+  // semana") como una sola imagen PNG, copiada al
   // portapapeles — ver copyElementAsImage() y buildDashboardShareContainer().
   async function shareDashboardAsImage(){
     const container = buildDashboardShareContainer();
@@ -4244,8 +4404,7 @@
     const many = (n, html)=> Array(n).fill(html).join('');
 
     // Hoy
-    set('week-pills', many(4, box('skeleton-pill')));
-    set('day-rack', many(5, box('skeleton-daytab')));
+    set('day-rack', many(7, box('skeleton-daytab')));
     set('day-panel-host', `
       <div class="card day-panel" aria-hidden="true">
         <div class="day-panel-head">

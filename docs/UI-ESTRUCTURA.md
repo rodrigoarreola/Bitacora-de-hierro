@@ -113,27 +113,31 @@ ADR 0015): antes eran "Hoy" (vista) y "Registro" (pestaña).
 
 ### Resumen (pestaña por defecto)
 
-1. **Riel de semanas.** Botón "+ Nueva semana" (abre selector de fecha, se
-   ajusta al lunes más cercano) seguido de una píldora por semana. La
-   semana activa muestra una X para eliminarla (si hay más de una). Tocar
-   una semana **se queda en Resumen** (refresca riel de días, racha y
-   comparación).
-2. **Riel de días.** 7 pestañas (L M X J V S D): letra en "placa", nombre
-   corto y grupo muscular (primera palabra). Estados: activa / completada
-   (≥ mínimo de ejercicios) / con marca de "migrado". Tocar un día **manda
-   a Hoy** con ese día cargado (mismo patrón que `goToDate()`).
-3. **Card de racha:** número grande + una sola medalla (bronce/plata/oro a
-   7/30/100 días — solo la más alta ya ganada, del alto del número) + botón
-   **compartir resumen semanal** (imagen); debajo de una línea divisoria,
-   "Mejor racha" y cuánto falta para la siguiente medalla. Antes vivía en
-   el header, visible en las 6 pantallas; ahora solo se ve acá.
-4. **Comparación semanal** (tarjeta, solo si la semana anterior es la
-   inmediata): "Esta semana vs. la pasada", con Volumen (± %) y
-   Adherencia (hechos/total y "antes X/Y"). En la semana en curso compara
-   solo hasta el día de hoy.
-5. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
+Rediseñado en 1.68.0 (ADR 0022):
+
+1. **Fila de semana.** Píldora "Esta semana · 21–27 sep ▾" que abre el
+   **sheet de semanas** (todas, con sus días cumplidos `N/5 días`; al pie
+   fijo, **Eliminar esta semana** con doble confirmación) + "+ Nueva"
+   (selector de fecha, se ajusta al lunes más cercano) + botón **compartir
+   resumen semanal** (imagen). Elegir una semana **se queda en Resumen**.
+2. **Card de racha:** "Racha actual", número a 104 px + "días", "Tu mejor
+   racha de siempre" o la mejor racha, medalla grande (la más alta ganada;
+   sin ninguna, bronce apagada), barra hacia la próxima medalla. Debajo de
+   una línea, la condición: "Te faltan N días esta semana" con un segmento
+   por día requerido (semana de calendario en curso).
+3. **Riel de días.** 7 días sin scroll: día (u "Hoy") y número de fecha.
+   Estados: cumplido / hoy (anillo) / siguiente / sin registrar (punteado) /
+   futuro / sin plan (apagado), marca de "migrado" y leyenda. Tocar un día
+   **manda a Hoy** con ese día cargado.
+4. **Siguiente entrenamiento:** carrusel de hasta 3 días con plan y sin
+   cumplir, desde hoy. La primera card: cuándo, grupo, músculos, 2
+   ejercicios con series×reps, "+ N ejercicios", duración estimada y
+   "Empezar" (solo hoy: abre el día y arranca la sesión) o "Ver día". Las
+   demás, compactas.
+5. **Esta semana:** tiempo, kg de volumen y series hechas, cada uno contra
+   la semana anterior (en la semana en curso, solo hasta hoy).
+6. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
    ajustes…").
-6. **Eliminar esta semana** (enlace ghost, con doble confirmación).
 
 ### Hoy
 
