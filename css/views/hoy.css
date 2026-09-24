@@ -16,7 +16,8 @@
 }
 .week-select span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .week-select .icon{ font-size:var(--fs-xs); color:var(--text-dim); }
-.week-select-row .add-week{ margin-left:auto; border:none; padding:var(--sp-2); font-family:var(--font-body); font-size:13px; }
+.week-select{ margin-right:auto; }
+.week-select-row .add-week{ border:none; padding:var(--sp-2); font-family:var(--font-body); font-size:13px; }
 .week-select-row .share-btn{ flex-shrink:0; }
 
 .week-sheet{ display:flex; flex-direction:column; overflow:hidden; }
@@ -30,6 +31,13 @@
 .week-list-row.active{ border-color:var(--accent); background:var(--accent-faint); }
 .week-list-days{ font-family:var(--font-mono); font-size:12px; color:var(--text-faint); flex-shrink:0; }
 .week-list-days.met{ color:var(--ok); }
+
+/* Semana pasada: en lugar de la card de racha, si esa semana contó (1.69.1). */
+.week-verdict{ display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-4); font-size:14px; font-weight:600; }
+.week-verdict .icon{ font-size:18px; }
+.week-verdict.met{ color:var(--ok); }
+.week-verdict.missed{ color:var(--pending); }
+.week-verdict-n{ font-family:var(--font-mono); font-weight:500; color:var(--text-dim); }
 
 /* ---------- Racha (pestaña Resumen) ---------- */
 /* La card principal (ADR 0022): el número de la racha manda; la medalla y

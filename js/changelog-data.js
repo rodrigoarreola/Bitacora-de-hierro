@@ -2,6 +2,17 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.69.1",
+        "date": "2026-09-24",
+        "title": "las semanas pasadas muestran solo lo que importa",
+        "items": [
+            "Al abrir una semana que ya terminó, Resumen oculta la card de racha, \"Siguiente entrenamiento\", el botón \"+ Nueva\" y \"Siguiente\" en la leyenda de días: solo tienen sentido en la semana en curso.",
+            "En su lugar, arriba ves si esa semana contó para la racha: \"Semana cumplida · 5/5 días\" o \"No cumplida · 2/5 días\".",
+            "La lista de semanas empieza por el mes: \"Agosto 24 – 30\", \"Julio 27 – Agosto 2\"; el año solo aparece en semanas de otros años.",
+            "En \"Series por músculo\" de una semana pasada, lo que no llegó a la meta dice \"faltó 1\" o \"faltaron 10\" en lugar de \"faltan\"."
+        ]
+    },
+    {
         "version": "1.69.0",
         "date": "2026-09-24",
         "title": "cuántas series llevas de cada músculo",

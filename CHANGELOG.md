@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.69.1] - 2026-09-24 — Resumen más limpio en semanas pasadas
+
+### En la app: las semanas pasadas muestran solo lo que importa
+
+- Al abrir una semana que ya terminó, Resumen oculta la card de racha, "Siguiente entrenamiento", el botón "+ Nueva" y "Siguiente" en la leyenda de días: solo tienen sentido en la semana en curso.
+- En su lugar, arriba ves si esa semana contó para la racha: "Semana cumplida · 5/5 días" o "No cumplida · 2/5 días".
+- La lista de semanas empieza por el mes: "Agosto 24 – 30", "Julio 27 – Agosto 2"; el año solo aparece en semanas de otros años.
+- En "Series por músculo" de una semana pasada, lo que no llegó a la meta dice "faltó 1" o "faltaron 10" en lugar de "faltan".
+
+### Changed
+
+- **`js/app.js`**: `isPastActiveWeek()`; `renderAll()` oculta `#streak-hero-card`, `#add-week-btn` y `#legend-next`, y `renderNextWorkout()` no muestra nada si la semana activa es anterior a la actual. `weekMonthLabel()` para la lista del sheet de semanas (mes primero, año solo si no es el actual). `renderMuscleBalance()` usa "faltó/faltaron" en semanas pasadas. `renderWeekVerdict()` (`#week-verdict`) muestra si la semana cumplió `week_streak_min_days`; se refresca también desde `updateStreakBadge()`.
+- **`css/views/hoy.css`**: `.week-verdict`; el selector de semana empuja con `margin-right:auto` para que el botón de compartir quede a la derecha aunque "+ Nueva" esté oculto. La imagen de "Compartir" de una semana pasada tampoco lleva la racha.
+
 ## [1.69.0] - 2026-09-24 — Series por músculo
 
 ### En la app: cuántas series llevas de cada músculo

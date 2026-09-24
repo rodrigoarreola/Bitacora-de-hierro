@@ -1485,7 +1485,33 @@
   // ============================================================
   // Render
   // ============================================================
+  // Semana ya terminada (lunes anterior al de esta semana): Resumen oculta
+  // lo que solo tiene sentido en la semana en curso — la card de racha y
+  // "Siguiente entrenamiento" (ver renderNextWorkout()).
+  function isPastActiveWeek(){
+    return !!state.activeWeek && state.activeWeek < todayMondayKey;
+  }
+
+  // En una semana pasada, en lugar de la racha: si esa semana contó para la
+  // racha ("Semana cumplida · 5/5 días") o no.
+  function renderWeekVerdict(){
+    const el = document.getElementById('week-verdict');
+    const past = isPastActiveWeek();
+    el.classList.toggle('hidden', !past);
+    if(!past){ el.innerHTML = ''; return; }
+    const need = RULES.week_streak_min_days;
+    const done = weekDoneDays(currentWeek());
+    const met = done >= need;
+    el.className = `week-verdict ${met ? 'met' : 'missed'}`;
+    el.innerHTML = `<i class="icon fa-solid ${met ? 'fa-circle-check' : 'fa-circle-xmark'}"></i>${met ? 'Semana cumplida' : 'No cumplida'} · <span class="week-verdict-n">${done}/${need} días</span>`;
+  }
+
   function renderAll(){
+    const past = isPastActiveWeek();
+    document.getElementById('streak-hero-card').classList.toggle('hidden', past);
+    document.getElementById('add-week-btn').classList.toggle('hidden', past);
+    document.getElementById('legend-next').classList.toggle('hidden', past);
+    renderWeekVerdict();
     renderWeekSelect();
     renderDayRack();
     renderDaySwitcher();
@@ -1521,13 +1547,28 @@
     return `Semana · ${weekLabel(key)}`;
   }
 
-  // En la lista: "Esta semana"/"Semana pasada" donde aplica; si no, solo el
-  // rango, con año cuando no es el actual.
+  // Rango de la semana empezando por el mes: "Agosto 24 – 30", o si cruza
+  // de mes "Julio 27 – Agosto 2". Año al final solo si no es el actual
+  // ("Junio 8 – 14, 2025"); si cruza de año, en las dos fechas.
+  function weekMonthLabel(key){
+    const mon = fromISO(key);
+    const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+    const month = d => MESES_LARGO[d.getMonth()];
+    const thisYear = today.getFullYear();
+    if(mon.getFullYear() !== sun.getFullYear()){
+      return `${month(mon)} ${mon.getDate()}, ${mon.getFullYear()} – ${month(sun)} ${sun.getDate()}, ${sun.getFullYear()}`;
+    }
+    const year = mon.getFullYear() !== thisYear ? `, ${mon.getFullYear()}` : '';
+    if(mon.getMonth() === sun.getMonth()) return `${month(mon)} ${mon.getDate()} – ${sun.getDate()}${year}`;
+    return `${month(mon)} ${mon.getDate()} – ${month(sun)} ${sun.getDate()}${year}`;
+  }
+
+  // En la lista: "Esta semana"/"Semana pasada"/"Próxima semana" donde
+  // aplica, seguido del rango con el mes primero.
   function weekListLabel(key){
     const label = weekSelectLabel(key);
-    if(!label.startsWith('Semana · ')) return label;
-    const year = fromISO(key).getFullYear();
-    return weekLabel(key) + (year !== today.getFullYear() ? ` ${year}` : '');
+    const prefix = label.startsWith('Semana · ') ? '' : label.split(' · ')[0] + ' · ';
+    return prefix + weekMonthLabel(key);
   }
 
   function renderWeekSelect(){
@@ -2324,6 +2365,7 @@
     renderStreakBadges(current);
     renderNextBadgeProgress(current);
     renderStreakWeek();
+    renderWeekVerdict();
 
     document.getElementById('sum-best-streak').innerHTML = current > 0 && current >= best
       ? '<i class="icon fa-solid fa-star"></i>Tu mejor racha de siempre'
@@ -2642,7 +2684,12 @@
       else if(n > MUSCLE_SETS_MAX){ status = 'over'; note = `+${n - MUSCLE_SETS_MAX} de más`; }
       else if(n >= MUSCLE_SETS_MIN){ status = 'ok'; note = '<i class="icon fa-solid fa-check"></i>'; }
       else if(pending.has(g.key)){ status = 'pending'; note = 'pendiente'; }
-      else { status = 'low'; note = `faltan ${MUSCLE_SETS_MIN - n}`; }
+      else {
+        // En pasado si la semana ya terminó: "faltó 1" / "faltaron 10".
+        const missing = MUSCLE_SETS_MIN - n;
+        status = 'low';
+        note = isPastActiveWeek() ? `${missing === 1 ? 'faltó' : 'faltaron'} ${missing}` : `faltan ${missing}`;
+      }
       return `
         <div class="mb-row mb-row--${status}">
           <span class="mb-label">${escapeHtml(g.label)}</span>
@@ -2761,7 +2808,7 @@
   function renderNextWorkout(){
     const host = document.getElementById('next-workout-host');
     if(!host) return;
-    const items = nextWorkoutDays(3);
+    const items = isPastActiveWeek() ? [] : nextWorkoutDays(3);
     if(!items.length){ host.classList.add('hidden'); host.innerHTML = ''; return; }
     const cards = items.map(it=>{
       const plan = DAY_PLANS[it.day.templateKey];

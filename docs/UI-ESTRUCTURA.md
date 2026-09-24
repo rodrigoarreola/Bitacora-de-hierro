@@ -113,7 +113,9 @@ ADR 0015): antes eran "Hoy" (vista) y "Registro" (pestaña).
 
 ### Resumen (pestaña por defecto)
 
-Rediseñado en 1.68.0 (ADR 0022):
+Rediseñado en 1.68.0 (ADR 0022): En una semana ya terminada se ocultan la card de racha,
+"Siguiente entrenamiento", "+ Nueva" y "Siguiente" en la leyenda; en su lugar
+sale "Semana cumplida · N/5 días" o "No cumplida · N/5 días" (1.69.1).
 
 1. **Fila de semana.** Píldora "Esta semana · 21–27 sep ▾" que abre el
    **sheet de semanas** (todas, con sus días cumplidos `N/5 días`; al pie
