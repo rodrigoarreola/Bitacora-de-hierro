@@ -24,7 +24,9 @@ De arriba abajo:
 2. **Card de racha**: el número a 104 px (Big Shoulders, verde), medalla
    grande a la derecha (la más alta ganada; sin ninguna, bronce apagada),
    "Tu mejor racha de siempre" o la mejor racha, y una barra del color de
-   la próxima medalla. Debajo de una línea, la condición: "Te faltan N días
+   la próxima medalla, medida desde cero (días actuales / días de esa
+   medalla: 42 días hacia el oro = 42%). Medallas a 10/30/100 días (bronce
+   subió de 7 a 10 en la 1.68.1). Debajo de una línea, la condición: "Te faltan N días
    esta semana", con un segmento por día que pide la regla
    (`week_streak_min_days`). Se mide sobre la semana de calendario en curso,
    no sobre la que se esté viendo. Si ya no alcanzan los días, lo dice.
@@ -34,12 +36,16 @@ De arriba abajo:
    Tiene leyenda. Tocar un día abre Hoy en ese día.
 4. **Siguiente entrenamiento**: carrusel de hasta 3 días, desde hoy, con
    plan y todavía sin cumplir (semana en curso y la siguiente si existe).
-   La primera card muestra cuándo, grupo, músculos (de las etiquetas de la
+   Cada card muestra cuándo, grupo, músculos (de las etiquetas de la
    plantilla), 2 ejercicios con series×reps (los cargados o, si el día está
-   vacío, la guía), cuántos más, duración estimada y un botón. Las demás
-   van compactas. La duración es el promedio de las últimas 8 veces del
+   vacío, la guía), un botón "+ N ejercicios" que despliega la rutina
+   completa, duración estimada y un botón. Desde la 1.68.1 todas las cards
+   van completas (antes, las siguientes solo mostraban grupo y músculos). La duración es el promedio de las últimas 8 veces del
    mismo grupo con horario. El botón dice "Empezar" solo en la card de hoy:
-   abre el día y arranca el cronómetro de la sesión. En los demás días dice
+   abre el día y arranca el cronómetro de la sesión (desde la 1.68.1, el
+   botón "Empezar actividad" de Hoy con el contador en vivo; se guarda la
+   hora con segundos para que el contador no dependa de tener la app
+   abierta). En los demás días dice
    "Ver día".
 5. **Esta semana**: tiempo, kg de volumen y series hechas, cada uno con su
    diferencia contra la semana anterior (cortada al día de hoy si es la

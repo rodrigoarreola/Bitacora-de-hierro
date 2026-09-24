@@ -968,6 +968,10 @@
         templateKey: d.template_key || null,
         startTime: d.start_time ? d.start_time.slice(0,5) : null,
         endTime: d.end_time ? d.end_time.slice(0,5) : null,
+        // Con segundos (HH:MM:SS) cuando vienen del cronómetro: la duración
+        // y el contador los usan; los campos de hora muestran solo HH:MM.
+        startClock: d.start_time || null,
+        endClock: d.end_time || null,
         durationMin: d.duration_min,
       };
     });
@@ -2073,40 +2077,96 @@
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }
 
-  function computeDurationMin(startHHMM, endHHMM){
-    if(!startHHMM || !endHHMM) return null;
-    const [sh, sm] = startHHMM.split(':').map(Number);
-    const [eh, em] = endHHMM.split(':').map(Number);
-    let diff = (eh * 60 + em) - (sh * 60 + sm);
-    if(diff < 0) diff += 24 * 60; // cruza medianoche
-    return diff;
-  }
-
   function nowHHMM(){
     const n = new Date();
     return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
   }
 
+  function nowHHMMSS(){
+    return `${nowHHMM()}:${String(new Date().getSeconds()).padStart(2,'0')}`;
+  }
+
+  function clockToSec(t){
+    const [h, m, s] = t.split(':').map(Number);
+    return h * 3600 + m * 60 + (s || 0);
+  }
+
+  // Duración en segundos: de las horas con segundos si las hay (cronómetro),
+  // si no de duration_min (registros viejos o capturados a mano).
+  function sessionSeconds(day){
+    if(day.startClock && day.endClock){
+      let diff = clockToSec(day.endClock) - clockToSec(day.startClock);
+      if(diff < 0) diff += 24 * 3600; // cruza medianoche
+      return diff;
+    }
+    return day.durationMin == null ? null : day.durationMin * 60;
+  }
+
+  function fmtClock(sec){
+    const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+    return [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
+  }
+
+  // Días (semana|día) en los que se tocó "Registrar a mano": muestran los
+  // campos en vez del botón aunque sean hoy y no haya empezado nada.
+  const manualSessionDays = new Set();
+  let sessionTick = null;
+
+  function isActiveDayToday(){
+    return !!state.activeWeek && dayDate(state.activeWeek, state.activeDay).getTime() === today.getTime();
+  }
+
+  function updateSessionTimer(){
+    const day = currentDay();
+    const el = document.getElementById('day-session-timer');
+    if(!day || !day.startClock || !el) return;
+    const [h, m, s] = day.startClock.split(':').map(Number);
+    const start = dayDate(state.activeWeek, state.activeDay);
+    start.setHours(h, m, s || 0, 0);
+    el.textContent = fmtClock(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+  }
+
+  // Tres estados (ADR 0022, 1.68.1). Solo el día de hoy tiene cronómetro:
+  //   sin empezar → botón "Empezar actividad" (+ "Registrar a mano");
+  //   corriendo   → el mismo botón con el contador y "Detener actividad";
+  //   terminado   → los 3 campos, editables. Borrar la hora de fin reanuda.
+  // Cualquier otro día (o "Registrar a mano") va directo a los campos.
   function renderDaySession(){
     const panel = document.getElementById('day-session-panel');
     const week = currentWeek();
     panel.classList.toggle('hidden', !week);
+    clearInterval(sessionTick); sessionTick = null;
     if(!week) return;
 
     const day = currentDay();
     const startEl = document.getElementById('day-session-start');
     const endEl = document.getElementById('day-session-end');
     const durEl = document.getElementById('day-session-duration');
-    const toggleBtn = document.getElementById('day-session-toggle');
+    const goBtn = document.getElementById('day-session-go');
 
     if(document.activeElement !== startEl) startEl.value = day.startTime || '';
     if(document.activeElement !== endEl) endEl.value = day.endTime || '';
-    durEl.textContent = fmtDurationLabel(day.durationMin);
+    const secs = sessionSeconds(day);
+    durEl.textContent = secs == null ? '—' : fmtClock(secs);
 
-    const inProgress = !!day.startTime && !day.endTime;
-    toggleBtn.querySelector('.icon').className = `icon fa-solid ${inProgress ? 'fa-stop' : 'fa-play'}`;
-    toggleBtn.setAttribute('aria-label', inProgress ? 'Finalizar entrenamiento' : 'Iniciar entrenamiento');
-    toggleBtn.classList.toggle('in-progress', inProgress);
+    const running = !!day.startTime && !day.endTime;
+    const manual = manualSessionDays.has(`${state.activeWeek}|${state.activeDay}`);
+    const live = isActiveDayToday() && !day.endTime && (running || !manual);
+    document.getElementById('day-session-live').classList.toggle('hidden', !live);
+    document.getElementById('day-session-fields').classList.toggle('hidden', live);
+    document.getElementById('day-session-manual').classList.toggle('hidden', running);
+    goBtn.classList.toggle('running', running);
+    goBtn.querySelector('.icon').className = `icon fa-solid ${running ? 'fa-stop' : 'fa-play'}`;
+    goBtn.querySelector('.session-go-label').textContent = running ? 'Detener actividad' : 'Empezar actividad';
+    document.getElementById('day-session-timer').classList.toggle('hidden', !running);
+    if(live && running){
+      updateSessionTimer();
+      sessionTick = setInterval(updateSessionTimer, 1000);
+    }
+  }
+
+  function startDaySession(){
+    return saveDaySession({ start_time: nowHHMMSS(), end_time: null, duration_min: null });
   }
 
   async function saveDaySession(fields){
@@ -2119,23 +2179,38 @@
     renderDaySession();
   }
 
-  document.getElementById('day-session-toggle').addEventListener('click', ()=>{
+  document.getElementById('day-session-go').addEventListener('click', ()=>{
     const day = currentDay();
-    const inProgress = !!day.startTime && !day.endTime;
-    if(inProgress){
-      const endTime = nowHHMM();
-      saveDaySession({ start_time: day.startTime, end_time: endTime, duration_min: computeDurationMin(day.startTime, endTime) });
+    if(!day) return;
+    if(day.startTime && !day.endTime){
+      const endClock = nowHHMMSS();
+      const secs = sessionSeconds({ startClock: day.startClock, endClock });
+      saveDaySession({ start_time: day.startClock, end_time: endClock, duration_min: Math.round(secs / 60) });
     } else {
-      saveDaySession({ start_time: nowHHMM(), end_time: null, duration_min: null });
+      startDaySession();
     }
   });
 
+  document.getElementById('day-session-manual').addEventListener('click', ()=>{
+    manualSessionDays.add(`${state.activeWeek}|${state.activeDay}`);
+    renderDaySession();
+    document.getElementById('day-session-start').focus();
+  });
+
+  // Al salir de un campo de hora: solo guarda si cambió (si no, el HH:MM del
+  // campo pisaría los segundos que dejó el cronómetro). Una hora editada a
+  // mano queda sin segundos.
   function handleDaySessionTimeChange(){
+    const day = currentDay();
     const startEl = document.getElementById('day-session-start');
     const endEl = document.getElementById('day-session-end');
     const startTime = startEl.value || null;
     const endTime = endEl.value || null;
-    saveDaySession({ start_time: startTime, end_time: endTime, duration_min: computeDurationMin(startTime, endTime) });
+    if(startTime === (day.startTime || null) && endTime === (day.endTime || null)) return;
+    const start = startTime === day.startTime ? day.startClock : startTime;
+    const end = endTime === day.endTime ? day.endClock : endTime;
+    const secs = start && end ? sessionSeconds({ startClock: start, endClock: end }) : null;
+    saveDaySession({ start_time: start, end_time: end, duration_min: secs == null ? null : Math.round(secs / 60) });
   }
   document.getElementById('day-session-start').addEventListener('focusout', handleDaySessionTimeChange);
   document.getElementById('day-session-end').addEventListener('focusout', handleDaySessionTimeChange);
@@ -2167,10 +2242,10 @@
       : `Día migrado a ${DAY_NAMES[toDay]}.`);
   }
 
-  // Umbrales de medallas de racha (bronce/plata/oro a 7/30/100 días) — un
+  // Umbrales de medallas de racha (bronce/plata/oro a 10/30/100 días) — un
   // solo arreglo para la medalla ya ganada y para cuánto falta a la siguiente.
   const STREAK_BADGE_TIERS = [
-    { days: 7,   icon: 'fa-medal',  cls: 'bronze', name: 'Bronce', label: 'Racha de 7+ días' },
+    { days: 10,  icon: 'fa-medal',  cls: 'bronze', name: 'Bronce', label: 'Racha de 10+ días' },
     { days: 30,  icon: 'fa-medal',  cls: 'silver', name: 'Plata',  label: 'Racha de 30+ días' },
     { days: 100, icon: 'fa-trophy', cls: 'gold',   name: 'Oro',    label: 'Racha de 100+ días' },
   ];
@@ -2189,16 +2264,15 @@
       <span class="medal-name">${tier ? shown.name : 'Sin medalla'}</span>`;
   }
 
-  // Barra hacia la próxima medalla, del color de esa medalla. Vacía al
+  // Barra hacia la próxima medalla, del color de esa medalla, medida desde
+  // cero (42 días hacia el oro = 42%, no el tramo desde la plata). Vacía al
   // llegar a la de oro (no hay "siguiente" después de esa).
   function renderNextBadgeProgress(current){
     const host = document.getElementById('streak-next-badge');
     if(!host) return;
-    const idx = STREAK_BADGE_TIERS.findIndex(t => current < t.days);
-    if(idx === -1){ host.innerHTML = ''; return; }
-    const next = STREAK_BADGE_TIERS[idx];
-    const from = idx > 0 ? STREAK_BADGE_TIERS[idx - 1].days : 0;
-    const pct = Math.max(0, Math.min(100, ((current - from) / (next.days - from)) * 100));
+    const next = STREAK_BADGE_TIERS.find(t => current < t.days);
+    if(!next){ host.innerHTML = ''; return; }
+    const pct = Math.max(0, Math.min(100, (current / next.days) * 100));
     const remaining = next.days - current;
     host.innerHTML = `
       <div class="streak-next-bar ${next.cls}"><span style="width:${pct.toFixed(1)}%"></span></div>
@@ -2228,7 +2302,7 @@
       sub = 'Ya no alcanzan los días: la racha vuelve a empezar el lunes.';
     } else {
       title = faltan;
-      sub = `Llega a ${need} para que la racha siga el lunes.`;
+      sub = `Llega a ${diasLabel(need)} para que la racha siga activa.`;
     }
     const segs = Array.from({ length: need }, (_, i) => `<span class="${i < done ? 'on' : ''}"></span>`).join('');
     host.innerHTML = `
@@ -2446,10 +2520,13 @@
     const cur = measure(curWeek);
     const prev = isAdjacent ? measure(prevWeek) : null;
 
+    // Diferencia contra la semana anterior, en su propia fila; sin semana
+    // para comparar, un guion (la fila no desaparece: las 3 columnas quedan
+    // a la misma altura).
     const delta = (diff, text)=>{
-      if(diff === null) return '';
+      if(diff === null) return '<span class="stat-delta flat">—</span>';
       const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
-      return ` · <span class="stat-delta ${cls}">${diff > 0 ? '+' : diff < 0 ? '−' : '='}${diff ? text : ''}</span>`;
+      return `<span class="stat-delta ${cls}">${diff > 0 ? '+' : diff < 0 ? '−' : '='}${diff ? text : ''}</span>`;
     };
     const minDiff = prev ? cur.min - prev.min : null;
     const volPct = prev && prev.vol > 0 ? Math.round(((cur.vol - prev.vol) / prev.vol) * 100) : null;
@@ -2469,18 +2546,21 @@
       <div class="week-stats-row">
         <div class="week-stat">
           <span class="stat-ico"><i class="icon fa-regular fa-clock"></i></span>
+          <span class="stat-k">Tiempo</span>
           <span class="stat-v">${fmtMinutes(cur.min)}</span>
-          <span class="stat-k">Tiempo${delta(minDiff, `${Math.abs(minDiff ?? 0)} min`)}</span>
+          ${delta(minDiff, `${Math.abs(minDiff ?? 0)} min`)}
         </div>
         <div class="week-stat">
           <span class="stat-ico"><i class="icon fa-solid fa-dumbbell"></i></span>
-          <span class="stat-v">${Math.round(cur.vol).toLocaleString('es-MX')}</span>
-          <span class="stat-k">kg${delta(volPct, `${Math.abs(volPct ?? 0)}%`)}</span>
+          <span class="stat-k">Volumen</span>
+          <span class="stat-v">${Math.round(cur.vol).toLocaleString('es-MX')} kg</span>
+          ${delta(volPct, `${Math.abs(volPct ?? 0)}%`)}
         </div>
         <div class="week-stat">
           <span class="stat-ico"><i class="icon fa-solid fa-list"></i></span>
+          <span class="stat-k">Series</span>
           <span class="stat-v">${cur.series}</span>
-          <span class="stat-k">Series${delta(seriesDiff, `${Math.abs(seriesDiff ?? 0)}`)}</span>
+          ${delta(seriesDiff, `${Math.abs(seriesDiff ?? 0)}`)}
         </div>
       </div>`;
   }
@@ -2566,42 +2646,53 @@
     return name;
   }
 
+  // Cards desplegadas con "+ N ejercicios" (llave semana|día): sobreviven a
+  // los re-render mientras la página esté abierta.
+  const nwExpanded = new Set();
+
   function renderNextWorkout(){
     const host = document.getElementById('next-workout-host');
     if(!host) return;
     const items = nextWorkoutDays(3);
     if(!items.length){ host.classList.add('hidden'); host.innerHTML = ''; return; }
-    const cards = items.map((it, i)=>{
+    const cards = items.map(it=>{
       const plan = DAY_PLANS[it.day.templateKey];
       const muscles = plan ? planMuscles(plan) : [];
-      const head = `
-          <div class="nw-when">${nextWorkoutWhen(it.date)}</div>
-          <div class="nw-group">${escapeHtml(it.day.group)}</div>
-          ${muscles.length ? `<div class="nw-muscles">${escapeHtml(muscles.join(', ').replace(/^./, c => c.toUpperCase()))}</div>` : ''}`;
-      // Las que siguen van compactas (cuándo, grupo, músculos): se asoman a
-      // la derecha para invitar al scroll sin competir con la primera.
-      if(i > 0){
-        return `<button type="button" class="card nw-card nw-card--peek" data-action="nw-open" data-week="${it.weekKey}" data-day="${it.dayKey}">${head}</button>`;
-      }
       const exs = plannedExercises(it.day);
-      const shown = exs.slice(0, 2);
-      const more = exs.length - shown.length;
+      const key = `${it.weekKey}|${it.dayKey}`;
+      const open = nwExpanded.has(key);
+      const more = exs.length - 2;
       const est = estimateDuration(it.day);
       const isToday = it.date.getTime() === today.getTime();
       const inProgress = isToday && !!it.day.startTime && !it.day.endTime;
+      // "Empezar" solo en la card de hoy: en otro día arrancaría el
+      // cronómetro en la fecha equivocada (ADR 0022).
       const btn = isToday
         ? `<button type="button" class="btn btn--primary nw-go" data-action="nw-start" data-week="${it.weekKey}" data-day="${it.dayKey}"><i class="icon fa-solid ${inProgress ? 'fa-arrow-right' : 'fa-play'}"></i>${inProgress ? 'Continuar' : 'Empezar'}</button>`
         : `<button type="button" class="btn nw-go" data-action="nw-open" data-week="${it.weekKey}" data-day="${it.dayKey}">Ver día<i class="icon fa-solid fa-arrow-right"></i></button>`;
+      // Series, "×" y reps en columnas propias (ver .nw-list en hoy.css): así
+      // quedan alineados entre filas aunque cambie el ancho de cada número.
+      const setsHtml = (sets)=>{
+        const [series, reps] = (sets || '').split(' × ');
+        return reps === undefined
+          ? `<span class="nw-series"></span><span class="nw-x"></span><span class="nw-reps">${escapeHtml(series || '')}</span>`
+          : `<span class="nw-series">${escapeHtml(series)}</span><span class="nw-x">×</span><span class="nw-reps">${escapeHtml(reps)}</span>`;
+      };
+      const rows = exs.map((e, i) => `<li${i >= 2 && !open ? ' class="hidden"' : ''}><span class="nw-name">${escapeHtml(e.name)}</span>${setsHtml(e.sets)}</li>`).join('');
       return `
-        <article class="card nw-card">${head}
-          ${shown.length ? `<ul class="nw-list">${shown.map(e => `<li><span class="nw-name">${escapeHtml(e.name)}</span>${e.sets ? `<span class="nw-sets">${escapeHtml(e.sets)}</span>` : ''}</li>`).join('')}</ul>` : ''}
-          ${more > 0 ? `<div class="nw-more">+ ${more} ejercicio${more === 1 ? '' : 's'}</div>` : ''}
+        <article class="card nw-card">
+          <div class="nw-when${isToday ? ' today' : ''}">${nextWorkoutWhen(it.date)}</div>
+          <div class="nw-group">${escapeHtml(it.day.group)}</div>
+          ${muscles.length ? `<div class="nw-muscles">${escapeHtml(muscles.join(', ').replace(/^./, c => c.toUpperCase()))}</div>` : ''}
+          ${exs.length ? `<ul class="nw-list">${rows}</ul>` : ''}
+          ${more > 0 ? `<button type="button" class="nw-more" data-action="nw-toggle" data-key="${key}" aria-expanded="${open}">${open ? 'Ver menos' : `+ ${more} ejercicio${more === 1 ? '' : 's'}`}<i class="icon fa-solid fa-chevron-${open ? 'up' : 'down'}"></i></button>` : ''}
           <div class="nw-foot">
             <span class="nw-est">${est ? `<i class="icon fa-regular fa-clock"></i>≈ ${est} min` : ''}</span>
             ${btn}
           </div>
         </article>`;
     }).join('');
+    const scroll = host.querySelector('.nw-rail')?.scrollLeft || 0;
     host.classList.remove('hidden');
     host.innerHTML = `
       <div class="section-head">
@@ -2609,17 +2700,24 @@
         ${items.length > 1 ? `<span class="section-aside">${items.length - 1} más</span>` : ''}
       </div>
       <div class="nw-rail${items.length > 1 ? ' nw-rail--many' : ''}">${cards}</div>`;
+    host.querySelector('.nw-rail').scrollLeft = scroll;
   }
 
   document.getElementById('next-workout-host').addEventListener('click', (e)=>{
     const btn = e.target.closest('[data-action^="nw-"]');
     if(!btn) return;
+    if(btn.dataset.action === 'nw-toggle'){
+      const key = btn.dataset.key;
+      if(nwExpanded.has(key)) nwExpanded.delete(key); else nwExpanded.add(key);
+      renderNextWorkout();
+      return;
+    }
     openDayInHoy(btn.dataset.week, btn.dataset.day);
     // "Empezar" solo existe en la card de hoy: arranca el cronómetro de la
     // sesión (mismo efecto que el botón ▶ de Hoy) si no estaba corriendo.
     const day = currentDay();
     if(btn.dataset.action === 'nw-start' && day && !day.startTime){
-      saveDaySession({ start_time: nowHHMM(), end_time: null, duration_min: null });
+      startDaySession();
     }
   });
 
@@ -4200,8 +4298,8 @@
             catalogIdOf(e) ? { catalog_exercise_id: catalogIdOf(e) } : {}
           )),
         };
-        if(day.startTime) dayPayload.start_time = day.startTime;
-        if(day.endTime) dayPayload.end_time = day.endTime;
+        if(day.startClock) dayPayload.start_time = day.startClock;
+        if(day.endClock) dayPayload.end_time = day.endClock;
         if(day.durationMin != null) dayPayload.duration_min = day.durationMin;
         days[dk] = dayPayload;
         // Días con contenido migrado tienen su propio group/notes (no el
@@ -4367,6 +4465,19 @@
     state.order.forEach(key => applyWeekDetail(key, bulk.weeks[key]));
 
     state.activeWeek = state.order.includes(todayMondayKey) ? todayMondayKey : (state.order[0] ?? null);
+
+    // Al abrir la app con el cronómetro de hoy corriendo, directo a la
+    // pestaña Hoy en ese día; si no, Resumen como siempre. Solo en la primera
+    // carga: las recargas al volver la red no te cambian de pestaña.
+    if(!dataLoadedOnce){
+      const todayKey = WEEKDAY_TO_KEY[today.getDay()] || 'dom';
+      const todayDay = state.weeks[todayMondayKey]?.days[todayKey];
+      if(todayDay && todayDay.startTime && !todayDay.endTime){
+        state.activeWeek = todayMondayKey;
+        state.activeDay = todayKey;
+        setHoyTab('registro');
+      }
+    }
 
     renderLibraryDatalist();
     renderMyExercises();

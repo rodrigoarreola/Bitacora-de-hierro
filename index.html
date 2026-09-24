@@ -131,9 +131,15 @@
         <button type="button" class="btn btn--icon" id="converter-open-btn" aria-label="Conversor kg / lbs"><i class="icon fa-solid fa-right-left"></i></button>
       </div>
 
-      <div class="card card--compact day-session-panel hidden" id="day-session-panel">
-        <div class="day-session-row">
-          <button class="day-session-toggle" type="button" id="day-session-toggle" aria-label="Iniciar entrenamiento"><i class="icon fa-solid fa-play"></i></button>
+      <div class="day-session-panel hidden" id="day-session-panel">
+        <!-- Cronómetro (solo el día de hoy): Empezar → corre dentro del botón → Detener → aparecen los campos. Ver renderDaySession(). -->
+        <div class="day-session-live hidden" id="day-session-live">
+          <button class="btn btn--primary btn--block session-go" type="button" id="day-session-go">
+            <i class="icon fa-solid fa-play"></i><span class="session-go-label">Empezar actividad</span><span class="session-go-timer hidden" id="day-session-timer">00:00:00</span>
+          </button>
+          <button class="session-manual" type="button" id="day-session-manual">Registrar a mano</button>
+        </div>
+        <div class="day-session-row" id="day-session-fields">
           <div class="day-session-field">
             <label for="day-session-start">Hora inicio</label>
             <input type="time" id="day-session-start" aria-label="Hora de inicio">

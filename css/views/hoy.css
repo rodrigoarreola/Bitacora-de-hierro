@@ -131,34 +131,49 @@
 /* Carrusel horizontal: la primera card completa (qué toca, 2 ejercicios,
    duración estimada, Empezar), las siguientes compactas asomándose. */
 .next-workout{ margin-bottom:30px; }
-.nw-rail{ display:flex; gap:var(--sp-3); overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+.nw-rail{ display:flex; align-items:flex-start; gap:var(--sp-3); overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
 .nw-rail::-webkit-scrollbar{ display:none; }
 .nw-card{
   flex:0 0 100%; box-sizing:border-box; padding:var(--sp-5); border-radius:22px; margin:0;
   display:flex; flex-direction:column; gap:var(--sp-1); scroll-snap-align:start;
 }
 .nw-rail--many .nw-card{ flex-basis:82%; }
-.nw-card--peek{ text-align:left; font-family:var(--font-body); color:var(--text); cursor:pointer; justify-content:flex-start; }
-.nw-when{ font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); }
-.nw-card--peek .nw-when{ color:var(--text-dim); }
+.nw-when{ font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); }
+.nw-when.today{ color:var(--accent); }
 .nw-group{ font-family:var(--font-display); font-weight:800; font-size:34px; line-height:1; text-transform:uppercase; }
 .nw-muscles{ font-size:14px; color:var(--text-dim); line-height:1.45; }
-.nw-list{ list-style:none; margin:var(--sp-2-5) 0 0; padding:0; display:flex; flex-direction:column; gap:var(--sp-2); font-size:13px; }
-.nw-list li{ display:flex; justify-content:space-between; gap:var(--sp-2); }
-.nw-name{ min-width:0; }
-.nw-sets{ font-family:var(--font-mono); color:var(--text-dim); white-space:nowrap; }
-.nw-more{ font-size:13px; color:var(--text-dim); margin-top:var(--sp-2); }
+/* Una grilla para toda la lista (cada <li> con display:contents): nombre |
+   series | × | reps, así las columnas de números quedan alineadas entre
+   filas. Series a la derecha, reps a la izquierda: el "×" cae siempre en
+   la misma x. */
+.nw-list{
+  list-style:none; margin:var(--sp-2-5) 0 0; padding:0; font-size:13px;
+  display:grid; grid-template-columns:minmax(0, 1fr) auto auto auto; column-gap:var(--sp-1-5); row-gap:var(--sp-2); align-items:baseline;
+}
+.nw-list li{ display:contents; }
+.nw-name{ min-width:0; padding-right:var(--sp-2); }
+.nw-series, .nw-x, .nw-reps{ font-family:var(--font-mono); color:var(--text-dim); white-space:nowrap; }
+.nw-series{ text-align:right; }
+.nw-x{ color:var(--text-faint); }
+.nw-reps{ text-align:left; min-width:3ch; }
+.nw-more{ align-self:flex-start; display:flex; align-items:center; gap:var(--sp-1-5); margin-top:var(--sp-2); padding:var(--sp-1) 0; background:none; border:none; font-family:var(--font-body); font-size:13px; font-weight:600; color:var(--accent); cursor:pointer; }
+.nw-more .icon{ font-size:11px; }
 .nw-foot{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3); margin-top:var(--sp-3-5); }
 .nw-est{ display:flex; align-items:center; gap:var(--sp-1-5); font-size:14px; color:var(--text-dim); }
 .nw-go{ height:48px; padding:0 22px; border-radius:999px; font-size:16px; font-weight:700; gap:var(--sp-2); }
 
 /* ---------- Esta semana (pestaña Resumen) ---------- */
 .week-stats{ margin-bottom:var(--sp-4); }
-.week-stats-row{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--sp-2-5); padding:var(--sp-4-5); border:1px solid var(--line); border-radius:22px; }
-.week-stat{ display:flex; flex-direction:column; gap:var(--sp-2); min-width:0; }
-.stat-ico{ width:44px; height:44px; border-radius:var(--r-full); background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--text); }
+/* Cada columna mide lo que su contenido (centrado adentro); la primera va
+   pegada al borde izquierdo, la última al derecho y el espacio sobrante se
+   reparte entre ellas. */
+.week-stats-row{ display:flex; justify-content:space-between; gap:var(--sp-2-5); padding:var(--sp-4-5); border:1px solid var(--line); border-radius:22px; }
+.week-stat{ display:flex; flex-direction:column; align-items:center; gap:var(--sp-1-5); text-align:center; }
+.stat-ico{ margin-bottom:var(--sp-1); width:44px; height:44px; border-radius:var(--r-full); background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--text); }
 .stat-v{ font-family:var(--font-mono); font-size:18px; font-weight:600; color:var(--text); white-space:nowrap; }
 .stat-k{ font-size:12px; color:var(--text-dim); }
+.stat-delta{ font-size:12px; font-weight:600; }
+.stat-delta.flat{ color:var(--text-faint); }
 .stat-delta.up{ color:var(--ok); }
 .stat-delta.down{ color:var(--danger); }
 
@@ -389,18 +404,22 @@
 .dashboard-share .day-rack{ margin-bottom:var(--sp-4); }
 
 /* ---------- Sesión del día (Iniciar/Finalizar entrenamiento) ---------- */
-.day-session-panel{ padding:var(--pad-card-sm); margin-bottom:var(--sp-4); }
-/* Sin wrap a propósito: botón de ícono angosto + 3 campos flexibles
-   (flex:1 1 0, min-width:0) entran los 4 en una sola fila incluso en un
-   celular angosto — antes el botón de texto (flex:1 1 140px) forzaba el
-   wrap a 2 filas casi siempre. */
+/* Sin card contenedora (1.68.1): el botón o los 3 campos van sueltos. */
+.day-session-panel{ margin-bottom:var(--sp-4); }
+/* Cronómetro del día de hoy: botón a todo el ancho. Sin empezar, naranja
+   ("Empezar actividad"); corriendo, oscuro con borde naranja, el contador a
+   la derecha y "Detener actividad". Al detener se ocultan y quedan los 3
+   campos. */
+.day-session-live{ display:flex; flex-direction:column; align-items:center; gap:var(--sp-1-5); }
+.session-go{ height:52px; border-radius:999px; font-size:16px; font-weight:700; gap:var(--sp-2); justify-content:center; }
+.session-go.running{ background:var(--surface-2); border-color:var(--accent); color:var(--text); justify-content:space-between; padding:0 var(--sp-5); }
+.session-go.running .icon{ color:var(--accent); }
+.session-go.running .session-go-label{ flex:1; text-align:left; }
+.session-go-timer{ font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums; }
+.session-manual{ background:none; border:none; padding:var(--sp-1); font-family:var(--font-body); font-size:12px; color:var(--text-dim); text-decoration:underline; cursor:pointer; }
+/* 3 campos flexibles (flex:1 1 0, min-width:0) en una sola fila incluso en
+   un celular angosto. */
 .day-session-row{ display:flex; align-items:stretch; gap:var(--sp-2); }
-.day-session-toggle{
-  flex:0 0 auto; width:40px; background:var(--surface-2); border:1px solid var(--line);
-  border-radius:var(--r-md); color:var(--danger); font-size:var(--fs-xl); cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-}
-.day-session-toggle.in-progress{ background:var(--danger-soft); border-color:var(--danger); }
 .day-session-field{
   flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:var(--sp-1);
   background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md); padding:var(--sp-1-5) var(--sp-2);
@@ -410,6 +429,10 @@
   background:transparent; border:none; color:var(--text); font-family:var(--font-mono); font-size:var(--fs-lg); font-weight:600; padding:0;
 }
 .day-session-field input[type="time"]:focus{ outline:none; }
+/* Sin el ícono del reloj (1.68.1): en formato de 12 h ("12:00 p. m.") no
+   cabía junto a la hora. El campo se sigue editando al tocarlo. */
+.day-session-field input[type="time"]::-webkit-calendar-picker-indicator{ display:none; }
+.day-session-field input[type="time"]{ width:100%; min-width:0; }
 .day-session-duration{ font-family:var(--font-mono); font-size:var(--fs-lg); font-weight:600; color:var(--text); }
 
 /* ---------- Conversor kg / lbs (sheet, ícono en day-switch-row) ---------- */

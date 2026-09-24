@@ -2,6 +2,28 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.68.1] - 2026-09-24 — Ajustes al Resumen nuevo
+
+### En la app: la barra de la medalla y las rutinas completas
+
+- La barra hacia la próxima medalla ahora cuenta desde cero: con 42 días marca 42% del camino al oro.
+- La medalla de bronce ahora se gana a los 10 días (antes 7).
+- "Llega a 5 días para que la racha siga activa": el número sale de tu regla de Ajustes.
+- Todas las cards de "Siguiente entrenamiento" muestran sus ejercicios, no solo la primera.
+- Toca "+ N ejercicios" para ver la rutina completa del día, y "Ver menos" para cerrarla.
+- Las series × reps de cada ejercicio quedan alineadas en columna.
+- **Nuevo cronómetro en Hoy**: "Empezar actividad" ocupa todo el ancho y el tiempo corre dentro del botón. "Detener actividad" lo para y muestra tu hora de inicio, de fin y la duración con segundos. Si detuviste por error, borra la hora de fin y sigue corriendo. En otros días, o con "Registrar a mano", capturas las horas directamente.
+- Si abres la app con el cronómetro corriendo, entra directo a la pestaña Hoy en ese día. Si no, abre en Resumen como siempre.
+- "Esta semana" se lee por columnas: ícono, título (Tiempo, Volumen, Series), el dato y, abajo, la diferencia con la semana pasada.
+
+### Changed
+
+- **`js/app.js`**: `renderNextBadgeProgress()` mide `actual / días de la medalla` (antes, el tramo desde la medalla anterior). `STREAK_BADGE_TIERS`: bronce a 10. `renderStreakWeek()`: copy nuevo. `renderNextWorkout()`: todas las cards completas; "+ N ejercicios" es un botón que despliega la lista (`nwExpanded`, conserva el scroll del carrusel).
+- **`css/views/hoy.css`**: `.nw-list` en grilla (nombre | series | × | reps, `li` con `display:contents`) para alinear las columnas entre filas; `.nw-more` como botón, `.nw-when.today`, cards alineadas arriba; fuera `.nw-card--peek`.
+- **"Esta semana"** (`renderWeeklyRecap()`): columnas centradas con ícono, título, valor (volumen con "kg") y diferencia en filas separadas; sin semana anterior, un guion.
+- **Sesión del día** (`index.html`, `renderDaySession()`): botón `#day-session-go` a todo el ancho con contador (`setInterval` de 1 s calculado desde la hora de inicio, no acumulado) solo en el día de hoy; campos al detener, en otros días o con "Registrar a mano" (`manualSessionDays`). Las horas del cronómetro se guardan con segundos (`start_time`/`end_time` son `TIME`, sin cambio de esquema); `startClock`/`endClock` en el estado, los campos siguen en HH:MM y la duración se muestra HH:MM:SS (`sessionSeconds()`, `fmtClock()`). Un campo de hora solo se guarda si cambió, para no pisar los segundos. El export usa las horas con segundos. Fuera el botón ▶/■ chico y `computeDurationMin()`. El panel ya no va dentro de una card: botón y campos quedan sueltos. Los campos de hora ya no muestran el ícono del reloj (en formato de 12 h cortaba la hora). `applyAppData()`: en la primera carga, si la sesión de hoy está corriendo, abre la pestaña Hoy en ese día.
+- ADR 0022 actualizado.
+
 ## [1.68.0] - 2026-09-23 — Resumen rediseñado: la racha primero
 
 ### En la app: un Resumen nuevo, con la racha al frente

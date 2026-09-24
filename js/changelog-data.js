@@ -2,6 +2,22 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.68.1",
+        "date": "2026-09-24",
+        "title": "la barra de la medalla y las rutinas completas",
+        "items": [
+            "La barra hacia la próxima medalla ahora cuenta desde cero: con 42 días marca 42% del camino al oro.",
+            "La medalla de bronce ahora se gana a los 10 días (antes 7).",
+            "\"Llega a 5 días para que la racha siga activa\": el número sale de tu regla de Ajustes.",
+            "Todas las cards de \"Siguiente entrenamiento\" muestran sus ejercicios, no solo la primera.",
+            "Toca \"+ N ejercicios\" para ver la rutina completa del día, y \"Ver menos\" para cerrarla.",
+            "Las series × reps de cada ejercicio quedan alineadas en columna.",
+            "**Nuevo cronómetro en Hoy**: \"Empezar actividad\" ocupa todo el ancho y el tiempo corre dentro del botón. \"Detener actividad\" lo para y muestra tu hora de inicio, de fin y la duración con segundos. Si detuviste por error, borra la hora de fin y sigue corriendo. En otros días, o con \"Registrar a mano\", capturas las horas directamente.",
+            "Si abres la app con el cronómetro corriendo, entra directo a la pestaña Hoy en ese día. Si no, abre en Resumen como siempre.",
+            "\"Esta semana\" se lee por columnas: ícono, título (Tiempo, Volumen, Series), el dato y, abajo, la diferencia con la semana pasada."
+        ]
+    },
+    {
         "version": "1.68.0",
         "date": "2026-09-23",
         "title": "un Resumen nuevo, con la racha al frente",

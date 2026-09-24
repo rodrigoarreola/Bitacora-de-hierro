@@ -57,7 +57,7 @@ campos Usuario y Contraseña, botón **Entrar**, línea de error.
   avatar — un solo usuario, así que "la app" y "tu cuenta" son casi lo
   mismo). Se resalta el ícono cuando estás en Perfil.
 - **Derecha:** el **engranaje** que abre Ajustes (se resalta cuando estás en
-  esa vista). La racha (número + medallas 7/30/100 días) ya no vive acá —
+  esa vista). La racha (número + medallas 10/30/100 días) ya no vive acá —
   desde 1.57.0 es su propia card en Semana → Resumen.
 
 ### Banner offline
@@ -147,8 +147,14 @@ Rediseñado en 1.68.0 (ADR 0022):
    días dentro de esta pestaña (que vive en Resumen) — cambiar de día
    también se puede **deslizando** el panel a izquierda/derecha (misma
    lógica, `stepActiveDay()`).
-8. **Panel de sesión del día**: botón play/stop y campos Hora inicio, Hora
-   fin y Duración calculada. Arriba de la tabla de ejercicios.
+8. **Panel de sesión del día** (1.68.1), arriba de la tabla de ejercicios.
+   El día de hoy: botón a todo el ancho "Empezar actividad" (+ enlace
+   "Registrar a mano"); al tocarlo, el contador HH:MM:SS corre dentro del
+   botón, que dice "Detener actividad"; al detener, el botón se oculta y
+   quedan los campos Hora inicio, Hora fin (HH:MM, editables) y Duración
+   (HH:MM:SS). Borrar la hora de fin reanuda el contador. Cualquier otro día
+   muestra los campos directamente. Al abrir la app con el contador corriendo, la vista
+   entra directo a esta pestaña (Hoy) en vez de Resumen.
 9. **Panel del día:**
    - Cabecera: grupo muscular, línea de stats fusionada ("9 series · 4,980
      kg"), botón **compartir día** (imagen) y **anillo de progreso**
