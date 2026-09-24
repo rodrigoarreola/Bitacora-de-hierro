@@ -1002,13 +1002,39 @@
     const idx = state.order.indexOf(key);
     return (idx > -1 && idx < state.order.length - 1) ? state.order[idx+1] : null;
   }
-  function findExerciseInPrevWeek(ex){
-    const prevKey = getPrevWeekKey(state.activeWeek);
-    if(!prevKey || !state.weeks[prevKey]) return null;
-    if(!ex || !(ex.name || '').trim()) return null;
-    const prevDay = state.weeks[prevKey].days[state.activeDay];
+  // Contra qué comparar un ejercicio en el detalle (chevron). Antes solo se
+  // buscaba el mismo día de la semana pasada, así que un día migrado o
+  // recorrido (Espalda el jueves en vez del miércoles) no encontraba nada.
+  // Ahora, en orden:
+  //   1. la semana pasada, cualquier día (gana el mismo día de la semana);
+  //   2. si esa semana no lo hiciste, la última vez que lo marcaste como
+  //      hecho, en cualquier semana anterior.
+  // Devuelve { ex, weekKey, dayKey, kind: 'prev' | 'last' } o null.
+  function findPreviousOccurrence(ex){
+    if(!ex || !(ex.name || '').trim() || !state.activeWeek) return null;
     const key = exerciseKey(ex);
-    return prevDay.exercises.find(e => (e.name || '').trim() && exerciseKey(e) === key) || null;
+    const matches = e => (e.name || '').trim() && exerciseKey(e) === key;
+    const idx = state.order.indexOf(state.activeWeek);
+    if(idx === -1) return null;
+
+    const prevKey = state.order[idx + 1];
+    if(prevKey && state.weeks[prevKey]){
+      const days = [state.activeDay, ...DAY_ORDER.filter(dk => dk !== state.activeDay)];
+      for(const dk of days){
+        const found = state.weeks[prevKey].days[dk].exercises.find(matches);
+        if(found) return { ex: found, weekKey: prevKey, dayKey: dk, kind: 'prev' };
+      }
+    }
+    for(const wk of state.order.slice(idx + 2)){
+      const week = state.weeks[wk];
+      if(!week) continue;
+      // Dentro de una semana, el día más reciente primero.
+      for(const dk of [...DAY_ORDER].reverse()){
+        const found = week.days[dk].exercises.find(e => e.done && matches(e));
+        if(found) return { ex: found, weekKey: wk, dayKey: dk, kind: 'last' };
+      }
+    }
+    return null;
   }
 
   // La API devuelve group_name/notes por día (join a day_templates) y
@@ -1736,10 +1762,17 @@
     const detailActionsHtml = `<div class="ex-detail-actions">${progressBtnHtml}${infoBtnHtml}${deleteBtnHtml}</div>`;
     let detailHtml = '';
     if(expanded){
-      const prevEx = findExerciseInPrevWeek(ex);
+      const prev = findPreviousOccurrence(ex);
+      const prevEx = prev && prev.ex;
       if(!prevEx){
-        detailHtml = `<div class="ex-detail" data-id="${ex.id}">${detailActionsHtml}<p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div>`;
+        detailHtml = `<div class="ex-detail" data-id="${ex.id}">${detailActionsHtml}<p class="ex-detail-empty">Todavía no hay registros anteriores de este ejercicio.</p></div>`;
       } else {
+        // De dónde sale el dato: "Semana pasada", "Semana pasada (jueves)" si
+        // fue otro día, o "Última vez (jue 7 sep)" si fue antes.
+        const prevDate = dayDate(prev.weekKey, prev.dayKey);
+        const prevLabel = prev.kind === 'last'
+          ? `Última vez (${DAY_SHORT[prev.dayKey].toLowerCase()} ${fmtShortDate(prevDate)}):`
+          : (prev.dayKey === state.activeDay ? 'Semana pasada:' : `Semana pasada (${DAY_NAMES[prev.dayKey].toLowerCase()}):`);
         // Progresión sugerida: solo si la semana pasada se marcó como
         // hecha (si no, no hay nada que "progresar" todavía) y su kg es
         // numérico. Es una sugerencia de referencia, no se precarga en el
@@ -1754,7 +1787,7 @@
         detailHtml = `
           <div class="ex-detail" data-id="${ex.id}">
             ${detailActionsHtml}
-            <div class="ex-detail-label">Semana pasada:</div>
+            <div class="ex-detail-label">${prevLabel}</div>
             <div class="ex-detail-item"><span class="k">Kg</span><span class="v">${comparisonHtml(ex.kg, prevEx.kg)}</span></div>
             <div class="ex-detail-item"><span class="k">Rep</span><span class="v">${comparisonHtml(ex.reps, prevEx.reps)}</span></div>
             <div class="ex-detail-item"><span class="k">Ser</span><span class="v">${comparisonHtml(ex.series, prevEx.series)}</span></div>

@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.67.1] - 2026-09-23 — La comparación encuentra el ejercicio aunque cambie de día
+
+### En la app: "Semana pasada" ya no se pierde cuando un día se recorre
+
+- Al desplegar un ejercicio, la comparación lo busca en toda la semana pasada, no solo en el mismo día: si la Espalda fue el jueves y hoy es miércoles, igual aparece.
+- Si la semana pasada no lo hiciste, muestra la última vez que sí lo marcaste, con su sugerencia de progresión.
+- La etiqueta dice de dónde viene el dato: "Semana pasada", "Semana pasada (jueves)" o "Última vez (jue 9 jul)".
+
+### Fixed
+
+- **`js/app.js`**: `findExerciseInPrevWeek()` → `findPreviousOccurrence()`: busca en la semana anterior por `exerciseKey()` en cualquier día (gana el mismo día de la semana) y, si no está, la última vez que se marcó como hecho en semanas anteriores. El detalle del chevron muestra de dónde viene la comparación.
+
+### Verificado (local)
+
+- Miércoles 23 sep (Espalda, que la semana pasada fue jueves): los 6 ejercicios muestran "Semana pasada (jueves)" con su sugerencia; martes sigue mostrando "Semana pasada".
+- Semana del 27 jul, press militar sin registro la semana anterior: "Última vez (jue 9 jul)", 35 kg → sugerido 37.5 kg.
+
 ## [1.67.0] - 2026-09-23 — Catálogo de ejercicios y "Mis ejercicios"
 
 ### En la app: tus ejercicios, vinculados a un catálogo de 1,324 en español

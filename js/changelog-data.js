@@ -2,6 +2,16 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.67.1",
+        "date": "2026-09-23",
+        "title": "\"Semana pasada\" ya no se pierde cuando un día se recorre",
+        "items": [
+            "Al desplegar un ejercicio, la comparación lo busca en toda la semana pasada, no solo en el mismo día: si la Espalda fue el jueves y hoy es miércoles, igual aparece.",
+            "Si la semana pasada no lo hiciste, muestra la última vez que sí lo marcaste, con su sugerencia de progresión.",
+            "La etiqueta dice de dónde viene el dato: \"Semana pasada\", \"Semana pasada (jueves)\" o \"Última vez (jue 9 jul)\"."
+        ]
+    },
+    {
         "version": "1.67.0",
         "date": "2026-09-23",
         "title": "tus ejercicios, vinculados a un catálogo de 1,324 en español",
