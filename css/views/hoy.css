@@ -127,6 +127,29 @@
 .section-title{ font-size:22px; font-weight:700; color:var(--text); }
 .section-aside{ font-size:13px; color:var(--text-dim); text-align:right; }
 
+/* ---------- Series por músculo (pestaña Resumen, ADR 0023) ---------- */
+/* Una fila por grupo: nombre | barra (con la franja 10–20 de fondo) |
+   series | estado. Verde dentro del rango, ámbar si falta, gris si todavía
+   tiene días por delante, rojo si se pasa. */
+.muscle-balance{ margin-bottom:var(--sp-4); }
+.mb-card{ display:flex; flex-direction:column; gap:var(--sp-3); padding:var(--sp-4-5); border:1px solid var(--line); border-radius:22px; }
+.mb-row{ display:grid; grid-template-columns:104px minmax(0, 1fr) 24px 72px; align-items:center; gap:var(--sp-2-5); }
+.mb-label{ font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mb-track{ position:relative; height:10px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+.mb-band{ position:absolute; top:0; bottom:0; background:var(--ok-soft); border-left:1px solid var(--ok-strong); border-right:1px solid var(--ok-strong); }
+.mb-fill{ position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:var(--text-faint); }
+.mb-n{ font-family:var(--font-mono); font-size:14px; font-weight:600; text-align:right; }
+.mb-note{ font-size:12px; color:var(--text-dim); white-space:nowrap; }
+.mb-row--ok .mb-fill{ background:var(--ok); }
+.mb-row--ok .mb-note{ color:var(--ok); }
+.mb-row--low .mb-fill{ background:var(--pending); }
+.mb-row--low .mb-note{ color:var(--pending); }
+.mb-row--over .mb-fill{ background:var(--danger); }
+.mb-row--over .mb-note{ color:var(--danger); }
+.mb-row--pending .mb-fill{ background:var(--text-faint); }
+.mb-row--minor .mb-fill{ background:var(--text-dim); }
+.mb-toggle{ margin-top:0; }
+
 /* ---------- Siguiente entrenamiento (pestaña Resumen) ---------- */
 /* Carrusel horizontal: la primera card completa (qué toca, 2 ejercicios,
    duración estimada, Empezar), las siguientes compactas asomándose. */

@@ -136,7 +136,10 @@ Rediseñado en 1.68.0 (ADR 0022):
    demás, compactas.
 5. **Esta semana:** tiempo, kg de volumen y series hechas, cada uno contra
    la semana anterior (en la semana en curso, solo hasta hoy).
-6. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
+6. **Series por músculo** (1.69.0, ADR 0023): una fila por grupo con barra,
+   franja 10–20 y estado (✓ / faltan N / +N de más / pendiente). Grupos
+   menores detrás de "Ver todos".
+7. **Nota de la semana:** textarea ("Cómo te sentiste, lesiones,
    ajustes…").
 
 ### Hoy

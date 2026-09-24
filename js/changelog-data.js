@@ -2,6 +2,16 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.69.0",
+        "date": "2026-09-24",
+        "title": "cuántas series llevas de cada músculo",
+        "items": [
+            "En Resumen, debajo de \"Esta semana\", ves cuántas series hiciste de cada músculo contra la meta de 10 a 20 por semana.",
+            "Verde si estás en rango, ámbar si te faltan, rojo si te pasaste. Si todavía te toca ese músculo en la semana, sale como \"pendiente\" en vez de \"faltan\".",
+            "Cada ejercicio cuenta para su músculo principal. Pantorrilla, abdomen y otros músculos chicos aparecen en \"Ver todos\"."
+        ]
+    },
+    {
         "version": "1.68.1",
         "date": "2026-09-24",
         "title": "la barra de la medalla y las rutinas completas",

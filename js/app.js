@@ -2498,6 +2498,7 @@
     const host = document.getElementById('weekly-recap-host');
     if(!host) return;
 
+    renderMuscleBalance();
     const curKey = state.activeWeek;
     const curWeek = curKey ? state.weeks[curKey] : null;
     if(!curWeek){ host.classList.add('hidden'); host.innerHTML = ''; return; }
@@ -2564,6 +2565,113 @@
         </div>
       </div>`;
   }
+
+  // ============================================================
+  // Series por músculo (Resumen, ADR 0023)
+  // ============================================================
+  // Series hechas por grupo muscular en la semana activa, contra el rango
+  // de 10–20 por semana. Cada ejercicio cuenta completo para su músculo
+  // principal (el `target` de su ejercicio del usuario / catálogo); los
+  // secundarios no suman. Los grupos principales siempre se muestran; los
+  // menores (pantorrilla, abdomen…) solo si tienen series, detrás de "Ver
+  // todos" y sin juzgar contra el rango.
+  const MUSCLE_SETS_MIN = 10;
+  const MUSCLE_SETS_MAX = 20;
+  const MUSCLE_GROUPS = [
+    { key: 'pecho',    label: 'Pecho',              targets: ['pectorals'] },
+    { key: 'espalda',  label: 'Espalda',            targets: ['lats', 'upper back', 'traps'] },
+    { key: 'hombro',   label: 'Hombro',             targets: ['delts'] },
+    { key: 'biceps',   label: 'Bíceps',             targets: ['biceps'] },
+    { key: 'triceps',  label: 'Tríceps',            targets: ['triceps'] },
+    { key: 'pierna',   label: 'Cuád. y glúteo', targets: ['quads', 'glutes'] },
+    { key: 'isquios',  label: 'Isquiotibiales',     targets: ['hamstrings'] },
+    { key: 'pantorrilla', label: 'Pantorrilla',     targets: ['calves'], minor: true },
+    { key: 'cadera',   label: 'Abd./aductores', targets: ['abductors', 'adductors'], minor: true },
+    { key: 'abdomen',  label: 'Abdomen',            targets: ['abs'], minor: true },
+    { key: 'antebrazo', label: 'Antebrazo',         targets: ['forearms'], minor: true },
+  ];
+  const MUSCLE_GROUP_BY_TARGET = new Map();
+  MUSCLE_GROUPS.forEach(g => g.targets.forEach(t => MUSCLE_GROUP_BY_TARGET.set(t, g.key)));
+  let muscleBalanceAll = false;
+
+  // Grupos que todavía tienen trabajo por delante esta semana: días desde
+  // hoy sin cumplir, por la plantilla del split o por ejercicios cargados
+  // sin marcar. Un grupo bajo el mínimo con trabajo pendiente no es "falta".
+  function pendingMuscleGroups(weekKey){
+    const out = new Set();
+    if(weekKey !== todayMondayKey) return out;
+    const week = state.weeks[weekKey];
+    DAY_ORDER.forEach(dk=>{
+      const day = week.days[dk];
+      if(dayDate(weekKey, dk) < today || isDayCompleted(day)) return;
+      const plan = DAY_PLANS[day.templateKey];
+      if(plan) plan.slots.forEach(slot => slot.targets.forEach(t=>{
+        const g = MUSCLE_GROUP_BY_TARGET.get(t); if(g) out.add(g);
+      }));
+      day.exercises.forEach(e=>{
+        if(e.done) return;
+        const g = MUSCLE_GROUP_BY_TARGET.get(exerciseTarget(e)); if(g) out.add(g);
+      });
+    });
+    return out;
+  }
+
+  function renderMuscleBalance(){
+    const host = document.getElementById('muscle-balance-host');
+    if(!host) return;
+    const week = currentWeek();
+    if(!week){ host.classList.add('hidden'); host.innerHTML = ''; return; }
+
+    const counts = new Map(MUSCLE_GROUPS.map(g => [g.key, 0]));
+    DAY_ORDER.forEach(dk => week.days[dk].exercises.forEach(e=>{
+      if(!e.done) return;
+      const g = MUSCLE_GROUP_BY_TARGET.get(exerciseTarget(e));
+      const series = parseInt(e.series, 10);
+      if(g && !isNaN(series)) counts.set(g, counts.get(g) + series);
+    }));
+    const pending = pendingMuscleGroups(state.activeWeek);
+    const minorShown = MUSCLE_GROUPS.filter(g => g.minor && counts.get(g.key) > 0);
+    const groups = MUSCLE_GROUPS.filter(g => !g.minor).concat(muscleBalanceAll ? minorShown : []);
+    const scale = Math.max(MUSCLE_SETS_MAX + 4, ...[...counts.values()]);
+    const pct = n => `${(n / scale * 100).toFixed(1)}%`;
+
+    const rows = groups.map(g=>{
+      const n = counts.get(g.key);
+      let status, note;
+      if(g.minor){ status = 'minor'; note = ''; }
+      else if(n > MUSCLE_SETS_MAX){ status = 'over'; note = `+${n - MUSCLE_SETS_MAX} de más`; }
+      else if(n >= MUSCLE_SETS_MIN){ status = 'ok'; note = '<i class="icon fa-solid fa-check"></i>'; }
+      else if(pending.has(g.key)){ status = 'pending'; note = 'pendiente'; }
+      else { status = 'low'; note = `faltan ${MUSCLE_SETS_MIN - n}`; }
+      return `
+        <div class="mb-row mb-row--${status}">
+          <span class="mb-label">${escapeHtml(g.label)}</span>
+          <span class="mb-track">
+            ${g.minor ? '' : `<span class="mb-band" style="left:${pct(MUSCLE_SETS_MIN)};width:${pct(MUSCLE_SETS_MAX - MUSCLE_SETS_MIN)}"></span>`}
+            <span class="mb-fill" style="width:${pct(n)}"></span>
+          </span>
+          <span class="mb-n">${n}</span>
+          <span class="mb-note">${note}</span>
+        </div>`;
+    }).join('');
+
+    host.classList.remove('hidden');
+    host.innerHTML = `
+      <div class="section-head">
+        <span class="section-title">Series por músculo</span>
+        <span class="section-aside">meta ${MUSCLE_SETS_MIN}–${MUSCLE_SETS_MAX} por semana</span>
+      </div>
+      <div class="mb-card">
+        ${rows}
+        ${minorShown.length ? `<button type="button" class="nw-more mb-toggle" data-action="mb-toggle">${muscleBalanceAll ? 'Ver menos' : `Ver todos (+${minorShown.length})`}<i class="icon fa-solid fa-chevron-${muscleBalanceAll ? 'up' : 'down'}"></i></button>` : ''}
+      </div>`;
+  }
+
+  document.getElementById('muscle-balance-host').addEventListener('click', (e)=>{
+    if(!e.target.closest('[data-action="mb-toggle"]')) return;
+    muscleBalanceAll = !muscleBalanceAll;
+    renderMuscleBalance();
+  });
 
   // ============================================================
   // Siguiente entrenamiento (Resumen, ADR 0022)

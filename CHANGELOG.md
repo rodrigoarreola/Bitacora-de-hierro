@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.69.0] - 2026-09-24 — Series por músculo
+
+### En la app: cuántas series llevas de cada músculo
+
+- En Resumen, debajo de "Esta semana", ves cuántas series hiciste de cada músculo contra la meta de 10 a 20 por semana.
+- Verde si estás en rango, ámbar si te faltan, rojo si te pasaste. Si todavía te toca ese músculo en la semana, sale como "pendiente" en vez de "faltan".
+- Cada ejercicio cuenta para su músculo principal. Pantorrilla, abdomen y otros músculos chicos aparecen en "Ver todos".
+
+### Added
+
+- **`js/app.js`**: `renderMuscleBalance()` (llamada desde `renderWeeklyRecap()`), `MUSCLE_GROUPS` (target → grupo), `pendingMuscleGroups()`; rango `MUSCLE_SETS_MIN`/`MAX` = 10/20. [ADR 0023](docs/adr/0023-series-por-musculo.md).
+- **`index.html`** `#muscle-balance-host`; **`css/views/hoy.css`** `.mb-*`.
+
+### Verificado (local, 375 px)
+
+- Semana en curso: Pecho 12 ✓ y el resto "pendiente" (les toca jueves–sábado). Semana pasada: Espalda, Hombro y Cuád. y glúteo en rango; Pecho, Bíceps e Isquios "faltan 1"; Tríceps "faltan 7"; Pantorrilla en "Ver todos". Sin errores en consola.
+
 ## [1.68.1] - 2026-09-24 — Ajustes al Resumen nuevo
 
 ### En la app: la barra de la medalla y las rutinas completas
