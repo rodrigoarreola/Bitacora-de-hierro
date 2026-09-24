@@ -35,5 +35,6 @@ scripts/deploy.local.json
 # para saber qué subió incremental) — estado local, no código.
 scripts/.last-deploy-commit
 
-# Pasos de despliegue con el dominio y hosting reales (el repo es público).
-/DEPLOY.local.md
+# Notas privadas (el repo es público): pasos de despliegue con el dominio y
+# hosting reales (DEPLOY.local.md) y el backlog de pendientes (BACKLOG.local.md).
+/*.local.md

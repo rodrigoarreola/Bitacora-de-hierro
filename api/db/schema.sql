@@ -237,5 +237,6 @@ ALTER TABLE exercises ADD COLUMN original_name VARCHAR(150) NULL AFTER name;
 --     1,324 ejercicios con nombre en/es; generado por scripts/build-catalog-sql.php)
 --   api/db/migrations/2026-09-23-ejercicios-del-usuario.sql  (crea user_exercises
 --     y exercises.user_exercise_id, y vincula lo que ya exista)
--- exercise_library queda solo como respaldo (la app usa user_exercises).
+--   api/db/migrations/2026-09-23-quitar-libreria.sql  (borra exercise_library: la
+--     app usa user_exercises desde la 1.67.0)
 -- ============================================================

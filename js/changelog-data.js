@@ -2,6 +2,14 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.67.3",
+        "date": "2026-09-23",
+        "title": "la app carga un poco menos",
+        "items": [
+            "Se quitó todo lo que quedaba de la librería vieja de ejercicios, ahora que \"Mis ejercicios\" la reemplaza. La app ya no descarga la lista de nombres de antes al abrir. No cambia nada de lo que ves."
+        ]
+    },
+    {
         "version": "1.67.2",
         "date": "2026-09-23",
         "title": "más protección en el servidor",

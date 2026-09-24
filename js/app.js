@@ -52,17 +52,10 @@
   // instrucciones) y dan la llave para agrupar registros por ID en vez de
   // por nombre. Vienen de api/user_exercises.php, archivados incluidos
   // (marcados con `archived`: salen del autocompletado pero su historial
-  // sigue en Progreso). Antes de correr la migración del catálogo la API
-  // responde 409: se cae a api/library.php ({id, name}) y al mapeo por
-  // nombre de siempre (data/exercise-name-mapping.json).
+  // sigue en Progreso).
   // ============================================================
   const EXERCISE_LIBRARY = [];
   const USER_EX_BY_ID = new Map();
-  let CATALOG_READY = false;
-  let NAME_MAPPING = {};           // solo sin migración
-  let EXERCISE_DATASET = null;     // solo sin migración (panel de info)
-  let EXERCISE_DATASET_BY_ID = null;
-  let exerciseDatasetPromise = null;
 
   function normalizeExerciseName(name){
     return String(name ?? '')
@@ -111,53 +104,11 @@
   // usuario, o el del catálogo).
   function exerciseTarget(ex){
     const u = userExerciseOf(ex);
-    if(u && u.target) return u.target;
-    if(CATALOG_READY) return null;
-    const m = NAME_MAPPING[normalizeExerciseName(ex.name)];
-    return m ? (m.target || null) : null;
+    return u ? (u.target || null) : null;
   }
 
-  async function loadNameMapping(){
-    try{
-      const res = await fetch('data/exercise-name-mapping.json');
-      NAME_MAPPING = res.ok ? await res.json() : {};
-    }catch(err){
-      NAME_MAPPING = {}; // sin conexión / archivo no disponible: el ojito simplemente no aparece
-    }
-  }
-
-  function findDatasetMatch(name){
-    const entry = NAME_MAPPING[normalizeExerciseName(name)];
-    return entry ? entry.datasetId : null;
-  }
-
-  function loadExerciseDataset(){
-    if(EXERCISE_DATASET) return Promise.resolve(EXERCISE_DATASET);
-    if(exerciseDatasetPromise) return exerciseDatasetPromise;
-    exerciseDatasetPromise = fetch('data/exercises-dataset.json')
-      .then(res => { if(!res.ok) throw new Error('No se pudo cargar el catálogo.'); return res.json(); })
-      .then(list => {
-        EXERCISE_DATASET = list;
-        EXERCISE_DATASET_BY_ID = new Map(list.map(e => [e.id, e]));
-        return list;
-      })
-      .catch(err => { exerciseDatasetPromise = null; throw err; });
-    return exerciseDatasetPromise;
-  }
-
-  // Lista de ejercicios del usuario desde la API; sin migración, la librería
-  // vieja (y el mapeo por nombre para el ojo y la guía).
-  async function fetchUserExercises(){
-    try{
-      const list = await Api.get('api/user_exercises.php?archived=1');
-      CATALOG_READY = true;
-      return list;
-    }catch(err){
-      if(err.status !== 409) throw err;
-      CATALOG_READY = false;
-      await loadNameMapping();
-      return Api.get('api/library.php');
-    }
+  function fetchUserExercises(){
+    return Api.get('api/user_exercises.php?archived=1');
   }
 
   // Recarga la lista (tras crear/renombrar/archivar, o cuando el servidor
@@ -245,8 +196,8 @@
   // ¿Tiene info del catálogo (imagen, instrucciones) este registro?
   function hasExerciseInfo(ex){
     if(!ex || !ex.name || !ex.name.trim()) return false;
-    if(CATALOG_READY){ const u = userExerciseOf(ex); return !!(u && u.catalog_exercise_id); }
-    return !!findDatasetMatch(ex.name);
+    const u = userExerciseOf(ex);
+    return !!(u && u.catalog_exercise_id);
   }
 
   // ex: un registro ({name, user_exercise_id}) o un ejercicio del usuario.
@@ -255,26 +206,17 @@
     const overlay = document.getElementById('exercise-info-overlay');
     const panel = document.getElementById('exercise-info-panel');
     let id = catalogId;
-    if(!id && CATALOG_READY){ const u = userExerciseOf(ex); id = u && u.catalog_exercise_id; }
-    const datasetId = !CATALOG_READY && !catalogId ? findDatasetMatch(ex.name) : null;
-    if(!id && !datasetId) return;
+    if(!id){ const u = userExerciseOf(ex); id = u && u.catalog_exercise_id; }
+    if(!id) return;
     panel.innerHTML = '<div class="ex-info-media-loading">Cargando…</div>';
     overlay.classList.remove('hidden');
     try{
-      if(id){
-        const c = await Api.get(`api/catalog.php?id=${encodeURIComponent(id)}`);
-        // Misma forma que la entrada del dataset que ya pinta el panel.
-        renderExerciseInfoPanel({ name: ex.name || c.name_es || c.name_en }, {
-          id: c.media_ref, name: c.name_en, name_es: c.name_es, category: c.body_part,
-          equipment: c.equipment, target: c.target, secondary_muscles: c.secondary_muscles,
-          instruction_steps_es: c.steps_es,
-        });
-        return;
-      }
-      await loadExerciseDataset();
-      const entry = EXERCISE_DATASET_BY_ID.get(datasetId);
-      if(!entry){ closeExerciseInfo(); return; }
-      renderExerciseInfoPanel({ name: ex.name }, entry);
+      const c = await Api.get(`api/catalog.php?id=${encodeURIComponent(id)}`);
+      renderExerciseInfoPanel({ name: ex.name || c.name_es || c.name_en }, {
+        id: c.media_ref, name: c.name_en, name_es: c.name_es, category: c.body_part,
+        equipment: c.equipment, target: c.target, secondary_muscles: c.secondary_muscles,
+        instruction_steps_es: c.steps_es,
+      });
     }catch(err){
       panel.innerHTML = '<p class="ex-info-empty">No se pudo cargar la info del ejercicio.</p>';
     }
@@ -391,22 +333,6 @@
   confirmCancelBtn.addEventListener('click', ()=> closeConfirm(false));
   confirmOkBtn.addEventListener('click', ()=> closeConfirm(true));
 
-  // Sin migración: agrega el nombre a la librería vieja. Con catálogo el
-  // servidor ya crea el ejercicio del usuario al guardar un nombre nuevo en
-  // un día; aquí solo se recarga la lista si ese nombre no se conocía.
-  async function addToLibrary(name){
-    const trimmed = (name || '').trim();
-    if(!trimmed || trimmed.startsWith('Garmin: ')) return;
-    if(userExerciseByName(trimmed)) return;
-    if(CATALOG_READY){ await refreshUserExercises(); return; }
-    let entry;
-    try{ entry = await Api.post('api/library.php', { name: trimmed }); }
-    catch(err){ showToast(err.message); return; }
-    setUserExercises([...EXERCISE_LIBRARY, entry]);
-    renderLibraryDatalist();
-    renderMyExercises();
-  }
-
   function renderLibraryDatalist(){
     let dl = document.getElementById('exercise-library-list');
     if(!dl){
@@ -439,28 +365,23 @@
     const pool = myExShowArchived ? archived : active;
     const list = pool.filter(e => !q || normalizeExerciseName(e.name).includes(q)
       || (e.catalog && normalizeExerciseName(e.catalog.name_es || '').includes(q)));
-    const missing = active.filter(e => CATALOG_READY && !e.target).length;
+    const missing = active.filter(e => !e.target).length;
     countEl.innerHTML = `${active.length} ejercicio${active.length===1?'':'s'}`
       + (missing ? ` · <span class="myex-warn">${missing} sin músculo</span>` : '')
       + (archived.length ? ` · <button type="button" class="myex-archived-toggle" data-action="myex-toggle-archived">${myExShowArchived ? 'Ver activos' : `Ver archivados (${archived.length})`}</button>` : '');
-    document.getElementById('myex-actions').classList.toggle('hidden', !CATALOG_READY);
     if(!list.length){
       host.innerHTML = `<p class="lib-empty">${pool.length ? 'Sin resultados.' : (myExShowArchived ? 'No hay ejercicios archivados.' : 'Todavía no tienes ejercicios. Agrégalos del catálogo o créalos.')}</p>`;
       return;
     }
     host.innerHTML = list.map(e=>{
-      const origin = !CATALOG_READY ? '' : (e.catalog_exercise_id ? 'Catálogo' : 'Propio');
       const meta = [
-        e.target ? esLabel(MUSCLE_LABELS_ES, e.target) : (CATALOG_READY ? '<span class="myex-warn">Falta músculo</span>' : ''),
+        e.target ? esLabel(MUSCLE_LABELS_ES, e.target) : '<span class="myex-warn">Falta músculo</span>',
         e.equipment ? esLabel(EQUIP_LABELS_ES, e.equipment) : '',
-        origin,
-        CATALOG_READY ? `${e.uses} registro${e.uses===1?'':'s'}` : '',
+        e.catalog_exercise_id ? 'Catálogo' : 'Propio',
+        `${e.uses} registro${e.uses===1?'':'s'}`,
       ].filter(Boolean).join(' · ');
       const open = myExOpenId === e.id;
-      const actions = !open ? '' : !CATALOG_READY ? `
-        <div class="myex-actions-row">
-          <button type="button" class="btn btn--sm btn--ghost" data-action="myex-archive"><i class="icon fa-solid fa-box-archive"></i>Quitar</button>
-        </div>` : `
+      const actions = !open ? '' : `
         <div class="myex-actions-row">
           <button type="button" class="btn btn--sm" data-action="myex-rename"><i class="icon fa-solid fa-pen"></i>Renombrar</button>
           <button type="button" class="btn btn--sm" data-action="myex-link"><i class="icon fa-solid fa-link"></i>${e.catalog_exercise_id ? 'Cambiar vínculo' : 'Vincular al catálogo'}</button>
@@ -475,7 +396,7 @@
       return `
         <div class="myex-row${open ? ' open' : ''}${e.archived ? ' archived' : ''}" data-id="${e.id}">
           <button type="button" class="myex-main" data-action="myex-toggle" aria-expanded="${open}">
-            ${CATALOG_READY ? exerciseThumbHtml(e.catalog && e.catalog.media_ref) : ''}
+            ${exerciseThumbHtml(e.catalog && e.catalog.media_ref)}
             <span class="myex-text">
               <span class="myex-name">${escapeHtml(e.name)}</span>
               ${meta ? `<span class="myex-meta">${meta}</span>` : ''}
@@ -527,13 +448,6 @@
       } else if(action === 'myex-info'){
         openExerciseInfo(ue, ue.catalog_exercise_id);
       } else if(action === 'myex-archive'){
-        if(!CATALOG_READY){
-          if(!await confirmDialog({ title: '¿Quitar de la librería?', message: `Se quitará "${ue.name}" del autocompletado. Tus registros no cambian.`, confirmLabel: 'Quitar', danger: true })) return;
-          await Api.del(`api/library.php?id=${encodeURIComponent(id)}`);
-          setUserExercises(EXERCISE_LIBRARY.filter(x => x.id !== id));
-          renderLibraryDatalist(); renderMyExercises();
-          return;
-        }
         const msg = ue.uses
           ? `"${ue.name}" sale del autocompletado. Sus ${ue.uses} registros y su progreso se conservan; puedes reactivarlo cuando quieras.`
           : `"${ue.name}" no tiene registros: se elimina.`;
@@ -1939,7 +1853,7 @@
     let newUserExercises = false;
     try{
       for(const item of items){
-        if(item.catalogId && CATALOG_READY && !userExerciseByName(item.name)){
+        if(item.catalogId && !userExerciseByName(item.name)){
           try{ await Api.post('api/user_exercises.php', { name: item.name, catalog_exercise_id: item.catalogId }); newUserExercises = true; }
           catch(err){ if(err.status !== 409){ showToast(err.message); break; } }
         }
@@ -1952,9 +1866,7 @@
     } finally {
       guideBusy = false;
     }
-    if(newUserExercises || !CATALOG_READY){
-      if(CATALOG_READY) await refreshUserExercises(); else items.forEach(i => addToLibrary(i.name));
-    }
+    if(newUserExercises) await refreshUserExercises();
     renderDayPanel();
     updateStreakBadge();
     renderWeeklyRecap();
@@ -2630,13 +2542,6 @@
     renderWeeklyRecap();
   });
 
-  // Sin migración: un nombre nuevo se agrega a la librería vieja. Con
-  // catálogo lo resuelve el servidor al guardar (ver focusout).
-  dayPanelHost.addEventListener('change', (e)=>{
-    const input = e.target.closest('.ex-name-input');
-    if(input && !CATALOG_READY) addToLibrary(input.value);
-  });
-
   // Kg/Rep/Ser: al enfocar (toque o tab), el cursor va al final del valor
   // en vez de quedar donde cayó el toque — pensado para progresión rápida
   // (agregar/corregir el último dígito sin tener que primero mover el
@@ -2675,7 +2580,7 @@
     // crea): se toma su id y su nombre canónico (p. ej. "press de banca con
     // barra" → "Press de banca con barra"). Sin conexión la respuesta no
     // trae id y se deja como está hasta sincronizar.
-    if(field === 'name' && CATALOG_READY && res && 'user_exercise_id' in res){
+    if(field === 'name' && res && 'user_exercise_id' in res){
       const changed = ex.user_exercise_id !== res.user_exercise_id || ex.name !== res.name;
       ex.user_exercise_id = res.user_exercise_id;
       ex.name = res.name;
@@ -4296,9 +4201,6 @@
   // guardada por Snapshot cuando se abre la app sin conexión).
   function applyAppData({ bulk, library, settings }){
     state.order = bulk.order;
-    // Con la copia local (sin conexión) no se sabe si la migración corrió:
-    // la forma de la lista lo dice (user_exercises trae catalog_exercise_id).
-    if(library && library.length) CATALOG_READY = 'catalog_exercise_id' in library[0];
     setUserExercises(library);
     if(settings) Object.assign(RULES, settings);
 

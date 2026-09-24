@@ -199,4 +199,13 @@ Diferencias con lo planeado arriba, decididas al implementar:
   fusionadas en ADR 0019), la gráfica toma la serie más pesada del día.
 - **Sin migración**: la API responde 409 en `catalog.php`/`user_exercises.php`
   y la app cae a `library.php` y al mapeo por nombre, como antes.
+- **1.67.3 — limpieza**: con la migración ya corrida en producción, se
+  quitaron el modo "sin migración" de la app, `api/library.php`,
+  `data/exercise-name-mapping.json` y el importador histórico
+  `api/db/import_weeks_json.php` (creaba registros sin vínculo). La tabla
+  `exercise_library` se borra con
+  `api/db/migrations/2026-09-23-quitar-libreria.sql`, que antes verifica
+  que cada nombre tenga su ejercicio del usuario. `data/exercises-dataset.json`
+  se queda: el proxy de imágenes (`api/exercise_media.php`) lo usa para
+  resolver qué archivo servir.
 

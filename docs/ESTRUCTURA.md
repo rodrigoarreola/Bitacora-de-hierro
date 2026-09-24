@@ -56,14 +56,14 @@ usuario, auth por sesión PHP.
     ├── weeks.php                  GET/POST/PUT/DELETE — semanas (incluye sesión de horario por día)
     ├── exercises.php              POST/PUT/DELETE — ejercicios (incluye ?action=reorder)
     ├── migrate_day.php            POST — mover contenido de un día a otro
-    ├── library.php                 GET/POST/DELETE — librería de nombres
+    ├── catalog.php                 GET — catálogo de ejercicios (ADR 0021)
+    ├── user_exercises.php          GET/POST/PUT/DELETE — ejercicios del usuario (ADR 0021)
     ├── settings.php                GET/PUT — reglas de negocio editables
     ├── import.php                  POST — importar semanas desde JSON
     ├── backups.php                 GET — listar/descargar backups automáticos
     └── db/
         ├── schema.sql                DDL completo (8 tablas)
         ├── create_user.php           CLI — crear/actualizar el usuario único
-        ├── import_weeks_json.php     CLI — importador histórico (uso puntual, ya usado)
         ├── backup_export.php         CLI — backup semanal a JSON (pensado para cron)
         └── backups/                  Backups generados — .htaccess propio, gitignored
 ```
@@ -182,14 +182,14 @@ $status)`.
 | `weeks.php` | GET/POST/PUT/DELETE | Listar semanas, detalle de una, crear (tope de 1 semana en el futuro; o copiar semana anterior con `?action=copy-previous`), **PUT: `note` y/o `day_key`+`start_time`/`end_time`/`duration_min`** (upsert/delete en `week_day_sessions`), eliminar. |
 | `exercises.php` | POST/PUT/DELETE | Crear/editar/borrar un ejercicio. `POST ?action=reorder` — reordena `sort_order` de un día completo (valida que el set de IDs coincida antes de escribir). El PUT normal tiene el guard de last-write-wins (`client_time` vs `updated_at`) para la edición offline. |
 | `migrate_day.php` | POST | Mueve el set completo de un día a otro dentro de la semana, con corrimiento en cadena si el destino ya tiene contenido. |
-| `library.php` | GET/POST/DELETE | Librería de nombres para autocompletar. |
+| `catalog.php` | GET | Catálogo global de ejercicios: búsqueda en/es con filtros, detalle con pasos (ADR 0021). |
+| `user_exercises.php` | GET/POST/PUT/DELETE | Ejercicios del usuario: vinculados al catálogo o propios (ADR 0021). |
 | `settings.php` | GET/PUT | Reglas de negocio editables (`RULES` del frontend) — valida rango por regla, todo entero. |
 | `import.php` | POST | Importa una lista de semanas desde JSON (todo o nada, reemplaza semanas existentes por `monday_date`). Acepta día como lista plana (legacy) u objeto `{exercises, start_time?, end_time?, duration_min?}` (formato actual). |
 | `backups.php` | GET | Lista y descarga los backups generados por `db/backup_export.php`. |
-| `db/schema.sql` | — | DDL completo: `users`, `day_templates`, `weeks`, `exercises`, `exercise_library`, `week_day_overrides`, `app_settings`, `week_day_sessions`. |
+| `db/schema.sql` | — | DDL completo: `users`, `day_templates`, `weeks`, `exercises`, `week_day_overrides`, `app_settings`, `week_day_sessions`. |
 | `db/create_user.php` | CLI | Crea/actualiza el usuario único. Nunca vía HTTP. |
 | `db/backup_export.php` | CLI | Vuelca todas las semanas a JSON en `db/backups/` (formato actual, con horario por día), rota los últimos 14. Pensado para cron. |
-| `db/import_weeks_json.php` | CLI | Importador histórico usado una vez para poblar datos desde Google Sheets/Garmin — ya cumplió su propósito, queda como referencia. |
 
 ### Tablas (`schema.sql`)
 
@@ -197,7 +197,7 @@ $status)`.
 - **`weeks`** — una fila por semana (`monday_date` único), + `note` (nota libre de la semana).
 - **`day_templates`** — grupo muscular/notas por defecto de cada uno de los 7 días (estático, 7 filas).
 - **`exercises`** — filas editables por semana+día. `kg`/`reps`/`series`/`note` son texto libre. `done`, `sort_order`, `created_at`, `updated_at` (last-write-wins de la edición offline).
-- **`exercise_library`** — nombres para autocompletar.
+- **`catalog_exercises`** / **`user_exercises`** — catálogo global y ejercicios de cada usuario (ADR 0021); `exercises.user_exercise_id` vincula cada registro.
 - **`week_day_overrides`** — group_name/notes/migrated_from específicos de una semana puntual (solo cuando un día recibió contenido migrado).
 - **`app_settings`** — `setting_key`/`setting_value`, respaldo de `RULES`.
 - **`week_day_sessions`** — `start_time`/`end_time`/`duration_min` de un día puntual (botón "Iniciar/Finalizar entrenamiento", o backfill desde Garmin). Sin fila = sin horario registrado. Fuente de datos de "Horarios de entrenamiento" en Perfil.

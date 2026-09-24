@@ -2,6 +2,24 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.67.3] - 2026-09-23 — Limpieza: fuera la librería vieja
+
+### En la app: la app carga un poco menos
+
+- Se quitó todo lo que quedaba de la librería vieja de ejercicios, ahora que "Mis ejercicios" la reemplaza. La app ya no descarga la lista de nombres de antes al abrir. No cambia nada de lo que ves.
+
+### Removed
+
+- **`js/app.js`**: el modo "sin migración" (`CATALOG_READY`, respaldo a `api/library.php`, mapeo por nombre `NAME_MAPPING`, carga del dataset para el panel de info) y `addToLibrary()` — el servidor ya crea el ejercicio del usuario al guardar un nombre nuevo.
+- **`api/library.php`**, **`data/exercise-name-mapping.json`** y **`api/db/import_weeks_json.php`** (importador histórico de un solo uso que creaba registros sin vínculo).
+- **`api/import.php`**: ya no escribe en `exercise_library`.
+- **Migración** `api/db/migrations/2026-09-23-quitar-libreria.sql`: borra `exercise_library` solo si cada nombre tiene su ejercicio del usuario (si no, avisa y no toca nada); idempotente.
+
+### Verificado (local)
+
+- Migración: borra la tabla; una segunda corrida no hace nada; con un nombre sin ejercicio del usuario se niega y lo explica.
+- App: Guía 5/5, semana pasada, info del catálogo, autocompletado, "Mis ejercicios" y Progreso; sin peticiones a `library.php` ni al mapeo, sin errores en consola.
+
 ## [1.67.2] - 2026-09-23 — Scripts de desarrollo y documentación fuera del alcance web
 
 ### En la app: más protección en el servidor

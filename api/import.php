@@ -171,8 +171,6 @@ $relinkCatalog = $withCatalog ? $pdo->prepare(
      WHERE id = :id AND catalog_exercise_id IS NULL AND target IS NULL
        AND EXISTS (SELECT 1 FROM catalog_exercises WHERE id = :c2)'
 ) : null;
-$libCheck = $pdo->prepare('SELECT id FROM exercise_library WHERE LOWER(name) = LOWER(:name)');
-$libInsert = $pdo->prepare('INSERT INTO exercise_library (name) VALUES (:name)');
 
 $weekCount = 0;
 $exCount = 0;
@@ -272,16 +270,6 @@ try {
                 $insertEx->execute($exParams);
                 $exCount++;
 
-                // Los nombres "Garmin: ..." son filas sinteticas generadas al
-                // importar historico de Garmin (categoria agregada, no un
-                // ejercicio real) -- no tiene caso que aparezcan como sugerencia
-                // de autocompletado al agregar ejercicios nuevos.
-                if (!$withCatalog && $name !== '' && !str_starts_with($name, 'Garmin: ')) {
-                    $libCheck->execute(['name' => $name]);
-                    if ($libCheck->fetchColumn() === false) {
-                        $libInsert->execute(['name' => $name]);
-                    }
-                }
             }
         }
         $weekCount++;
