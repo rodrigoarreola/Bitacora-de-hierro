@@ -4,8 +4,9 @@ declare(strict_types=1);
 require __DIR__ . '/config.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/week_helpers.php';
+require __DIR__ . '/exercise_helpers.php';
 
-require_login();
+$userId = require_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond_error('Método no permitido.', 405);
@@ -151,13 +152,25 @@ $insertSession = $pdo->prepare(
 // original_name (ADR 0019) es opcional: solo lo traen las filas renombradas
 // por la estandarización de nombres.
 $withOriginal = original_name_ready($pdo);
+// Con el catálogo (ADR 0021) cada fila se vincula a su ejercicio del usuario
+// por nombre (se crea si es nuevo); catalog_exercise_id opcional del backup
+// restaura el vínculo al catálogo de un ejercicio recién creado.
+$withCatalog = catalog_ready($pdo);
+$exCols = ['week_id', 'day_key', 'name', 'kg', 'reps', 'series', 'note', 'done', 'sort_order'];
+if ($withOriginal) {
+    $exCols[] = 'original_name';
+}
+if ($withCatalog) {
+    $exCols[] = 'user_exercise_id';
+}
 $insertEx = $pdo->prepare(
-    $withOriginal
-    ? 'INSERT INTO exercises (week_id, day_key, name, original_name, kg, reps, series, note, done, sort_order)
-       VALUES (:week_id, :day_key, :name, :original_name, :kg, :reps, :series, :note, :done, :sort_order)'
-    : 'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order)
-       VALUES (:week_id, :day_key, :name, :kg, :reps, :series, :note, :done, :sort_order)'
+    'INSERT INTO exercises (' . implode(', ', $exCols) . ') VALUES (:' . implode(', :', $exCols) . ')'
 );
+$relinkCatalog = $withCatalog ? $pdo->prepare(
+    'UPDATE user_exercises SET catalog_exercise_id = :c
+     WHERE id = :id AND catalog_exercise_id IS NULL AND target IS NULL
+       AND EXISTS (SELECT 1 FROM catalog_exercises WHERE id = :c2)'
+) : null;
 $libCheck = $pdo->prepare('SELECT id FROM exercise_library WHERE LOWER(name) = LOWER(:name)');
 $libInsert = $pdo->prepare('INSERT INTO exercise_library (name) VALUES (:name)');
 
@@ -244,6 +257,18 @@ try {
                 if ($withOriginal) {
                     $exParams['original_name'] = isset($e['original_name']) && $e['original_name'] !== '' ? (string) $e['original_name'] : null;
                 }
+                if ($withCatalog) {
+                    $exParams['user_exercise_id'] = null;
+                    if ($name !== '' && !str_starts_with($name, 'Garmin: ')) {
+                        [$ueId, $canonical] = resolve_user_exercise($pdo, $userId, $name);
+                        $exParams['user_exercise_id'] = $ueId;
+                        $exParams['name'] = $canonical;
+                        if (!empty($e['catalog_exercise_id'])) {
+                            $c = (int) $e['catalog_exercise_id'];
+                            $relinkCatalog->execute(['c' => $c, 'c2' => $c, 'id' => $ueId]);
+                        }
+                    }
+                }
                 $insertEx->execute($exParams);
                 $exCount++;
 
@@ -251,7 +276,7 @@ try {
                 // importar historico de Garmin (categoria agregada, no un
                 // ejercicio real) -- no tiene caso que aparezcan como sugerencia
                 // de autocompletado al agregar ejercicios nuevos.
-                if ($name !== '' && !str_starts_with($name, 'Garmin: ')) {
+                if (!$withCatalog && $name !== '' && !str_starts_with($name, 'Garmin: ')) {
                     $libCheck->execute(['name' => $name]);
                     if ($libCheck->fetchColumn() === false) {
                         $libInsert->execute(['name' => $name]);

@@ -18,6 +18,7 @@ if (PHP_SAPI !== 'cli') {
 
 require __DIR__ . '/../config.php';
 require __DIR__ . '/../week_helpers.php';
+require __DIR__ . '/../exercise_helpers.php';
 
 const BACKUP_RETENTION = 14;
 $backupDir = __DIR__ . '/backups';
@@ -29,9 +30,13 @@ const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 
 $weeks = $pdo->query('SELECT id, monday_date, note FROM weeks ORDER BY monday_date')->fetchAll();
 $payload = [];
+// catalog_exercise_id (ADR 0021) viaja por fila para que un reimport en una
+// base nueva vuelva a vincular cada ejercicio al catálogo.
 $exStmt = $pdo->prepare(
-    'SELECT day_key, name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done
-     FROM exercises WHERE week_id = :w ORDER BY day_key, sort_order, id'
+    'SELECT e.day_key, e.name, ' . (original_name_ready($pdo) ? 'e.original_name' : 'NULL AS original_name')
+    . ', ' . (catalog_ready($pdo) ? 'u.catalog_exercise_id' : 'NULL AS catalog_exercise_id') . ', e.kg, e.reps, e.series, e.note, e.done
+     FROM exercises e ' . (catalog_ready($pdo) ? 'LEFT JOIN user_exercises u ON u.id = e.user_exercise_id ' : '')
+    . 'WHERE e.week_id = :w ORDER BY e.day_key, e.sort_order, e.id'
 );
 $withGroups = split_schema_ready($pdo);
 $ovStmt = $pdo->prepare(
@@ -56,6 +61,9 @@ foreach ($weeks as $w) {
         ];
         if ($row['original_name'] !== null) {
             $ex['original_name'] = $row['original_name']; // solo filas renombradas (ADR 0019)
+        }
+        if ($row['catalog_exercise_id'] !== null) {
+            $ex['catalog_exercise_id'] = (int) $row['catalog_exercise_id'];
         }
         $exByDay[$row['day_key']][] = $ex;
     }

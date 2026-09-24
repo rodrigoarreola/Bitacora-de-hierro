@@ -4,8 +4,9 @@ declare(strict_types=1);
 require __DIR__ . '/config.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/week_helpers.php';
+require __DIR__ . '/exercise_helpers.php';
 
-require_login();
+$userId = require_login();
 
 const DAY_KEYS = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 
@@ -20,7 +21,7 @@ function find_week_id_by_date(PDO $pdo, string $mondayDate): ?int
 function fetch_exercise(PDO $pdo, int $id): ?array
 {
     $stmt = $pdo->prepare(
-        'SELECT id, week_id, day_key, name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done FROM exercises WHERE id = :id'
+        'SELECT id, week_id, day_key, ' . (catalog_ready($pdo) ? 'user_exercise_id' : 'NULL AS user_exercise_id') . ', name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done FROM exercises WHERE id = :id'
     );
     $stmt->execute(['id' => $id]);
     $row = $stmt->fetch();
@@ -28,6 +29,7 @@ function fetch_exercise(PDO $pdo, int $id): ?array
         return null;
     }
     $row['id'] = (int) $row['id'];
+    $row['user_exercise_id'] = $row['user_exercise_id'] !== null ? (int) $row['user_exercise_id'] : null;
     $row['done'] = (bool) $row['done'];
     return $row;
 }
@@ -98,20 +100,31 @@ if ($method === 'POST') {
     $stmt->execute(['w' => $weekId, 'd' => $dayKey]);
     $sortOrder = (int) $stmt->fetchColumn();
 
+    // Vínculo al ejercicio del usuario (ADR 0021): por id si llega, si no por
+    // nombre (se crea como propio si es nuevo). Una fila en blanco (el botón
+    // "Agregar ejercicio") queda sin vínculo hasta que se le pone nombre.
+    [$userExerciseId, $name] = link_exercise_fields($pdo, $userId, $body);
+
     $insert = $pdo->prepare(
-        'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order)
-         VALUES (:week_id, :day_key, :name, :kg, :reps, :series, :note, 0, :sort_order)'
+        'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order'
+        . (catalog_ready($pdo) ? ', user_exercise_id' : '') . ')
+         VALUES (:week_id, :day_key, :name, :kg, :reps, :series, :note, 0, :sort_order'
+        . (catalog_ready($pdo) ? ', :user_exercise_id' : '') . ')'
     );
-    $insert->execute([
+    $insertParams = [
         'week_id'    => $weekId,
         'day_key'    => $dayKey,
-        'name'       => (string) ($body['name'] ?? ''),
+        'name'       => $name,
         'kg'         => (string) ($body['kg'] ?? ''),
         'reps'       => (string) ($body['reps'] ?? ''),
         'series'     => (string) ($body['series'] ?? ''),
         'note'       => (string) ($body['note'] ?? ''),
         'sort_order' => $sortOrder,
-    ]);
+    ];
+    if (catalog_ready($pdo)) {
+        $insertParams['user_exercise_id'] = $userExerciseId;
+    }
+    $insert->execute($insertParams);
 
     respond_ok(fetch_exercise($pdo, (int) $pdo->lastInsertId()), 201);
 }
@@ -158,9 +171,22 @@ if ($method === 'PUT') {
     }
     unset($body['client_time']);
 
-    $editable = ['name', 'kg', 'reps', 'series', 'note', 'done'];
+    $editable = ['kg', 'reps', 'series', 'note', 'done'];
     $sets = [];
     $params = ['id' => $id];
+
+    // Cambiar el ejercicio de una fila: por user_exercise_id (el nombre sale
+    // de él) o por nombre (se resuelve o crea el ejercicio del usuario; así
+    // también funcionan la cola offline y clientes viejos que solo mandan name).
+    if (array_key_exists('user_exercise_id', $body) || array_key_exists('name', $body)) {
+        [$userExerciseId, $name] = link_exercise_fields($pdo, $userId, $body);
+        $sets[] = 'name = :name';
+        $params['name'] = $name;
+        if (catalog_ready($pdo)) {
+            $sets[] = 'user_exercise_id = :user_exercise_id';
+            $params['user_exercise_id'] = $userExerciseId;
+        }
+    }
 
     foreach ($editable as $field) {
         if (!array_key_exists($field, $body)) {

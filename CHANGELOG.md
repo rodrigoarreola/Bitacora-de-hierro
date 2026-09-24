@@ -2,6 +2,36 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.67.0] - 2026-09-23 — Catálogo de ejercicios y "Mis ejercicios"
+
+### En la app: tus ejercicios, vinculados a un catálogo de 1,324 en español
+
+- Nuevo "Mis ejercicios" en Ajustes → Ejercicios: cada ejercicio con su imagen, músculo, equipo y cuántos registros tiene. Puedes renombrarlo, vincularlo al catálogo, elegir su músculo o archivarlo.
+- "Agregar del catálogo": busca entre 1,324 ejercicios, en español o en inglés, filtrando por músculo y equipo. Todos tienen ya su nombre en español.
+- "Crear propio" para lo que no está en el catálogo (como tu hip thrust en máquina): con el músculo que elijas, cuenta en la Guía del día.
+- Renombrar un ejercicio ya no parte su historial: Progreso, la semana pasada y tus récords siguen juntos.
+- Si escribes un nombre nuevo en un día, se agrega solo a tus ejercicios (sin detenerte en el gimnasio); te avisa que le falta el músculo.
+- Se quitó "Fuente de nombres": el autocompletado usa siempre tus ejercicios.
+
+### Added
+
+- **`api/catalog.php`** (búsqueda en/es con filtros, detalle con pasos y músculos secundarios, vocabulario) y **`api/user_exercises.php`** (listar, crear vinculado o propio, renombrar/vincular/músculo/archivar, borrar o archivar); helpers en **`api/exercise_helpers.php`**.
+- **Migraciones** `api/db/migrations/2026-09-23-catalogo.sql` (generada por **`scripts/build-catalog-sql.php`**) y `2026-09-23-ejercicios-del-usuario.sql`; traducciones en **`data/catalog-names-es.json`**.
+- **`index.html`**: "Mis ejercicios" y dos sheets nuevos (buscador del catálogo, ejercicio propio).
+
+### Changed
+
+- **`js/app.js`**: `exerciseKey()` agrupa por `user_exercise_id` en semana pasada, progresión sugerida, récords, Progreso y la Guía del día; `EXERCISE_LIBRARY` ahora son los ejercicios del usuario (archivados incluidos); el panel de info lee de `api/catalog.php`. En Progreso, un punto por día (la serie más pesada).
+- **`js/split-catalog.js`**: `sugerido` son ids del catálogo, con `SUGGESTED_NAMES` para ofrecerlos aunque no los tengas.
+- **`api/exercises.php`**, **`api/weeks.php`** (copiar semana), **`api/import.php`**, **`api/db/backup_export.php`** y el export: guardan y restauran el vínculo; **`api/library.php`** queda como alias de compatibilidad.
+- **`api/config.php`**: el autologin de desarrollo elige siempre el primer usuario (`ORDER BY id`).
+
+### Verificado (local, después de un backup)
+
+- Migración: 1,324 ejercicios en el catálogo, todos con español y sin nombres repetidos; 44 ejercicios del usuario (39 vinculados); 0 registros sin vínculo.
+- 17 pruebas de API (crear, duplicados, validación, renombrar con copia en registros, archivar, alias) y copiar semana conserva el vínculo.
+- En la app: Guía del día 5/5, semana pasada con progresión sugerida, panel de info desde el catálogo, Progreso de un ejercicio fusionado, agregar del catálogo, crear propio, renombrar, eliminar y escribir un nombre nuevo en un día; sin errores en consola.
+
 ## [1.66.0] - 2026-09-23 — Ajustes en pestañas
 
 ### En la app: Ajustes ahora tiene 3 pestañas: Split, Reglas y Ejercicios

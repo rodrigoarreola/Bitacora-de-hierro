@@ -2,6 +2,19 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.67.0",
+        "date": "2026-09-23",
+        "title": "tus ejercicios, vinculados a un catálogo de 1,324 en español",
+        "items": [
+            "Nuevo \"Mis ejercicios\" en Ajustes → Ejercicios: cada ejercicio con su imagen, músculo, equipo y cuántos registros tiene. Puedes renombrarlo, vincularlo al catálogo, elegir su músculo o archivarlo.",
+            "\"Agregar del catálogo\": busca entre 1,324 ejercicios, en español o en inglés, filtrando por músculo y equipo. Todos tienen ya su nombre en español.",
+            "\"Crear propio\" para lo que no está en el catálogo (como tu hip thrust en máquina): con el músculo que elijas, cuenta en la Guía del día.",
+            "Renombrar un ejercicio ya no parte su historial: Progreso, la semana pasada y tus récords siguen juntos.",
+            "Si escribes un nombre nuevo en un día, se agrega solo a tus ejercicios (sin detenerte en el gimnasio); te avisa que le falta el músculo.",
+            "Se quitó \"Fuente de nombres\": el autocompletado usa siempre tus ejercicios."
+        ]
+    },
+    {
         "version": "1.66.0",
         "date": "2026-09-23",
         "title": "Ajustes ahora tiene 3 pestañas: Split, Reglas y Ejercicios",

@@ -46,17 +46,18 @@ if ($method === 'POST') {
         $pdo->beginTransaction();
         $pdo->prepare('DELETE FROM exercises WHERE week_id = :w')->execute(['w' => $weekId]);
 
+        $withUex = catalog_ready_wh($pdo);
         $stmt = $pdo->prepare(
-            'SELECT day_key, name, kg, reps, series, note, sort_order FROM exercises WHERE week_id = :w ORDER BY day_key, sort_order, id'
+            'SELECT day_key, ' . ($withUex ? 'user_exercise_id' : 'NULL AS user_exercise_id') . ', name, kg, reps, series, note, sort_order FROM exercises WHERE week_id = :w ORDER BY day_key, sort_order, id'
         );
         $stmt->execute(['w' => $prevWeekId]);
 
         $insert = $pdo->prepare(
-            'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order)
-             VALUES (:week_id, :day_key, :name, :kg, :reps, :series, :note, 0, :sort_order)'
+            'INSERT INTO exercises (week_id, day_key, name, kg, reps, series, note, done, sort_order' . ($withUex ? ', user_exercise_id' : '') . ')
+             VALUES (:week_id, :day_key, :name, :kg, :reps, :series, :note, 0, :sort_order' . ($withUex ? ', :user_exercise_id' : '') . ')'
         );
         foreach ($stmt->fetchAll() as $row) {
-            $insert->execute([
+            $copy = [
                 'week_id'    => $weekId,
                 'day_key'    => $row['day_key'],
                 'name'       => $row['name'],
@@ -65,7 +66,11 @@ if ($method === 'POST') {
                 'series'     => $row['series'],
                 'note'       => $row['note'],
                 'sort_order' => $row['sort_order'],
-            ]);
+            ];
+            if ($withUex) {
+                $copy['user_exercise_id'] = $row['user_exercise_id'];
+            }
+            $insert->execute($copy);
         }
         $pdo->commit();
 

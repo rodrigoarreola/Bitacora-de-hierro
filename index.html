@@ -308,35 +308,18 @@
     </div>
 
     <div id="ajustes-tab-ejercicios" role="tabpanel" class="hidden">
-      <div class="card lib-panel">
+      <div class="card lib-panel myex-panel">
         <div class="lib-head">
-          <div class="lib-title">Fuente de nombres de ejercicios</div>
-          <p class="lib-sub">Qué lista se usa para autocompletar al agregar un ejercicio. El ícono <i class="icon fa-solid fa-eye"></i> con GIF y datos del ejercicio aparece igual con cualquiera de las dos, si hay coincidencia.</p>
+          <div class="lib-title">Mis ejercicios</div>
+          <p class="lib-sub">Los que usas para autocompletar y para agrupar tu historial. Cada uno está vinculado al catálogo (imagen, músculo e instrucciones) o es propio, con el músculo que elijas. Si escribes un nombre nuevo en un día, aparece aquí solo.</p>
         </div>
-        <div class="source-options" id="exercise-source-options">
-          <label class="source-option">
-            <input type="radio" name="exercise-source" value="custom" id="exercise-source-custom">
-            <span class="source-option-label">Personalizada (la mía)</span>
-          </label>
-          <label class="source-option">
-            <input type="radio" name="exercise-source" value="dataset" id="exercise-source-dataset">
-            <span class="source-option-label">Dataset (1.324 ejercicios, con GIF)</span>
-          </label>
+        <div class="myex-toolbar hidden" id="myex-actions">
+          <button type="button" class="btn btn--primary btn--sm" id="myex-add-catalog"><i class="icon fa-solid fa-magnifying-glass"></i>Agregar del catálogo</button>
+          <button type="button" class="btn btn--sm" id="myex-add-own"><i class="icon fa-solid fa-plus"></i>Crear propio</button>
         </div>
-      </div>
-
-      <div class="card lib-panel">
-        <div class="lib-head">
-          <div class="lib-title">Librería de ejercicios</div>
-          <p class="lib-sub">Se usa para autocompletar al agregar ejercicios en cualquier día. Escribe uno nuevo en un día y se guarda aquí solo.</p>
-        </div>
-        <div class="lib-add">
-          <input type="text" id="lib-new-input" placeholder="Agregar ejercicio…">
-          <button type="button" class="btn btn--primary" id="lib-add-btn" aria-label="Agregar a la librería"><i class="icon fa-solid fa-plus"></i></button>
-        </div>
-        <input type="text" id="lib-search" class="lib-search" placeholder="Buscar en la librería…">
-        <div class="lib-count" id="lib-count"></div>
-        <div class="lib-list" id="lib-list"></div>
+        <input type="text" id="myex-search" class="lib-search" placeholder="Buscar en mis ejercicios…" autocomplete="off">
+        <div class="lib-count" id="myex-count"></div>
+        <div class="myex-list" id="myex-list"></div>
       </div>
     </div>
   </div>
@@ -355,6 +338,38 @@
 
   <div class="sheet-overlay ex-info-overlay hidden" id="exercise-info-overlay">
     <div class="sheet ex-info-panel" id="exercise-info-panel"></div>
+  </div>
+
+  <!-- Catálogo de ejercicios: buscar para agregar a "Mis ejercicios" o para vincular uno — ver openCatalogSheet() en js/app.js (ADR 0021) -->
+  <div class="sheet-overlay hidden" id="catalog-overlay">
+    <div class="sheet catalog-sheet" role="dialog" aria-modal="true" aria-labelledby="catalog-title">
+      <div class="catalog-head">
+        <div class="confirm-title" id="catalog-title">Agregar del catálogo</div>
+        <button type="button" class="btn btn--icon" data-action="close-catalog" aria-label="Cerrar"><i class="icon fa-solid fa-xmark"></i></button>
+      </div>
+      <input type="search" id="catalog-search" class="catalog-search" placeholder="Busca en español o en inglés…" autocomplete="off" aria-label="Buscar en el catálogo">
+      <div class="catalog-filters">
+        <select id="catalog-target" aria-label="Músculo"></select>
+        <select id="catalog-equipment" aria-label="Equipo"></select>
+      </div>
+      <div class="catalog-results" id="catalog-results"></div>
+      <p class="catalog-foot">Imágenes © Gym visual (gymvisual.com), vía github.com/hasaneyldrm/exercises-dataset.</p>
+    </div>
+  </div>
+
+  <!-- Ejercicio propio: crear o elegir su músculo y equipo — ver openOwnExerciseSheet() en js/app.js (ADR 0021) -->
+  <div class="sheet-overlay hidden" id="own-overlay">
+    <form class="sheet own-sheet" id="own-form" role="dialog" aria-modal="true" aria-labelledby="own-title">
+      <div class="catalog-head">
+        <div class="confirm-title" id="own-title">Crear ejercicio propio</div>
+        <button type="button" class="btn btn--icon" data-action="close-own" aria-label="Cerrar"><i class="icon fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="own-sub">Para lo que no está en el catálogo, como una máquina de tu gimnasio. El músculo principal es obligatorio: con él cuenta en la Guía del día.</p>
+      <label class="own-field"><span>Nombre</span><input type="text" id="own-name" maxlength="150" autocomplete="off" placeholder="Ej. Hip thrust en máquina"></label>
+      <label class="own-field"><span>Músculo principal</span><select id="own-target" required></select></label>
+      <label class="own-field"><span>Equipo (opcional)</span><select id="own-equipment"></select></label>
+      <button type="submit" class="btn btn--primary btn--block">Guardar</button>
+    </form>
   </div>
 
   <!-- Conversor kg / lbs, colapsado detrás de un ícono en Hoy → Registro — ver openConverterSheet()/closeConverterSheet() en js/app.js -->

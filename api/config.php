@@ -102,7 +102,9 @@ if (
     && defined('DEV_AUTOLOGIN') && DEV_AUTOLOGIN === true
     && in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)
 ) {
-    $devUser = $pdo->query('SELECT id FROM users LIMIT 1')->fetch();
+    // ORDER BY id: con datos por usuario (user_exercises, ADR 0021) importa
+    // cuál; sin orden, MariaDB puede devolver otro usuario de prueba.
+    $devUser = $pdo->query('SELECT id FROM users ORDER BY id LIMIT 1')->fetch();
     if ($devUser) {
         $_SESSION['user_id'] = (int) $devUser['id'];
     }

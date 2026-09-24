@@ -47,23 +47,20 @@
   const CURRENT_VERSION = APP_VERSIONS.length ? APP_VERSIONS[0].version : '—';
 
   // ============================================================
-  // Librería de ejercicios (reutilizable / autocompletado)
-  // Se carga desde la API en el arranque; ver loadAppData().
+  // Ejercicios del usuario (ADR 0021): alimentan el autocompletado, dicen a
+  // qué ejercicio del catálogo corresponde cada uno (imagen, músculo,
+  // instrucciones) y dan la llave para agrupar registros por ID en vez de
+  // por nombre. Vienen de api/user_exercises.php, archivados incluidos
+  // (marcados con `archived`: salen del autocompletado pero su historial
+  // sigue en Progreso). Antes de correr la migración del catálogo la API
+  // responde 409: se cae a api/library.php ({id, name}) y al mapeo por
+  // nombre de siempre (data/exercise-name-mapping.json).
   // ============================================================
   const EXERCISE_LIBRARY = [];
-
-  // ============================================================
-  // Dataset externo de ejercicios (hasaneyldrm/exercises-dataset) — GIFs,
-  // músculo/equipo e instrucciones. Vive como JSON estático en data/, no
-  // en la base. EXERCISE_SOURCE es una preferencia del dispositivo (no
-  // pasa por api/settings.php, que solo valida reglas numéricas), guardada
-  // en localStorage. NAME_MAPPING (chico) se carga siempre al boot para
-  // saber cuándo mostrar el ícono de ojo; EXERCISE_DATASET (~1MB) se carga
-  // lazy recién cuando hace falta (ojo abierto, o fuente "dataset" elegida).
-  // ============================================================
-  let EXERCISE_SOURCE = localStorage.getItem('bitacora.exerciseSource') === 'dataset' ? 'dataset' : 'custom';
-  let NAME_MAPPING = {};
-  let EXERCISE_DATASET = null;
+  const USER_EX_BY_ID = new Map();
+  let CATALOG_READY = false;
+  let NAME_MAPPING = {};           // solo sin migración
+  let EXERCISE_DATASET = null;     // solo sin migración (panel de info)
   let EXERCISE_DATASET_BY_ID = null;
   let exerciseDatasetPromise = null;
 
@@ -72,6 +69,52 @@
       .trim()
       .toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, ''); // saca acentos (á->a, etc.)
+  }
+
+  function setUserExercises(list){
+    EXERCISE_LIBRARY.length = 0;
+    (list || []).forEach(e => EXERCISE_LIBRARY.push(e));
+    EXERCISE_LIBRARY.sort((a,b)=> a.name.localeCompare(b.name, 'es'));
+    USER_EX_BY_ID.clear();
+    EXERCISE_LIBRARY.forEach(e => USER_EX_BY_ID.set(e.id, e));
+  }
+  const activeUserExercises = () => EXERCISE_LIBRARY.filter(e => !e.archived);
+
+  function userExerciseByName(name){
+    const n = normalizeExerciseName(name);
+    if(!n) return null;
+    return EXERCISE_LIBRARY.find(e => normalizeExerciseName(e.name) === n) || null;
+  }
+
+  // El ejercicio del usuario de un registro: por su user_exercise_id, o por
+  // nombre en filas viejas / sin migración.
+  function userExerciseOf(ex){
+    if(!ex) return null;
+    if(ex.user_exercise_id && USER_EX_BY_ID.has(ex.user_exercise_id)) return USER_EX_BY_ID.get(ex.user_exercise_id);
+    return userExerciseByName(ex.name);
+  }
+
+  // Llave para comparar registros entre semanas (Progreso, semana pasada,
+  // récords, Guía del día): el id del ejercicio del usuario, o el nombre
+  // normalizado si no tiene. Renombrar o fusionar ya no parte el historial.
+  function exerciseKey(ex){
+    if(ex.user_exercise_id) return 'u' + ex.user_exercise_id;
+    const u = userExerciseByName(ex.name);
+    return u ? 'u' + u.id : 'n:' + normalizeExerciseName(ex.name);
+  }
+  function keyForName(name){
+    const u = userExerciseByName(name);
+    return u ? 'u' + u.id : 'n:' + normalizeExerciseName(name);
+  }
+
+  // Músculo del ejercicio de un registro (el efectivo: el que eligió el
+  // usuario, o el del catálogo).
+  function exerciseTarget(ex){
+    const u = userExerciseOf(ex);
+    if(u && u.target) return u.target;
+    if(CATALOG_READY) return null;
+    const m = NAME_MAPPING[normalizeExerciseName(ex.name)];
+    return m ? (m.target || null) : null;
   }
 
   async function loadNameMapping(){
@@ -102,18 +145,28 @@
     return exerciseDatasetPromise;
   }
 
-  function renderExerciseSourceSetting(){
-    const customRadio = document.getElementById('exercise-source-custom');
-    const datasetRadio = document.getElementById('exercise-source-dataset');
-    if(!customRadio || !datasetRadio) return;
-    customRadio.checked = EXERCISE_SOURCE === 'custom';
-    datasetRadio.checked = EXERCISE_SOURCE === 'dataset';
+  // Lista de ejercicios del usuario desde la API; sin migración, la librería
+  // vieja (y el mapeo por nombre para el ojo y la guía).
+  async function fetchUserExercises(){
+    try{
+      const list = await Api.get('api/user_exercises.php?archived=1');
+      CATALOG_READY = true;
+      return list;
+    }catch(err){
+      if(err.status !== 409) throw err;
+      CATALOG_READY = false;
+      await loadNameMapping();
+      return Api.get('api/library.php');
+    }
   }
 
-  async function setExerciseSource(source){
-    EXERCISE_SOURCE = source === 'dataset' ? 'dataset' : 'custom';
-    localStorage.setItem('bitacora.exerciseSource', EXERCISE_SOURCE);
-    await renderLibraryDatalist();
+  // Recarga la lista (tras crear/renombrar/archivar, o cuando el servidor
+  // creó uno nuevo al escribir un nombre en un día) y repinta lo que la usa.
+  async function refreshUserExercises(){
+    try{ setUserExercises(await fetchUserExercises()); }
+    catch(err){ return; } // sin conexión: se queda la lista que había
+    renderLibraryDatalist();
+    renderMyExercises();
   }
 
   // Labels ES para los enums chicos del dataset (category/body_part,
@@ -142,7 +195,7 @@
     biceps: 'Bíceps', delts: 'Deltoides', forearms: 'Antebrazos', traps: 'Trapecios',
     'serratus anterior': 'Serrato anterior', abductors: 'Abductores', 'levator scapulae': 'Elevador de la escápula',
     'hip flexors': 'Flexores de cadera', obliques: 'Oblicuos', 'ankle stabilizers': 'Estabilizadores de tobillo',
-    'lower back': 'Zona lumbar', ankles: 'Tobillos', trapezius: 'Trapecio', deltoids: 'Deltoides',
+    'lower back': 'Zona lumbar', ankles: 'Tobillos', shoulders: 'Hombros', back: 'Espalda', 'upper arms': 'Brazos', 'lower arms': 'Antebrazos', 'upper legs': 'Piernas', 'lower legs': 'Pantorrillas', trapezius: 'Trapecio', deltoids: 'Deltoides',
     core: 'Core', rhomboids: 'Romboides', 'rotator cuff': 'Manguito rotador', 'wrist flexors': 'Flexores de muñeca',
     'wrist extensors': 'Extensores de muñeca', 'latissimus dorsi': 'Dorsal ancho', abdominals: 'Abdominales',
     soleus: 'Sóleo', wrists: 'Muñecas', hands: 'Manos', quadriceps: 'Cuádriceps', chest: 'Pecho',
@@ -189,18 +242,39 @@
     img.addEventListener('error', () => { loading.textContent = 'GIF no disponible.'; }, { once: true });
   }
 
-  async function openExerciseInfo(name){
-    const datasetId = findDatasetMatch(name);
-    if(!datasetId) return;
+  // ¿Tiene info del catálogo (imagen, instrucciones) este registro?
+  function hasExerciseInfo(ex){
+    if(!ex || !ex.name || !ex.name.trim()) return false;
+    if(CATALOG_READY){ const u = userExerciseOf(ex); return !!(u && u.catalog_exercise_id); }
+    return !!findDatasetMatch(ex.name);
+  }
+
+  // ex: un registro ({name, user_exercise_id}) o un ejercicio del usuario.
+  // catalogId opcional: abrir directo un ejercicio del catálogo (buscador).
+  async function openExerciseInfo(ex, catalogId = null){
     const overlay = document.getElementById('exercise-info-overlay');
     const panel = document.getElementById('exercise-info-panel');
+    let id = catalogId;
+    if(!id && CATALOG_READY){ const u = userExerciseOf(ex); id = u && u.catalog_exercise_id; }
+    const datasetId = !CATALOG_READY && !catalogId ? findDatasetMatch(ex.name) : null;
+    if(!id && !datasetId) return;
     panel.innerHTML = '<div class="ex-info-media-loading">Cargando…</div>';
     overlay.classList.remove('hidden');
     try{
+      if(id){
+        const c = await Api.get(`api/catalog.php?id=${encodeURIComponent(id)}`);
+        // Misma forma que la entrada del dataset que ya pinta el panel.
+        renderExerciseInfoPanel({ name: ex.name || c.name_es || c.name_en }, {
+          id: c.media_ref, name: c.name_en, name_es: c.name_es, category: c.body_part,
+          equipment: c.equipment, target: c.target, secondary_muscles: c.secondary_muscles,
+          instruction_steps_es: c.steps_es,
+        });
+        return;
+      }
       await loadExerciseDataset();
       const entry = EXERCISE_DATASET_BY_ID.get(datasetId);
       if(!entry){ closeExerciseInfo(); return; }
-      renderExerciseInfoPanel({ name }, entry);
+      renderExerciseInfoPanel({ name: ex.name }, entry);
     }catch(err){
       panel.innerHTML = '<p class="ex-info-empty">No se pudo cargar la info del ejercicio.</p>';
     }
@@ -317,64 +391,299 @@
   confirmCancelBtn.addEventListener('click', ()=> closeConfirm(false));
   confirmOkBtn.addEventListener('click', ()=> closeConfirm(true));
 
+  // Sin migración: agrega el nombre a la librería vieja. Con catálogo el
+  // servidor ya crea el ejercicio del usuario al guardar un nombre nuevo en
+  // un día; aquí solo se recarga la lista si ese nombre no se conocía.
   async function addToLibrary(name){
     const trimmed = (name || '').trim();
-    if(!trimmed) return;
-    const exists = EXERCISE_LIBRARY.some(e => e.name.toLowerCase() === trimmed.toLowerCase());
-    if(exists) return;
+    if(!trimmed || trimmed.startsWith('Garmin: ')) return;
+    if(userExerciseByName(trimmed)) return;
+    if(CATALOG_READY){ await refreshUserExercises(); return; }
     let entry;
     try{ entry = await Api.post('api/library.php', { name: trimmed }); }
     catch(err){ showToast(err.message); return; }
-    EXERCISE_LIBRARY.push(entry);
-    EXERCISE_LIBRARY.sort((a,b)=> a.name.localeCompare(b.name, 'es'));
+    setUserExercises([...EXERCISE_LIBRARY, entry]);
     renderLibraryDatalist();
-    renderLibraryView();
+    renderMyExercises();
   }
 
-  async function removeFromLibrary(id){
-    const idx = EXERCISE_LIBRARY.findIndex(e => String(e.id) === String(id));
-    if(idx === -1) return;
-    try{ await Api.del(`api/library.php?id=${encodeURIComponent(id)}`); }
-    catch(err){ showToast(err.message); return; }
-    EXERCISE_LIBRARY.splice(idx, 1);
-    renderLibraryDatalist();
-    renderLibraryView();
-  }
-
-  async function renderLibraryDatalist(){
+  function renderLibraryDatalist(){
     let dl = document.getElementById('exercise-library-list');
     if(!dl){
       dl = document.createElement('datalist');
       dl.id = 'exercise-library-list';
       document.body.appendChild(dl);
     }
-    if(EXERCISE_SOURCE === 'dataset'){
-      let list;
-      try{ list = await loadExerciseDataset(); }
-      catch(err){ showToast('No se pudo cargar el dataset de ejercicios.'); list = []; }
-      dl.innerHTML = list.map(e => `<option value="${escapeHtml(e.name_es || e.name)}">`).join('');
-      return;
-    }
-    dl.innerHTML = EXERCISE_LIBRARY.map(e => `<option value="${escapeHtml(e.name)}">`).join('');
+    dl.innerHTML = activeUserExercises().map(e => `<option value="${escapeHtml(e.name)}">`).join('');
   }
 
-  function renderLibraryView(){
-    const host = document.getElementById('lib-list');
-    const countEl = document.getElementById('lib-count');
+  // ------------------------------------------------------------
+  // Ajustes → Ejercicios → "Mis ejercicios" (ADR 0021)
+  // ------------------------------------------------------------
+  let myExShowArchived = false;
+  let myExOpenId = null;
+
+  function exerciseThumbHtml(mediaRef){
+    return mediaRef
+      ? `<img class="myex-thumb" src="api/exercise_media.php?id=${encodeURIComponent(mediaRef)}&type=image" alt="" loading="lazy" width="44" height="44">`
+      : `<span class="myex-thumb myex-thumb--own"><i class="icon fa-solid fa-dumbbell"></i></span>`;
+  }
+
+  function renderMyExercises(){
+    const host = document.getElementById('myex-list');
+    const countEl = document.getElementById('myex-count');
     if(!host) return;
-    const q = (document.getElementById('lib-search')?.value || '').trim().toLowerCase();
-    const filtered = EXERCISE_LIBRARY.filter(e => e.name.toLowerCase().includes(q));
-    countEl.textContent = `${EXERCISE_LIBRARY.length} ejercicio${EXERCISE_LIBRARY.length===1?'':'s'} guardados`;
-    if(filtered.length === 0){
-      host.innerHTML = `<p class="lib-empty">${EXERCISE_LIBRARY.length===0 ? 'Todavía no hay ejercicios guardados.' : 'Sin resultados.'}</p>`;
+    const q = normalizeExerciseName(document.getElementById('myex-search')?.value || '');
+    const active = activeUserExercises();
+    const archived = EXERCISE_LIBRARY.filter(e => e.archived);
+    const pool = myExShowArchived ? archived : active;
+    const list = pool.filter(e => !q || normalizeExerciseName(e.name).includes(q)
+      || (e.catalog && normalizeExerciseName(e.catalog.name_es || '').includes(q)));
+    const missing = active.filter(e => CATALOG_READY && !e.target).length;
+    countEl.innerHTML = `${active.length} ejercicio${active.length===1?'':'s'}`
+      + (missing ? ` · <span class="myex-warn">${missing} sin músculo</span>` : '')
+      + (archived.length ? ` · <button type="button" class="myex-archived-toggle" data-action="myex-toggle-archived">${myExShowArchived ? 'Ver activos' : `Ver archivados (${archived.length})`}</button>` : '');
+    document.getElementById('myex-actions').classList.toggle('hidden', !CATALOG_READY);
+    if(!list.length){
+      host.innerHTML = `<p class="lib-empty">${pool.length ? 'Sin resultados.' : (myExShowArchived ? 'No hay ejercicios archivados.' : 'Todavía no tienes ejercicios. Agrégalos del catálogo o créalos.')}</p>`;
       return;
     }
-    host.innerHTML = filtered.map(e => `
-      <div class="lib-row" data-id="${e.id}">
-        <span>${escapeHtml(e.name)}</span>
-        <button type="button" class="lib-del" data-action="lib-del" aria-label="Eliminar de la librería"><i class="icon fa-solid fa-trash"></i></button>
-      </div>
-    `).join('');
+    host.innerHTML = list.map(e=>{
+      const origin = !CATALOG_READY ? '' : (e.catalog_exercise_id ? 'Catálogo' : 'Propio');
+      const meta = [
+        e.target ? esLabel(MUSCLE_LABELS_ES, e.target) : (CATALOG_READY ? '<span class="myex-warn">Falta músculo</span>' : ''),
+        e.equipment ? esLabel(EQUIP_LABELS_ES, e.equipment) : '',
+        origin,
+        CATALOG_READY ? `${e.uses} registro${e.uses===1?'':'s'}` : '',
+      ].filter(Boolean).join(' · ');
+      const open = myExOpenId === e.id;
+      const actions = !open ? '' : !CATALOG_READY ? `
+        <div class="myex-actions-row">
+          <button type="button" class="btn btn--sm btn--ghost" data-action="myex-archive"><i class="icon fa-solid fa-box-archive"></i>Quitar</button>
+        </div>` : `
+        <div class="myex-actions-row">
+          <button type="button" class="btn btn--sm" data-action="myex-rename"><i class="icon fa-solid fa-pen"></i>Renombrar</button>
+          <button type="button" class="btn btn--sm" data-action="myex-link"><i class="icon fa-solid fa-link"></i>${e.catalog_exercise_id ? 'Cambiar vínculo' : 'Vincular al catálogo'}</button>
+          ${e.catalog_exercise_id
+            ? `<button type="button" class="btn btn--sm" data-action="myex-info"><i class="icon fa-solid fa-eye"></i>Ver info</button>
+               <button type="button" class="btn btn--sm btn--ghost" data-action="myex-unlink"><i class="icon fa-solid fa-link-slash"></i>Desvincular</button>`
+            : `<button type="button" class="btn btn--sm" data-action="myex-own"><i class="icon fa-solid fa-bullseye"></i>Músculo y equipo</button>`}
+          ${e.archived
+            ? `<button type="button" class="btn btn--sm" data-action="myex-unarchive"><i class="icon fa-solid fa-box-open"></i>Reactivar</button>`
+            : `<button type="button" class="btn btn--sm btn--ghost" data-action="myex-archive"><i class="icon fa-solid fa-box-archive"></i>${e.uses ? 'Archivar' : 'Eliminar'}</button>`}
+        </div>`;
+      return `
+        <div class="myex-row${open ? ' open' : ''}${e.archived ? ' archived' : ''}" data-id="${e.id}">
+          <button type="button" class="myex-main" data-action="myex-toggle" aria-expanded="${open}">
+            ${CATALOG_READY ? exerciseThumbHtml(e.catalog && e.catalog.media_ref) : ''}
+            <span class="myex-text">
+              <span class="myex-name">${escapeHtml(e.name)}</span>
+              ${meta ? `<span class="myex-meta">${meta}</span>` : ''}
+            </span>
+            <i class="icon fa-solid fa-chevron-down myex-chevron"></i>
+          </button>
+          ${actions}
+        </div>`;
+    }).join('');
+  }
+
+  // Aplica en la lista local un ejercicio devuelto por la API y repinta.
+  function upsertUserExercise(ue){
+    setUserExercises([...EXERCISE_LIBRARY.filter(x => x.id !== ue.id), ue]);
+    renderLibraryDatalist();
+    renderMyExercises();
+  }
+
+  // Renombrar actualiza también la copia del nombre en todos sus registros
+  // (lo hace el servidor); aquí se refleja en las semanas cargadas.
+  function applyRenameLocally(id, newName){
+    state.order.forEach(wk => DAY_ORDER.forEach(dk => state.weeks[wk].days[dk].exercises.forEach(e=>{
+      if(e.user_exercise_id === id) e.name = newName;
+    })));
+    if(progExercise && keyForName(progExercise) === 'u' + id) progExercise = newName;
+  }
+
+  async function myExerciseAction(action, id){
+    const ue = USER_EX_BY_ID.get(id);
+    if(!ue) return;
+    try{
+      if(action === 'myex-rename'){
+        const name = await promptDialog({ title: 'Renombrar ejercicio', message: 'Cambia en todo tu historial. Progreso y tus récords no se pierden.', value: ue.name, maxLength: 150 });
+        if(name === null || !name.trim() || name.trim() === ue.name) return;
+        const res = await Api.put(`api/user_exercises.php?id=${id}`, { name: name.trim() });
+        applyRenameLocally(id, res.name);
+        upsertUserExercise(res);
+        renderAll();
+        showToast('Ejercicio renombrado.');
+      } else if(action === 'myex-link'){
+        openCatalogSheet({ mode: 'link', userExercise: ue });
+      } else if(action === 'myex-unlink'){
+        if(!await confirmDialog({ title: '¿Desvincular del catálogo?', message: `"${ue.name}" quedará como ejercicio propio: sin imagen ni instrucciones, y con el músculo que elijas.`, confirmLabel: 'Desvincular' })) return;
+        const res = await Api.put(`api/user_exercises.php?id=${id}`, { catalog_exercise_id: null, target: ue.target });
+        upsertUserExercise(res);
+        renderAll();
+      } else if(action === 'myex-own'){
+        openOwnExerciseSheet(ue);
+      } else if(action === 'myex-info'){
+        openExerciseInfo(ue, ue.catalog_exercise_id);
+      } else if(action === 'myex-archive'){
+        if(!CATALOG_READY){
+          if(!await confirmDialog({ title: '¿Quitar de la librería?', message: `Se quitará "${ue.name}" del autocompletado. Tus registros no cambian.`, confirmLabel: 'Quitar', danger: true })) return;
+          await Api.del(`api/library.php?id=${encodeURIComponent(id)}`);
+          setUserExercises(EXERCISE_LIBRARY.filter(x => x.id !== id));
+          renderLibraryDatalist(); renderMyExercises();
+          return;
+        }
+        const msg = ue.uses
+          ? `"${ue.name}" sale del autocompletado. Sus ${ue.uses} registros y su progreso se conservan; puedes reactivarlo cuando quieras.`
+          : `"${ue.name}" no tiene registros: se elimina.`;
+        if(!await confirmDialog({ title: ue.uses ? '¿Archivar ejercicio?' : '¿Eliminar ejercicio?', message: msg, confirmLabel: ue.uses ? 'Archivar' : 'Eliminar', danger: !ue.uses })) return;
+        const res = await Api.del(`api/user_exercises.php?id=${id}`);
+        myExOpenId = null;
+        if(res.deleted){ setUserExercises(EXERCISE_LIBRARY.filter(x => x.id !== id)); renderLibraryDatalist(); renderMyExercises(); }
+        else upsertUserExercise({ ...ue, archived: true });
+      } else if(action === 'myex-unarchive'){
+        const res = await Api.put(`api/user_exercises.php?id=${id}`, { archived: false });
+        upsertUserExercise(res);
+      }
+    }catch(err){ showToast(err.message); }
+  }
+
+  // ------------------------------------------------------------
+  // Catálogo: buscar para agregar a "Mis ejercicios" o para vincular uno.
+  // ------------------------------------------------------------
+  let catalogSheetMode = null;   // { mode: 'add' | 'link', userExercise? }
+  let catalogVocab = null;
+  let catalogSearchTimer = null;
+  let catalogSearchSeq = 0;
+
+  async function ensureCatalogVocab(){
+    if(catalogVocab) return catalogVocab;
+    catalogVocab = await Api.get('api/catalog.php?vocab=1');
+    return catalogVocab;
+  }
+
+  function vocabOptions(values, dict, emptyLabel, selected){
+    const sorted = [...values].sort((a,b)=> esLabel(dict, a).localeCompare(esLabel(dict, b), 'es'));
+    return `<option value="">${emptyLabel}</option>` + sorted
+      .map(v => `<option value="${escapeHtml(v)}"${v === selected ? ' selected' : ''}>${escapeHtml(esLabel(dict, v))}</option>`).join('');
+  }
+
+  async function openCatalogSheet(opts){
+    catalogSheetMode = opts;
+    const overlay = document.getElementById('catalog-overlay');
+    document.getElementById('catalog-title').textContent = opts.mode === 'link' ? `Vincular "${opts.userExercise.name}"` : 'Agregar del catálogo';
+    document.getElementById('catalog-search').value = opts.mode === 'link' ? opts.userExercise.name : '';
+    document.getElementById('catalog-results').innerHTML = '';
+    overlay.classList.remove('hidden');
+    try{
+      const v = await ensureCatalogVocab();
+      document.getElementById('catalog-target').innerHTML = vocabOptions(v.targets, MUSCLE_LABELS_ES, 'Todos los músculos', opts.mode === 'link' ? (opts.userExercise.target || '') : '');
+      document.getElementById('catalog-equipment').innerHTML = vocabOptions(v.equipment, EQUIP_LABELS_ES, 'Todo el equipo', '');
+    }catch(err){ showToast(err.message); }
+    document.getElementById('catalog-search').focus();
+    runCatalogSearch();
+  }
+
+  function closeCatalogSheet(){
+    document.getElementById('catalog-overlay').classList.add('hidden');
+    catalogSheetMode = null;
+  }
+
+  async function runCatalogSearch(){
+    const q = document.getElementById('catalog-search').value.trim();
+    const target = document.getElementById('catalog-target').value;
+    const equipment = document.getElementById('catalog-equipment').value;
+    const host = document.getElementById('catalog-results');
+    const seq = ++catalogSearchSeq;
+    const params = new URLSearchParams({ limit: '30' });
+    if(q) params.set('q', q);
+    if(target) params.set('target', target);
+    if(equipment) params.set('equipment', equipment);
+    let list;
+    try{ list = await Api.get('api/catalog.php?' + params.toString()); }
+    catch(err){ if(seq === catalogSearchSeq) host.innerHTML = `<p class="lib-empty">${escapeHtml(err.message)}</p>`; return; }
+    if(seq !== catalogSearchSeq) return; // llegó tarde: ya hay una búsqueda más nueva
+    if(!list.length){ host.innerHTML = '<p class="lib-empty">Sin resultados. Prueba con otra palabra, en español o en inglés.</p>'; return; }
+    const mine = new Map(EXERCISE_LIBRARY.filter(e => e.catalog_exercise_id).map(e => [e.catalog_exercise_id, e]));
+    host.innerHTML = list.map(c=>{
+      const owned = mine.get(c.id);
+      const label = c.name_es || c.name_en;
+      return `
+        <div class="catalog-row" data-id="${c.id}">
+          <button type="button" class="catalog-pick" data-action="catalog-pick" ${owned && catalogSheetMode?.mode === 'add' ? 'disabled' : ''}>
+            ${exerciseThumbHtml(c.media_ref)}
+            <span class="myex-text">
+              <span class="myex-name">${escapeHtml(label)}</span>
+              <span class="myex-meta">${escapeHtml(esLabel(MUSCLE_LABELS_ES, c.target))} · ${escapeHtml(esLabel(EQUIP_LABELS_ES, c.equipment))}${c.name_es ? ` · <span class="catalog-en">${escapeHtml(c.name_en)}</span>` : ''}</span>
+              ${owned ? `<span class="myex-meta myex-owned">Ya lo tienes como "${escapeHtml(owned.name)}"</span>` : ''}
+            </span>
+          </button>
+          <button type="button" class="btn btn--icon catalog-info" data-action="catalog-info" aria-label="Ver info de ${escapeHtml(label)}"><i class="icon fa-solid fa-eye"></i></button>
+        </div>`;
+    }).join('');
+  }
+
+  async function pickCatalogExercise(catalogId){
+    const mode = catalogSheetMode;
+    if(!mode) return;
+    const row = document.querySelector(`.catalog-row[data-id="${catalogId}"]`);
+    const name = row ? row.querySelector('.myex-name').textContent : '';
+    try{
+      if(mode.mode === 'link'){
+        const res = await Api.put(`api/user_exercises.php?id=${mode.userExercise.id}`, { catalog_exercise_id: catalogId, target: null, equipment: null });
+        upsertUserExercise(res);
+        showToast(`"${res.name}" quedó vinculado al catálogo.`);
+      } else {
+        const res = await Api.post('api/user_exercises.php', { name, catalog_exercise_id: catalogId });
+        upsertUserExercise(res);
+        showToast(`"${res.name}" se agregó a tus ejercicios.`);
+      }
+      closeCatalogSheet();
+      renderAll();
+    }catch(err){ showToast(err.message); }
+  }
+
+  // ------------------------------------------------------------
+  // Ejercicio propio: crear (nombre + músculo obligatorio) o editar músculo/equipo.
+  // ------------------------------------------------------------
+  let ownSheetExercise = null; // null = crear nuevo
+
+  async function openOwnExerciseSheet(ue = null){
+    ownSheetExercise = ue;
+    document.getElementById('own-title').textContent = ue ? `Músculo y equipo de "${ue.name}"` : 'Crear ejercicio propio';
+    const nameInput = document.getElementById('own-name');
+    nameInput.value = ue ? ue.name : '';
+    nameInput.closest('.own-field').classList.toggle('hidden', !!ue);
+    document.getElementById('own-overlay').classList.remove('hidden');
+    try{
+      const v = await ensureCatalogVocab();
+      document.getElementById('own-target').innerHTML = vocabOptions(v.targets, MUSCLE_LABELS_ES, 'Elige el músculo principal…', ue ? (ue.target || '') : '');
+      document.getElementById('own-equipment').innerHTML = vocabOptions(v.equipment, EQUIP_LABELS_ES, 'Sin especificar', ue ? (ue.equipment || '') : '');
+    }catch(err){ showToast(err.message); }
+    (ue ? document.getElementById('own-target') : nameInput).focus();
+  }
+
+  function closeOwnExerciseSheet(){
+    document.getElementById('own-overlay').classList.add('hidden');
+    ownSheetExercise = null;
+  }
+
+  async function saveOwnExercise(){
+    const name = document.getElementById('own-name').value.trim();
+    const target = document.getElementById('own-target').value;
+    const equipment = document.getElementById('own-equipment').value || null;
+    if(!ownSheetExercise && !name){ showToast('Ponle nombre al ejercicio.'); return; }
+    if(!target){ showToast('Elige el músculo principal: con él cuenta en la Guía del día.'); return; }
+    try{
+      const res = ownSheetExercise
+        ? await Api.put(`api/user_exercises.php?id=${ownSheetExercise.id}`, { target, equipment })
+        : await Api.post('api/user_exercises.php', { name, target, equipment });
+      upsertUserExercise(res);
+      closeOwnExerciseSheet();
+      renderAll();
+      showToast(ownSheetExercise ? 'Guardado.' : `"${res.name}" se agregó a tus ejercicios.`);
+    }catch(err){ showToast(err.message); }
   }
 
   function renderRulesPanel(){
@@ -504,8 +813,9 @@
       const taken = new Set();
       const totalSeries = plan.slots.reduce((sum, slot) => sum + (parseInt(slot.series, 10) || 0), 0);
       const rows = plan.slots.map(slot=>{
-        const name = suggestForSlot(slot, taken);
-        taken.add(normalizeExerciseName(name));
+        const sug = suggestForSlot(slot, taken);
+        if(sug) taken.add(sug.key);
+        const name = sug ? sug.name : '—';
         return `
           <div class="split-preview-row">
             <div class="split-preview-muscle">
@@ -692,13 +1002,13 @@
     const idx = state.order.indexOf(key);
     return (idx > -1 && idx < state.order.length - 1) ? state.order[idx+1] : null;
   }
-  function findExerciseInPrevWeek(name){
+  function findExerciseInPrevWeek(ex){
     const prevKey = getPrevWeekKey(state.activeWeek);
     if(!prevKey || !state.weeks[prevKey]) return null;
+    if(!ex || !(ex.name || '').trim()) return null;
     const prevDay = state.weeks[prevKey].days[state.activeDay];
-    const target = (name || '').trim().toLowerCase();
-    if(!target) return null;
-    return prevDay.exercises.find(e => e.name.trim().toLowerCase() === target) || null;
+    const key = exerciseKey(ex);
+    return prevDay.exercises.find(e => (e.name || '').trim() && exerciseKey(e) === key) || null;
   }
 
   // La API devuelve group_name/notes por día (join a day_templates) y
@@ -1419,14 +1729,14 @@
     // principal queda con 7 controles en vez de 9. Borrar sigue con el
     // mismo criterio de siempre (toast + deshacer, ver deleteExercise()),
     // solo cambia dónde se toca.
-    const infoBtnHtml = hasName && findDatasetMatch(ex.name)
-      ? `<button type="button" class="ex-progress-btn" data-action="view-exercise-info" data-name="${escapeHtml(ex.name)}"><i class="icon fa-solid fa-eye"></i>Ver info</button>`
+    const infoBtnHtml = hasExerciseInfo(ex)
+      ? `<button type="button" class="ex-progress-btn" data-action="view-exercise-info"><i class="icon fa-solid fa-eye"></i>Ver info</button>`
       : '';
     const deleteBtnHtml = `<button type="button" class="ex-progress-btn ex-progress-btn--danger" data-action="delete"><i class="icon fa-solid fa-trash"></i>Eliminar</button>`;
     const detailActionsHtml = `<div class="ex-detail-actions">${progressBtnHtml}${infoBtnHtml}${deleteBtnHtml}</div>`;
     let detailHtml = '';
     if(expanded){
-      const prevEx = findExerciseInPrevWeek(ex.name);
+      const prevEx = findExerciseInPrevWeek(ex);
       if(!prevEx){
         detailHtml = `<div class="ex-detail" data-id="${ex.id}">${detailActionsHtml}<p class="ex-detail-empty">Sin datos de la semana pasada para este ejercicio.</p></div>`;
       } else {
@@ -1475,39 +1785,35 @@
   // Guía del día (ADR 0018): los "huecos" de la plantilla del día
   // (js/split-catalog.js → DAY_PLANS) contra los ejercicios que ya tiene.
   // Series × reps son solo referencia — nunca se escriben en los campos.
-  // El músculo de cada ejercicio sale de NAME_MAPPING (campo `target`,
-  // copiado del dataset) para no tener que bajar el dataset de ~1MB; un
-  // ejercicio sin mapeo simplemente no cubre ningún hueco.
+  // El músculo de cada registro es el de su ejercicio del usuario (propio o
+  // del catálogo, ADR 0021); los sugeridos son ids del catálogo.
   // ============================================================
   const DAY_PLANS = (window.SPLIT_CATALOG && window.SPLIT_CATALOG.DAY_PLANS) || {};
+  const SUGGESTED_NAMES = (window.SPLIT_CATALOG && window.SPLIT_CATALOG.SUGGESTED_NAMES) || {};
   let guideOpen = true;
   try{ guideOpen = localStorage.getItem('bitacora.guideOpen') !== '0'; }catch(err){}
   let guideBusy = false;
 
-  function exerciseTarget(name){
-    const entry = NAME_MAPPING[normalizeExerciseName(name)];
-    return entry ? (entry.target || null) : null;
-  }
+  const catalogIdOf = ex => { const u = userExerciseOf(ex); return u ? u.catalog_exercise_id || null : null; };
 
   // Cada ejercicio cubre como mucho un hueco. Primero se asignan los que
-  // coinciden con el sugerido de un hueco (así el press inclinado cae en
-  // "Pecho (inclinado)" aunque esté primero en el día); después, el resto
-  // al primer hueco libre que acepte su músculo. 3 ejercicios de pecho
-  // cubren los 3 huecos de pecho, no el mismo tres veces.
+  // son el sugerido de un hueco (así el press inclinado cae en "Pecho
+  // (inclinado)" aunque esté primero en el día); después, el resto al
+  // primer hueco libre que acepte su músculo. 3 ejercicios de pecho cubren
+  // los 3 huecos de pecho, no el mismo tres veces.
   function computeGuide(day){
     const plan = DAY_PLANS[day.templateKey];
     if(!plan) return null;
     const used = new Set();
     const assigned = plan.slots.map(slot=>{
-      const sugNorm = normalizeExerciseName(slot.sugerido);
-      const ex = day.exercises.find(e => !used.has(e) && normalizeExerciseName(e.name) === sugNorm);
+      const ex = day.exercises.find(e => !used.has(e) && catalogIdOf(e) === slot.sugerido);
       if(ex) used.add(ex);
       return ex || null;
     });
     const rows = plan.slots.map((slot, i)=>{
       let ex = assigned[i];
       if(!ex){
-        ex = day.exercises.find(e => !used.has(e) && slot.targets.includes(exerciseTarget(e.name))) || null;
+        ex = day.exercises.find(e => !used.has(e) && slot.targets.includes(exerciseTarget(e))) || null;
         if(ex) used.add(ex);
       }
       return { slot, ex };
@@ -1515,45 +1821,54 @@
     return { plan, rows, covered: rows.filter(r => r.ex).length };
   }
 
-  // Qué ejercicio proponer para un hueco vacío: el sugerido de la plantilla
-  // si lo haces (o si tu historial no tiene nada para ese músculo); si no,
-  // el que más repites de ese músculo en las últimas 12 semanas. `taken`
-  // (nombres normalizados) evita proponer algo que ya está en el día.
+  // Qué proponer para un hueco vacío → { name, catalogId }:
+  //   1. tu ejercicio vinculado al sugerido de la plantilla, si lo tienes;
+  //   2. si no, el que más repites de ese músculo en las últimas 12 semanas;
+  //   3. si no, el sugerido tal como está en el catálogo (se agrega a tus
+  //      ejercicios al tocarlo).
+  // `taken` (llaves de ejercicio) evita proponer algo que ya está en el día.
   function suggestForSlot(slot, taken){
+    const mineSug = activeUserExercises().find(u => u.catalog_exercise_id === slot.sugerido);
+    if(mineSug && !taken.has('u' + mineSug.id)) return { name: mineSug.name, catalogId: null, key: 'u' + mineSug.id };
     const counts = new Map();
     state.order.slice(0, 12).forEach(wk=>{
       const week = state.weeks[wk];
       if(!week) return;
       DAY_ORDER.forEach(dk=> week.days[dk].exercises.forEach(e=>{
-        const norm = normalizeExerciseName(e.name);
-        if(!norm || !slot.targets.includes(exerciseTarget(e.name))) return;
-        const c = counts.get(norm) || { name: e.name, n: 0 };
+        if(!(e.name || '').trim() || !slot.targets.includes(exerciseTarget(e))) return;
+        const key = exerciseKey(e);
+        const u = userExerciseOf(e);
+        if(u && u.archived) return;
+        const c = counts.get(key) || { name: u ? u.name : e.name, n: 0 };
         c.n++;
-        counts.set(norm, c);
+        counts.set(key, c);
       }));
     });
-    const sugNorm = normalizeExerciseName(slot.sugerido);
-    if(!taken.has(sugNorm) && (counts.size === 0 || counts.has(sugNorm))){
-      return counts.has(sugNorm) ? counts.get(sugNorm).name : slot.sugerido;
-    }
     const best = [...counts.entries()]
-      .filter(([norm]) => !taken.has(norm))
+      .filter(([key]) => !taken.has(key))
       .sort((a, b) => b[1].n - a[1].n)[0];
-    return best ? best[1].name : slot.sugerido;
+    if(best) return { name: best[1].name, catalogId: null, key: best[0] };
+    const name = SUGGESTED_NAMES[slot.sugerido];
+    const key = 'c' + slot.sugerido;
+    return name && !taken.has(key) ? { name, catalogId: slot.sugerido, key } : null;
   }
 
   function guideHtml(day, guide){
     if(!guide) return '';
-    const taken = new Set(day.exercises.map(e => normalizeExerciseName(e.name)));
+    const taken = new Set(day.exercises.filter(e => (e.name || '').trim()).map(exerciseKey));
     const rows = guide.rows.map(r=>{
       const meta = `${r.slot.tipo === 'compuesto' ? 'Compuesto' : 'Aislamiento'} · ${r.slot.series} × ${r.slot.reps}`;
       let right;
       if(r.ex){
         right = `<span class="guide-ex">${escapeHtml(r.ex.name)}</span>`;
       } else {
-        const name = suggestForSlot(r.slot, taken);
-        taken.add(normalizeExerciseName(name));
-        right = `<button class="guide-add" type="button" data-action="guide-add" data-name="${escapeHtml(name)}" aria-label="Agregar ${escapeHtml(name)}"><i class="icon fa-solid fa-plus"></i><span>${escapeHtml(name)}</span></button>`;
+        const sug = suggestForSlot(r.slot, taken);
+        if(sug){
+          taken.add(sug.key);
+          right = `<button class="guide-add" type="button" data-action="guide-add" data-name="${escapeHtml(sug.name)}" data-catalog="${sug.catalogId || ''}" aria-label="Agregar ${escapeHtml(sug.name)}"><i class="icon fa-solid fa-plus"></i><span>${escapeHtml(sug.name)}</span></button>`;
+        } else {
+          right = `<span class="guide-ex">—</span>`;
+        }
       }
       return `
         <div class="guide-row${r.ex ? ' covered' : ''}">
@@ -1580,26 +1895,36 @@
   }
 
   // Agrega ejercicios con solo el nombre (kg/reps/series vacíos), en orden.
-  async function addGuideExercises(names){
-    if(!state.activeWeek || !names.length || guideBusy) return;
+  // items: [{ name, catalogId }] — con catalogId, primero se agrega a tus
+  // ejercicios vinculado al catálogo (si no lo tenías).
+  async function addGuideExercises(items){
+    if(!state.activeWeek || !items.length || guideBusy) return;
     guideBusy = true;
     const weekKey = state.activeWeek;
     const dayKey = state.activeDay;
     const day = state.weeks[weekKey].days[dayKey];
+    let newUserExercises = false;
     try{
-      for(const name of names){
+      for(const item of items){
+        if(item.catalogId && CATALOG_READY && !userExerciseByName(item.name)){
+          try{ await Api.post('api/user_exercises.php', { name: item.name, catalog_exercise_id: item.catalogId }); newUserExercises = true; }
+          catch(err){ if(err.status !== 409){ showToast(err.message); break; } }
+        }
         let created;
-        try{ created = await Api.post('api/exercises.php', { monday_date: weekKey, day_key: dayKey, name }); }
+        try{ created = await Api.post('api/exercises.php', { monday_date: weekKey, day_key: dayKey, name: item.name }); }
         catch(err){ showToast(err.message); break; }
         day.exercises.push(created);
+        if(created.user_exercise_id && !USER_EX_BY_ID.has(created.user_exercise_id)) newUserExercises = true;
       }
     } finally {
       guideBusy = false;
     }
+    if(newUserExercises || !CATALOG_READY){
+      if(CATALOG_READY) await refreshUserExercises(); else items.forEach(i => addToLibrary(i.name));
+    }
     renderDayPanel();
     updateStreakBadge();
     renderWeeklyRecap();
-    names.forEach(name => addToLibrary(name)); // no-op si ya está en la librería
   }
 
   function renderDayPanel(){
@@ -2085,7 +2410,7 @@
     // offline puede devolver una respuesta sin eco real cuando no hay
     // conexión, así que ex.done siempre se fija con el valor calculado
     // acá, nunca con lo que devuelva la API.
-    const prevBest = (newDone && ex.name.trim()) ? bestPriorKgForExercise(ex.name) : null;
+    const prevBest = (newDone && ex.name.trim()) ? bestPriorKgForExercise(ex) : null;
     try{ await Api.put(`api/exercises.php?id=${encodeURIComponent(id)}`, { done: newDone }); }
     catch(err){ showToast(err.message); return; }
     ex.done = newDone;
@@ -2206,7 +2531,7 @@
     const progressEl = e.target.closest('[data-action="view-progress"]');
     if(progressEl){ goToProgress(progressEl.dataset.name); return; }
     const infoEl = e.target.closest('[data-action="view-exercise-info"]');
-    if(infoEl){ openExerciseInfo(infoEl.dataset.name); return; }
+    if(infoEl){ const infoEx = findExercise(infoEl.closest('[data-id]').dataset.id); if(infoEx) openExerciseInfo(infoEx); return; }
     const nameEl = e.target.closest('[data-action="edit-name"]');
     if(nameEl){ enterNameEdit(nameEl.closest('.ex-row').dataset.id); return; }
     const noteEl = e.target.closest('[data-action="edit-note"]');
@@ -2230,10 +2555,11 @@
       return;
     }
     const guideAdd = e.target.closest('[data-action="guide-add"]');
-    if(guideAdd){ addGuideExercises([guideAdd.dataset.name]); return; }
+    if(guideAdd){ addGuideExercises([{ name: guideAdd.dataset.name, catalogId: parseInt(guideAdd.dataset.catalog, 10) || null }]); return; }
     if(e.target.closest('[data-action="guide-fill"]')){
-      const names = [...dayPanelHost.querySelectorAll('[data-action="guide-add"]')].map(b => b.dataset.name);
-      addGuideExercises(names);
+      const items = [...dayPanelHost.querySelectorAll('[data-action="guide-add"]')]
+        .map(b => ({ name: b.dataset.name, catalogId: parseInt(b.dataset.catalog, 10) || null }));
+      addGuideExercises(items);
       return;
     }
     if(e.target.closest('[data-action="add-ex"]')){ addExercise(); return; }
@@ -2271,9 +2597,11 @@
     renderWeeklyRecap();
   });
 
+  // Sin migración: un nombre nuevo se agrega a la librería vieja. Con
+  // catálogo lo resuelve el servidor al guardar (ver focusout).
   dayPanelHost.addEventListener('change', (e)=>{
     const input = e.target.closest('.ex-name-input');
-    if(input) addToLibrary(input.value);
+    if(input && !CATALOG_READY) addToLibrary(input.value);
   });
 
   // Kg/Rep/Ser: al enfocar (toque o tab), el cursor va al final del valor
@@ -2307,8 +2635,20 @@
     }
 
     const field = input.dataset.field;
-    try{ await Api.put(`api/exercises.php?id=${encodeURIComponent(ex.id)}`, { [field]: ex[field] }); }
-    catch(err){ showToast(err.message); }
+    let res;
+    try{ res = await Api.put(`api/exercises.php?id=${encodeURIComponent(ex.id)}`, { [field]: ex[field] }); }
+    catch(err){ showToast(err.message); return; }
+    // El nombre se resuelve en el servidor a un ejercicio del usuario (o se
+    // crea): se toma su id y su nombre canónico (p. ej. "press de banca con
+    // barra" → "Press de banca con barra"). Sin conexión la respuesta no
+    // trae id y se deja como está hasta sincronizar.
+    if(field === 'name' && CATALOG_READY && res && 'user_exercise_id' in res){
+      const changed = ex.user_exercise_id !== res.user_exercise_id || ex.name !== res.name;
+      ex.user_exercise_id = res.user_exercise_id;
+      ex.name = res.name;
+      if(res.user_exercise_id && !USER_EX_BY_ID.has(res.user_exercise_id)) await refreshUserExercises();
+      if(changed) renderDayPanel();
+    }
   });
 
   // Swipe horizontal entre días
@@ -2407,26 +2747,52 @@
   dayPanelHost.addEventListener('pointercancel', finishExerciseDrag);
 
   // ============================================================
-  // Librería: eventos de la vista Ajustes
+  // Ajustes → Ejercicios: eventos de "Mis ejercicios", del buscador del
+  // catálogo y del formulario de ejercicio propio (ADR 0021)
   // ============================================================
-  document.getElementById('lib-list').addEventListener('click', async (e)=>{
-    const btn = e.target.closest('[data-action="lib-del"]');
-    if(!btn) return;
-    const row = btn.closest('.lib-row');
-    const id = row.dataset.id;
-    const ex = EXERCISE_LIBRARY.find(x => String(x.id) === id);
-    if(ex && await confirmDialog({ title: '¿Quitar de la librería?', message: `Se quitará "${ex.name}" de la lista de autocompletar. Tus ejercicios ya registrados no cambian.`, confirmLabel: 'Quitar', danger: true })) removeFromLibrary(id);
+  document.getElementById('myex-list').addEventListener('click', (e)=>{
+    const row = e.target.closest('.myex-row');
+    if(!row) return;
+    const id = parseInt(row.dataset.id, 10);
+    if(e.target.closest('[data-action="myex-toggle"]')){
+      myExOpenId = myExOpenId === id ? null : id;
+      renderMyExercises();
+      return;
+    }
+    const btn = e.target.closest('[data-action^="myex-"]');
+    if(btn) myExerciseAction(btn.dataset.action, id);
   });
-  document.getElementById('lib-search').addEventListener('input', renderLibraryView);
-  document.getElementById('lib-add-btn').addEventListener('click', ()=>{
-    const input = document.getElementById('lib-new-input');
-    addToLibrary(input.value);
-    input.value = '';
-    input.focus();
+  document.getElementById('myex-count').addEventListener('click', (e)=>{
+    if(!e.target.closest('[data-action="myex-toggle-archived"]')) return;
+    myExShowArchived = !myExShowArchived;
+    myExOpenId = null;
+    renderMyExercises();
   });
-  document.getElementById('lib-new-input').addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('lib-add-btn').click(); }
+  document.getElementById('myex-search').addEventListener('input', renderMyExercises);
+  document.getElementById('myex-add-catalog').addEventListener('click', ()=> openCatalogSheet({ mode: 'add' }));
+  document.getElementById('myex-add-own').addEventListener('click', ()=> openOwnExerciseSheet(null));
+
+  const catalogOverlay = document.getElementById('catalog-overlay');
+  catalogOverlay.addEventListener('click', (e)=>{
+    if(e.target === catalogOverlay || e.target.closest('[data-action="close-catalog"]')){ closeCatalogSheet(); return; }
+    const row = e.target.closest('.catalog-row');
+    if(!row) return;
+    const id = parseInt(row.dataset.id, 10);
+    if(e.target.closest('[data-action="catalog-info"]')){ openExerciseInfo({ name: row.querySelector('.myex-name').textContent }, id); return; }
+    if(e.target.closest('[data-action="catalog-pick"]')) pickCatalogExercise(id);
   });
+  document.getElementById('catalog-search').addEventListener('input', ()=>{
+    clearTimeout(catalogSearchTimer);
+    catalogSearchTimer = setTimeout(runCatalogSearch, 250);
+  });
+  document.getElementById('catalog-target').addEventListener('change', runCatalogSearch);
+  document.getElementById('catalog-equipment').addEventListener('change', runCatalogSearch);
+
+  const ownOverlay = document.getElementById('own-overlay');
+  ownOverlay.addEventListener('click', (e)=>{
+    if(e.target === ownOverlay || e.target.closest('[data-action="close-own"]')) closeOwnExerciseSheet();
+  });
+  document.getElementById('own-form').addEventListener('submit', (e)=>{ e.preventDefault(); saveOwnExercise(); });
 
   // ============================================================
   // Reglas: eventos de la vista Ajustes
@@ -2473,11 +2839,6 @@
     if(e.target.closest('#split-save-btn')) saveSplit();
   });
 
-  // Fuente de nombres de ejercicios (Ajustes)
-  document.getElementById('exercise-source-options').addEventListener('change', (e)=>{
-    const input = e.target.closest('input[name="exercise-source"]');
-    if(input) setExerciseSource(input.value);
-  });
 
   // Panel de info de ejercicio (ícono de ojo): cerrar con la X o tocando
   // el fondo (nunca el panel mismo, para no cerrarlo al hacer scroll/tap
@@ -3398,13 +3759,13 @@
   // Mejor kg histórico registrado para un ejercicio (solo apariciones ya
   // marcadas como hechas, mismo criterio de tolerancia que el resto de la
   // app). Usado por PR automático — ver toggleExercise().
-  function bestPriorKgForExercise(name){
-    const target = name.trim().toLowerCase();
+  function bestPriorKgForExercise(ex){
+    const key = exerciseKey(ex);
     let best = null;
     state.order.forEach(wk=>{
       DAY_ORDER.forEach(dk=>{
         state.weeks[wk].days[dk].exercises.forEach(e=>{
-          if(!e.done || e.name.trim().toLowerCase() !== target) return;
+          if(!e.done || !(e.name || '').trim() || exerciseKey(e) !== key) return;
           const kg = parseFloat(e.kg);
           if(isNaN(kg)) return;
           if(best === null || kg > best) best = kg;
@@ -3415,19 +3776,27 @@
   }
 
   function collectExerciseHistory(name){
-    const target = name.trim().toLowerCase();
+    const key = keyForName(name);
     const points = [];
     [...state.order].sort((a, b) => a.localeCompare(b)).forEach(wk=>{
       DAY_ORDER.forEach(dk=>{
         state.weeks[wk].days[dk].exercises.forEach(e=>{
-          if(!e.done || e.name.trim().toLowerCase() !== target) return;
+          if(!e.done || !(e.name || '').trim() || exerciseKey(e) !== key) return;
           const kg = parseFloat(e.kg);
           if(isNaN(kg)) return;
           points.push({ date: dayDate(wk, dk), kg, reps: e.reps, series: e.series });
         });
       });
     });
-    return points;
+    // Un punto por día: si el mismo ejercicio aparece dos veces en un día
+    // (p. ej. variantes que se fusionaron en ADR 0019), se queda el más pesado.
+    const byDay = new Map();
+    points.forEach(p=>{
+      const iso = toISO(p.date);
+      const prev = byDay.get(iso);
+      if(!prev || p.kg > prev.kg) byDay.set(iso, p);
+    });
+    return [...byDay.values()];
   }
 
   // Eje X compartido para comparar dos ejercicios que no se entrenaron
@@ -3725,9 +4094,12 @@
         // dato, mismo criterio que ya usa "note"/"overrides" acá abajo.
         const dayPayload = {
           // original_name solo en filas renombradas por la estandarización (ADR 0019).
+          // catalog_exercise_id (ADR 0021): para que un reimport en otra base
+          // vuelva a vincular cada ejercicio al catálogo.
           exercises: day.exercises.map(e=>Object.assign(
             { name: e.name, kg: e.kg, reps: e.reps, series: e.series, note: e.note, done: e.done },
-            e.original_name ? { original_name: e.original_name } : {}
+            e.original_name ? { original_name: e.original_name } : {},
+            catalogIdOf(e) ? { catalog_exercise_id: catalogIdOf(e) } : {}
           )),
         };
         if(day.startTime) dayPayload.start_time = day.startTime;
@@ -3891,9 +4263,10 @@
   // guardada por Snapshot cuando se abre la app sin conexión).
   function applyAppData({ bulk, library, settings }){
     state.order = bulk.order;
-    EXERCISE_LIBRARY.length = 0;
-    library.forEach(item => EXERCISE_LIBRARY.push(item));
-    EXERCISE_LIBRARY.sort((a,b)=> a.name.localeCompare(b.name, 'es'));
+    // Con la copia local (sin conexión) no se sabe si la migración corrió:
+    // la forma de la lista lo dice (user_exercises trae catalog_exercise_id).
+    if(library && library.length) CATALOG_READY = 'catalog_exercise_id' in library[0];
+    setUserExercises(library);
     if(settings) Object.assign(RULES, settings);
 
     state.order.forEach(key => applyWeekDetail(key, bulk.weeks[key]));
@@ -3901,9 +4274,8 @@
     state.activeWeek = state.order.includes(todayMondayKey) ? todayMondayKey : (state.order[0] ?? null);
 
     renderLibraryDatalist();
-    renderLibraryView();
+    renderMyExercises();
     renderRulesPanel();
-    renderExerciseSourceSetting();
     renderAll();
     dataLoadedOnce = true;
   }
@@ -3956,7 +4328,7 @@
     set('milestones-host', many(3, `<div class="skeleton-card" aria-hidden="true">${line('h-lg w-m')}${line('w-l')}</div>`));
     set('time-stats-host', `<div class="skeleton-card" aria-hidden="true">${line('w-l')}${line('w-m')}${line('w-l')}</div>`);
     // Ajustes
-    set('lib-list', many(5, `<div class="skeleton-row" aria-hidden="true"><div class="skeleton-stack">${line('w-m')}</div></div>`));
+    set('myex-list', many(5, `<div class="skeleton-row" aria-hidden="true"><div class="skeleton-stack">${line('w-m')}</div></div>`));
   }
 
   async function loadAppData(){
@@ -3971,9 +4343,8 @@
     try{
       const [bulk, library, settings] = await Promise.all([
         Api.get('api/weeks.php'),
-        Api.get('api/library.php'),
+        fetchUserExercises(),
         Api.get('api/settings.php').catch(()=> null), // si falla, se queda con los defaults de RULES
-        loadNameMapping(), // liviano (~40 entradas) — decide cuándo mostrar el ícono de ojo
       ]);
 
       applyAppData({ bulk, library, settings });

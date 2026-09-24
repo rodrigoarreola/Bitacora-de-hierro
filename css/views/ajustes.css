@@ -1,5 +1,5 @@
 /* Vista Ajustes (#/ajustes/split|reglas|ejercicios): 3 pestañas (.seg-tabs) — Split; Reglas;
-   Ejercicios (fuente de nombres + librería).
+   Ejercicios ("Mis ejercicios", ADR 0021).
    Se carga después de tokens.css, components.css y base.css. */
 
 /* ---------- Reglas (Ajustes) ---------- */
@@ -103,3 +103,48 @@
 #ajustes-tabs .seg-tab.dirty.active::after{ background:var(--accent-ink); }
 .btn.is-dirty::after{ content:'•'; margin-left:var(--sp-1-5); color:var(--pending); font-size:var(--fs-xl); line-height:0; }
 #view-ajustes [role="tabpanel"] > .lib-panel:first-child{ margin-top:0; }
+
+/* ---------- Mis ejercicios (ADR 0021) ---------- */
+.myex-toolbar{ display:flex; gap:var(--sp-2); flex-wrap:wrap; padding:var(--sp-3-5) var(--sp-4-5) 0; }
+.myex-list{ padding:var(--sp-1) 0 var(--sp-2); }
+.myex-row{ border-top:1px solid var(--line); }
+.myex-row:first-child{ border-top:none; }
+.myex-row.archived .myex-name{ color:var(--text-dim); }
+.myex-main, .catalog-pick{
+  width:100%; display:flex; align-items:center; gap:var(--sp-3); padding:var(--sp-2-5) var(--sp-4-5);
+  background:none; border:none; color:var(--text); text-align:left; cursor:pointer; font:inherit;
+}
+.myex-main:hover, .catalog-pick:hover:not(:disabled){ background:var(--wash); }
+.catalog-pick:disabled{ cursor:default; opacity:.6; }
+.myex-thumb{ width:44px; height:44px; flex-shrink:0; border-radius:var(--r-sm); object-fit:contain; background:var(--white); }
+.myex-thumb--own{ display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--text-faint); }
+.myex-text{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.myex-name{ font-size:var(--fs-lg); font-weight:600; line-height:1.3; }
+.myex-meta{ font-size:var(--fs-sm); color:var(--text-faint); line-height:1.4; }
+.myex-owned{ color:var(--ok); }
+.myex-warn{ color:var(--pending); font-weight:600; }
+.myex-chevron{ color:var(--text-faint); font-size:var(--fs-sm); transition:transform .15s; }
+.myex-row.open .myex-chevron{ transform:rotate(180deg); }
+.myex-actions-row{ display:flex; flex-wrap:wrap; gap:var(--sp-2); padding:0 var(--sp-4-5) var(--sp-3); }
+.myex-archived-toggle{ background:none; border:none; padding:0; color:var(--accent); font:inherit; text-transform:inherit; letter-spacing:inherit; cursor:pointer; }
+
+/* Buscador del catálogo y ejercicio propio (bottom sheets) */
+.catalog-sheet, .own-sheet{ display:flex; flex-direction:column; gap:var(--sp-3); }
+.catalog-sheet{ max-height:90vh; }
+.catalog-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2); }
+.catalog-search, .catalog-filters select, .own-field input, .own-field select{
+  width:100%; min-width:0; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-md);
+  padding:var(--sp-2-5) var(--sp-3); color:var(--text); font-size:var(--fs-lg); font-family:var(--font-body);
+}
+.catalog-search:focus, .catalog-filters select:focus, .own-field input:focus, .own-field select:focus{ outline:none; border-color:var(--accent-dim); }
+.catalog-filters{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); }
+.catalog-results{ margin:0 calc(-1 * var(--sp-4-5)); overflow-y:auto; min-height:120px; }
+.catalog-row{ display:flex; align-items:center; border-top:1px solid var(--line); padding-right:var(--sp-3); }
+.catalog-row:first-child{ border-top:none; }
+.catalog-info{ flex-shrink:0; width:34px; height:34px; }
+.catalog-en{ font-style:italic; }
+.catalog-foot{ margin:0; font-size:var(--fs-xs); color:var(--text-faint); }
+.own-sub{ margin:0; font-size:var(--fs-md); color:var(--text-dim); line-height:1.5; }
+.own-field{ display:flex; flex-direction:column; gap:var(--sp-1); }
+.own-field > span{ font-size:var(--fs-xs); color:var(--text-faint); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+

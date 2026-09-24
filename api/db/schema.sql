@@ -229,3 +229,13 @@ UPDATE week_day_overrides wo
 -- nunca se renombró. Solo informativo: la app agrupa por `name`.
 -- ============================================================
 ALTER TABLE exercises ADD COLUMN original_name VARCHAR(150) NULL AFTER name;
+
+-- ============================================================
+-- Catálogo de ejercicios y ejercicios del usuario (ADR 0021).
+-- En una instalación nueva, después de este archivo correr, en orden:
+--   api/db/migrations/2026-09-23-catalogo.sql  (crea y siembra catalog_exercises,
+--     1,324 ejercicios con nombre en/es; generado por scripts/build-catalog-sql.php)
+--   api/db/migrations/2026-09-23-ejercicios-del-usuario.sql  (crea user_exercises
+--     y exercises.user_exercise_id, y vincula lo que ya exista)
+-- exercise_library queda solo como respaldo (la app usa user_exercises).
+-- ============================================================

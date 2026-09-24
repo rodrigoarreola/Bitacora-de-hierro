@@ -56,6 +56,23 @@ function original_name_ready(PDO $pdo): bool
 }
 
 /**
+ * ¿Existe exercises.user_exercise_id (ADR 0021)? Copia local de
+ * catalog_ready() para no obligar a cada endpoint que lee semanas a incluir
+ * exercise_helpers.php.
+ */
+function catalog_ready_wh(PDO $pdo): bool
+{
+    static $ready = null;
+    if ($ready === null) {
+        $ready = (bool) $pdo->query(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exercises' AND COLUMN_NAME = 'user_exercise_id'"
+        )->fetchColumn();
+    }
+    return $ready;
+}
+
+/**
  * Congela el split vigente (day_templates) en week_day_groups para una
  * semana recién creada, así un cambio de split posterior no la renombra.
  * INSERT IGNORE: si la semana ya tenía sus grupos, no los toca.
@@ -142,12 +159,13 @@ function fetch_week_detail(PDO $pdo, int $weekId, string $mondayDate): array
     }
 
     $stmt = $pdo->prepare(
-        'SELECT id, day_key, name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done
+        'SELECT id, day_key, ' . (catalog_ready_wh($pdo) ? 'user_exercise_id' : 'NULL AS user_exercise_id') . ', name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done
          FROM exercises WHERE week_id = :week_id ORDER BY day_key, sort_order, id'
     );
     $stmt->execute(['week_id' => $weekId]);
     foreach ($stmt->fetchAll() as $row) {
         $row['id'] = (int) $row['id'];
+        $row['user_exercise_id'] = $row['user_exercise_id'] !== null ? (int) $row['user_exercise_id'] : null;
         $row['done'] = (bool) $row['done'];
         $days[$row['day_key']]['exercises'][] = $row;
     }
@@ -209,11 +227,12 @@ function fetch_all_weeks_detail(PDO $pdo): array
 
     $exercisesByWeek = [];
     $stmtExercises = $pdo->query(
-        'SELECT id, week_id, day_key, name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done
+        'SELECT id, week_id, day_key, ' . (catalog_ready_wh($pdo) ? 'user_exercise_id' : 'NULL AS user_exercise_id') . ', name, ' . (original_name_ready($pdo) ? 'original_name' : 'NULL AS original_name') . ', kg, reps, series, note, done
          FROM exercises ORDER BY week_id, day_key, sort_order, id'
     );
     foreach ($stmtExercises as $row) {
         $row['id'] = (int) $row['id'];
+        $row['user_exercise_id'] = $row['user_exercise_id'] !== null ? (int) $row['user_exercise_id'] : null;
         $row['done'] = (bool) $row['done'];
         $weekId = $row['week_id'];
         $dayKey = $row['day_key'];

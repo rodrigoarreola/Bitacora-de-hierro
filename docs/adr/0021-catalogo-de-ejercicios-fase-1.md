@@ -1,6 +1,6 @@
 # 0021. Catálogo de ejercicios y ejercicios del usuario (Fase 1)
 
-- **Estado:** Propuesta
+- **Estado:** Aceptada
 - **Fecha:** 2026-09-23
 
 ## Contexto
@@ -181,3 +181,22 @@ permite cambiar de fuente sin tocar los registros.
 - Offline: editar el nombre de un registro sin conexión y sincronizar
   resuelve el ejercicio del usuario.
 - Export → import conserva vínculos.
+
+## Implementación (1.67.0)
+Diferencias con lo planeado arriba, decididas al implementar:
+- **Id del catálogo = id del dataset como entero** (`0584` → 584), no un
+  autoincremental: es estable entre instalaciones y `js/split-catalog.js`
+  puede apuntar a él. Los ejercicios propios del catálogo empiezan en 100000.
+- **Instrucciones: solo los pasos** (`instruction_steps_en/_es`, JSON); el
+  párrafo venía duplicado y se arma uniendo los pasos. La siembra pesa
+  1.5 MB en vez de ~3 MB.
+- **Traducciones**: `data/catalog-names-es.json` (993 automáticas, 49
+  revisadas); 12 nombres repetidos entre variantes (vista lateral/posterior,
+  v.2) se desambiguaron. `scripts/build-catalog-sql.php` también corrige
+  "45в°" → "45°" del origen.
+- **Dueño de los datos migrados**: el usuario de id más bajo.
+- **Progreso**: si el mismo ejercicio aparece dos veces en un día (variantes
+  fusionadas en ADR 0019), la gráfica toma la serie más pesada del día.
+- **Sin migración**: la API responde 409 en `catalog.php`/`user_exercises.php`
+  y la app cae a `library.php` y al mapeo por nombre, como antes.
+
