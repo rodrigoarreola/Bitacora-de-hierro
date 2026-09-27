@@ -4039,28 +4039,69 @@
     return clone;
   }
 
-  // Arma, fuera de pantalla, el resumen de la semana: header, semana, racha,
-  // riel de días y "Esta semana". Clona el DOM real en vez de reconstruir
-  // HTML a mano para que el export nunca se desalinee de lo que la app ya
-  // renderiza. cloneNode no depende de la visibilidad del original, así que
-  // funciona sin importar qué pestaña de Semana esté activa.
+  // Arma, fuera de pantalla, el "sticker" de la semana: header (con la
+  // racha compacta a la derecha, en vez del ícono de Ajustes), semana,
+  // card de progreso (barra a la siguiente medalla + semana cumplida), un
+  // hueco vacío a propósito (ver .dashboard-share-spacer en hoy.css — ahí
+  // se ve la foto real al pegar el PNG encima) y "Esta semana" anclado
+  // abajo del todo. Ni el riel de días ni el balance muscular entran: el
+  // primero no pega en un sticker, el segundo se probó y dejaba muy poco
+  // hueco vacío para la foto (~20% del alto en vez de la mitad).
+  // Clona el DOM real en vez de reconstruir HTML a mano para que el
+  // export nunca se desalinee de lo que la app ya renderiza. cloneNode no
+  // depende de la visibilidad del original, así que funciona sin importar
+  // qué pestaña de Semana esté activa.
   function buildDashboardShareContainer(){
-    const card = document.createElement('div');
-    card.className = 'dashboard-share';
+    const frame = document.createElement('div');
+    frame.className = 'dashboard-share';
+
     const headerClone = cloneForShare(document.querySelector('header.app-head'));
-    headerClone.querySelector('.head-settings')?.remove(); // el ícono de Ajustes no tiene sentido en una imagen
-    card.appendChild(headerClone);
+    headerClone.querySelector('.head-right')?.remove(); // el ícono de Ajustes no tiene sentido en una imagen
+    const streakMini = document.createElement('div');
+    streakMini.className = 'dashboard-share-streak-mini';
+    const streakText = document.createElement('div');
+    streakText.className = 'dashboard-share-streak-text';
+    const streakValueEl = document.createElement('span');
+    streakValueEl.className = 'dashboard-share-streak-value';
+    const unitEl = document.createElement('span');
+    unitEl.className = 'unit';
+    unitEl.textContent = document.getElementById('streak-unit').textContent;
+    streakValueEl.append(document.getElementById('streak-badge').textContent + ' ', unitEl);
+    const streakLabelEl = document.createElement('span');
+    streakLabelEl.className = 'dashboard-share-streak-label';
+    streakLabelEl.textContent = 'Racha actual';
+    streakText.append(streakValueEl, streakLabelEl);
+    streakMini.append(streakText, cloneForShare(document.getElementById('streak-badges')));
+    headerClone.appendChild(streakMini);
+    frame.appendChild(headerClone);
+
     const weekLabelEl = document.createElement('div');
     weekLabelEl.className = 'dashboard-share-week';
     weekLabelEl.textContent = document.getElementById('week-select-label').textContent;
-    card.appendChild(weekLabelEl);
-    card.appendChild(cloneForShare(document.getElementById('streak-hero-card')));
-    card.appendChild(cloneForShare(document.getElementById('day-rack')));
+    frame.appendChild(weekLabelEl);
+
+    const progressCard = document.createElement('div');
+    progressCard.className = 'dashboard-share-progress';
+    progressCard.appendChild(cloneForShare(document.getElementById('streak-next-badge')));
+    progressCard.appendChild(cloneForShare(document.getElementById('streak-week')));
+    frame.appendChild(progressCard);
+
+    const spacer = document.createElement('div');
+    spacer.className = 'dashboard-share-spacer';
+    frame.appendChild(spacer);
+
+    // Solo "Esta semana" — el balance muscular se probó y quedaba
+    // demasiado footer, dejando muy poco hueco vacío para la foto real
+    // (~20% del alto en vez de la mitad).
+    const footer = document.createElement('div');
+    footer.className = 'dashboard-share-footer';
     const recapHost = document.getElementById('weekly-recap-host');
     if(recapHost && !recapHost.classList.contains('hidden') && recapHost.innerHTML.trim()){
-      card.appendChild(cloneForShare(recapHost));
+      footer.appendChild(cloneForShare(recapHost));
     }
-    return card;
+    if(footer.children.length) frame.appendChild(footer);
+
+    return frame;
   }
 
   // Genera el PNG con html2canvas y lo copia al portapapeles (Clipboard
@@ -4091,9 +4132,10 @@
     }, 'image/png');
   }
 
-  // Resumen semanal (header + semana + racha + riel de días + "Esta
-  // semana") como una sola imagen PNG, copiada al
-  // portapapeles — ver copyElementAsImage() y buildDashboardShareContainer().
+  // Resumen semanal como sticker 9:16 (header + racha + progreso + hueco
+  // vacío + "Esta semana"), copiado al portapapeles como una sola imagen
+  // PNG — ver copyElementAsImage() y
+  // buildDashboardShareContainer().
   async function shareDashboardAsImage(){
     const container = buildDashboardShareContainer();
     container.style.position = 'fixed';

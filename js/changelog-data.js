@@ -2,6 +2,16 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.70.0",
+        "date": "2026-09-27",
+        "title": "compartir resumen ahora deja ver tu foto de fondo",
+        "items": [
+            "El botón de compartir en Resumen arma una imagen vertical (9:16) pensada para pegarla como sticker sobre tu propia foto en Instagram o Snapchat, en vez de una card que tapa toda la pantalla.",
+            "Arriba, el ícono y el título de siempre; a un lado, la racha achicada. Debajo, el progreso hacia la próxima medalla y si la semana va cumplida. Abajo del todo, \"Esta semana\" con tiempo, volumen y series en una sola fila.",
+            "En medio queda un hueco vacío a propósito: ahí es donde se ve tu foto real al pegar la imagen encima."
+        ]
+    },
+    {
         "version": "1.69.1",
         "date": "2026-09-24",
         "title": "las semanas pasadas muestran solo lo que importa",

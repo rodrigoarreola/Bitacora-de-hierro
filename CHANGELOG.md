@@ -2,6 +2,28 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.70.0] - 2026-09-27 — Compartir resumen como sticker, con tu foto de fondo
+
+### En la app: compartir resumen ahora deja ver tu foto de fondo
+
+- El botón de compartir en Resumen arma una imagen vertical (9:16) pensada para pegarla como sticker sobre tu propia foto en Instagram o Snapchat, en vez de una card que tapa toda la pantalla.
+- Arriba, el ícono y el título de siempre; a un lado, la racha achicada. Debajo, el progreso hacia la próxima medalla y si la semana va cumplida. Abajo del todo, "Esta semana" con tiempo, volumen y series en una sola fila.
+- En medio queda un hueco vacío a propósito: ahí es donde se ve tu foto real al pegar la imagen encima.
+
+### Changed
+
+- **`css/views/hoy.css`**: `.dashboard-share` pasa de una sola card de alto variable a un marco 9:16 fijo (520×924px) sin fondo propio, en columna, con `.dashboard-share-spacer` (`flex:1 1 auto`) vacío entre la card de progreso y el footer — ahí se ve la foto real al pegar el sticker. `.dashboard-share-progress` (nueva) agrupa la barra a la siguiente medalla y "semana cumplida" con el mismo `--bg-glass` (50%) + borde de 1px que antes tenía toda la card (sin `box-shadow` real: html2canvas 1.4.1 no lo renderiza). `.dashboard-share-streak-mini` arma la racha compacta del header (número + medalla a escala del título, en vez del número gigante de la app en vivo). `.dashboard-share-footer .week-stats-row`/`.mb-card` reciben `background:var(--bg-glass)` — no tenían fondo propio en la app en vivo, quedaban casi transparentes en el export. `.dashboard-share-footer .week-stat` reacomoda ícono/título/valor/diferencia en un grid `auto 1fr` de 2×2 por stat (ícono+título a la izquierda, valor+diferencia a la derecha), los 3 stats en la misma fila.
+- **`js/app.js`**: `buildDashboardShareContainer()` arma el header con la racha compacta (clonada de `#streak-badge`/`#streak-unit`/`#streak-badges`), la card de progreso (clona `#streak-next-badge` + `#streak-week`, ya no toda `#streak-hero-card`), el spacer y el footer (solo `#weekly-recap-host`; ya no clona `#day-rack` ni `#muscle-balance-host`, y le saca el botón "Ver todos" al clon si estuviera presente).
+
+### Alternativas descartadas
+
+Ver [ADR 0024](docs/adr/0024-resumen-sticker-9-16.md): balance muscular en el footer (dejaba muy poco hueco vacío para la foto), `box-shadow` en las cards (html2canvas no lo dibuja).
+
+### Verificado (local, `DEV_AUTOLOGIN`)
+
+- Alfa real del PNG (`backgroundColor: null`) leído con un decodificador PNG a mano: el hueco central da 0 (transparente) y las cards dan 128 (50% exacto de `--bg-glass`).
+- Mismo export renderizado sobre fondo oscuro (`#14171B`) y claro (`#D8D3C4`) para confirmar que el texto suelto (header, "Esta semana") se lee en ambos casos gracias al `text-shadow`.
+
 ## [1.69.1] - 2026-09-24 — Resumen más limpio en semanas pasadas
 
 ### En la app: las semanas pasadas muestran solo lo que importa

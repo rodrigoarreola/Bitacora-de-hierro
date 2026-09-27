@@ -30,6 +30,7 @@ Si una decisión se revierte, no se borra: se cambia su estado a
 | [0021](0021-catalogo-de-ejercicios-fase-1.md) | Catálogo de ejercicios y ejercicios del usuario (Fase 1) | Aceptada |
 | [0022](0022-resumen-racha-primero.md) | Resumen rediseñado: la racha manda, luego qué sigue | Aceptada |
 | [0023](0023-series-por-musculo.md) | Series por músculo en Resumen | Aceptada |
+| [0024](0024-resumen-sticker-9-16.md) | "Compartir resumen" como sticker 9:16 transparente | Aceptada |
 
 ## Formato
 

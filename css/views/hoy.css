@@ -397,42 +397,105 @@
 .week-note-input::placeholder{ color:var(--text-faint); }
 
 /* ---------- Export de resumen semanal (imagen, fuera de pantalla) ---------- */
-/* "Patrón Strava": una sola card redondeada en vez de fondo transparente
-   completo. Pensada para pegarse sobre CUALQUIER fondo al compartir en
-   redes (una foto, no solo un chat oscuro y uniforme) — transparente
-   puro dejaba el título, los labels sueltos y el borde de "+ Nueva
-   semana" ilegibles sobre una foto real, porque esos elementos no
-   tienen su propio fondo (solo lo tienen las cards internas: .week-pill,
-   .day-tab, .sum-chip, .recap-card). Fondo a 50% de opacidad (no
-   sólido del todo) para que se note un poco la foto de fondo en vez de
-   taparla por completo — probado primero al 30%, subido a 50% porque
-   30% dejaba pasar demasiado la foto de fondo. Sin box-shadow a
-   propósito: se probó (blur+offset) y html2canvas 1.4.1 no lo
-   renderiza — el corte entre la card y el resto queda sin ningún
-   degradé, alpha 0 de una (comprobado leyendo el PNG resultante). Un
-   borde de 1px sí se renderiza bien (ya lo usan .sum-chip/.recap-card),
-   así que hace ese trabajo en su lugar. */
+/* Sticker para pegar sobre tu propia foto en Instagram/Snapchat, no un
+   fondo propio: el marco completo mide 9:16 y es TRANSPARENTE de punta a
+   punta — header arriba, card de progreso debajo, un hueco vacío A
+   PROPÓSITO en el medio (ahí se ve la foto real de fondo) y "Esta semana"
+   anclado abajo del todo. Solo las cards (progreso, "Esta semana",
+   balance muscular) llevan su propio fondo semitransparente para
+   leerse encima de cualquier foto; el header/racha/semana van sueltos
+   directo sobre la foto, con texto blanco + sombra en vez de una card.
+   Fondo de las cards a 50% de opacidad (no sólido del todo) para que se
+   note un poco la foto de fondo en vez de taparla por completo — probado
+   primero al 30%, subido a 50% porque 30% dejaba pasar demasiado la foto.
+   Sin box-shadow real en ningún lado: se probó (blur+offset) y
+   html2canvas 1.4.1 no lo renderiza — el corte entre una card y el resto
+   queda sin ningún degradé, alpha 0 de una (comprobado leyendo el PNG
+   resultante). Un borde de 1px sí se renderiza bien, así que hace ese
+   trabajo en su lugar en todas las cards de acá abajo. */
 .dashboard-share{
-  width:520px; padding:var(--sp-4) var(--sp-3-5); box-sizing:border-box; font-family:var(--font-body);
-  background:var(--bg-glass); /* --bg (#14171B) al 50% */
-  border:1px solid var(--line); border-radius:22px;
+  width:520px; height:924px; /* 9:16 al mismo ancho que ya usaban las cards (520 × 16/9) */
+  display:flex; flex-direction:column; overflow:hidden;
+  padding:var(--sp-4) var(--sp-3-5); box-sizing:border-box; font-family:var(--font-body);
 }
-/* Con la card semitransparente en vez de sólida, los elementos que no
-   tienen su propia card de fondo (título, subtítulo, nombre/grupo de cada
-   day-tab) se apoyaban en tonos apagados pensados para leerse sobre --bg
-   sólido — sobre la card semitransparente perdían contraste, sobre todo
-   los day-tab .completed (fondo verde a 10-30%, encima el texto gris
-   quedaba casi invisible). Se fuerzan acá, solo dentro del export (la app
-   en vivo no cambia). La card de racha (#streak-hero-card, clonada aparte
-   en buildDashboardShareContainer()) no necesita esto: es una .card con
-   fondo propio, se lee igual que en la app. */
+.dashboard-share header.app-head{ margin-bottom:var(--sp-2); flex-shrink:0; }
+.dashboard-share-week{ font-family:var(--font-mono); font-size:var(--fs-sm); margin:0 0 var(--sp-3); flex-shrink:0; }
+
+/* Card de progreso: solo los dos indicadores (barra a la siguiente
+   medalla + segmentos de "semana cumplida") — el número grande y la
+   medalla se fueron al header, ver .dashboard-share-streak-mini. Clona
+   #streak-next-badge y #streak-week tal cual, así que hereda su
+   espaciado/estilo normal; acá solo el fondo/borde de la card en sí. */
+.dashboard-share-progress{
+  flex-shrink:0; display:flex; flex-direction:column; gap:var(--sp-4);
+  background:var(--bg-glass); border:1px solid var(--line); border-radius:22px;
+  padding:var(--sp-4) var(--sp-3-5); box-sizing:border-box;
+}
+
+/* Hueco vacío a propósito: acá se ve la foto real de fondo al pegar el
+   PNG como sticker. flex-grow se lleva todo el espacio que las secciones
+   fijas (header/progreso/footer) no usan. */
+.dashboard-share-spacer{ flex:1 1 auto; }
+
+.dashboard-share-footer{ flex-shrink:0; }
+/* .week-stats-row y .mb-card no tienen fondo propio en la app en vivo
+   (dependen del --bg sólido de la página detrás) — sin esto quedaban
+   completamente transparentes acá, dejando pasar la foto de fondo por
+   completo y haciendo casi ilegibles sus números (bug real, reportado
+   con una captura real). Mismo --bg-glass que la card de progreso, para
+   que las dos cards del export se lean como parte del mismo sistema. */
+.dashboard-share-footer .week-stats-row,
+.dashboard-share-footer .mb-card{ background:var(--bg-glass); }
+
+/* "Esta semana" en el export: los 3 stats siguen en la misma fila (como en
+   la app en vivo), pero cada uno pasa de apilado (ícono/título/valor/
+   diferencia, uno debajo del otro) a ícono+título a la izquierda y
+   valor+diferencia a la derecha — más angosto por columna (520px/3 en vez
+   del ancho completo de la app), así que el ícono baja de 44px a 32px para
+   que "14,250 kg" no se apriete contra el borde. Grid explícito en vez de
+   reordenar el HTML: los 4 elementos (ícono, título, valor, diferencia) ya
+   vienen en ese orden en el DOM (ver renderWeeklyRecap() en js/app.js),
+   grid-column/row los reacomoda en un 2×2 sin tocar el markup. */
+.dashboard-share-footer .week-stat{
+  display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto;
+  column-gap:var(--sp-1-5); row-gap:1px; align-items:center; text-align:left;
+}
+.dashboard-share-footer .stat-ico{ grid-column:1; grid-row:1; width:32px; height:32px; margin-bottom:0; }
+.dashboard-share-footer .stat-ico .icon{ font-size:13px; }
+.dashboard-share-footer .stat-k{ grid-column:1; grid-row:2; text-align:center; font-size:10px; white-space:nowrap; }
+.dashboard-share-footer .stat-v{ grid-column:2; grid-row:1; font-size:15px; white-space:nowrap; }
+.dashboard-share-footer .stat-delta{ grid-column:2; grid-row:2; font-size:10px; white-space:nowrap; }
+
+/* Racha compacta en el header, a la derecha del título — mismo dato que
+   la card grande de "Hoy" (clona #streak-badges tal cual, para que la
+   medalla/colores por tier salgan idénticos), pero a una escala que
+   combina con el título de al lado en vez del número gigante de 104px. */
+.dashboard-share-streak-mini{ display:flex; align-items:center; gap:var(--sp-2-5); flex-shrink:0; }
+.dashboard-share-streak-text{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.dashboard-share-streak-value{ font-family:var(--font-display); font-size:22px; font-weight:800; line-height:1; }
+.dashboard-share-streak-value .unit{ font-size:12px; font-weight:700; text-transform:uppercase; margin-left:2px; }
+.dashboard-share-streak-label{ font-size:var(--fs-sm); font-weight:700; text-transform:uppercase; letter-spacing:.06em; opacity:.8; }
+.dashboard-share-streak-mini .streak-hero-medal{ gap:2px; }
+.dashboard-share-streak-mini .medal-disc{ width:30px; height:30px; box-shadow:none; }
+.dashboard-share-streak-mini .medal-disc .icon{ font-size:14px; }
+.dashboard-share-streak-mini .medal-name{ font-size:8px; }
+
+/* Texto suelto (sin card propia) que queda directo sobre la foto: blanco
+   fijo + sombra, para que aguante sea cual sea el fondo real detrás — acá
+   no hay --bg-glass que ayude, a diferencia de las cards de arriba.
+   .section-title/.section-aside son los títulos "Esta semana"/"Series
+   por músculo": viven fuera de sus cards (.week-stats-row/.mb-card),
+   directo sobre el hueco vacío, mismo caso que el header. */
 .dashboard-share h1,
 .dashboard-share .sub,
-.dashboard-share-week{ color:var(--white); }
-.dashboard-share-week{ font-family:var(--font-mono); font-size:var(--fs-sm); margin:0 0 var(--sp-3); }
+.dashboard-share-week,
+.dashboard-share-streak-value,
+.dashboard-share-streak-label,
+.dashboard-share .section-title,
+.dashboard-share .section-aside{
+  color:var(--white); text-shadow:0 1px 4px rgba(0,0,0,.65);
+}
 .dashboard-share .streak-hero-medal .medal-disc{ box-shadow:none; } /* html2canvas no dibuja box-shadow */
-.dashboard-share .day-tab.today{ box-shadow:none; border:2px solid var(--accent); }
-.dashboard-share .day-rack{ margin-bottom:var(--sp-4); }
 
 /* ---------- Sesión del día (Iniciar/Finalizar entrenamiento) ---------- */
 /* Sin card contenedora (1.68.1): el botón o los 3 campos van sueltos. */
