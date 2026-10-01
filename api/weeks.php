@@ -31,6 +31,16 @@ if ($method === 'POST') {
     $action = $_GET['action'] ?? null;
 
     if ($action === 'copy-previous') {
+        // Reemplaza los 7 días de la semana por una copia sin marcar de la
+        // anterior — solo tiene sentido en la semana en curso (recién creada,
+        // nada que perder); sobre una semana ya pasada borraría registros
+        // reales. Espeja la restricción del frontend (js/app.js,
+        // copyPreviousWeek()) por si alguien pega el POST directo.
+        $todayMondayStr = (new DateTime('monday this week'))->format('Y-m-d');
+        if ($date !== $todayMondayStr) {
+            respond_error('Solo se puede copiar la semana anterior sobre la semana en curso.', 422);
+        }
+
         $weekId = $date === null ? null : find_week_id($pdo, $date);
         if ($weekId === null) {
             respond_error('Semana no encontrada.', 404);

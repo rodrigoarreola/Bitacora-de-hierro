@@ -1509,7 +1509,11 @@
   function renderAll(){
     const past = isPastActiveWeek();
     document.getElementById('streak-hero-card').classList.toggle('hidden', past);
-    document.getElementById('add-week-btn').classList.toggle('hidden', past);
+    // "Nueva" solo se oculta viendo una semana pasada SI la semana actual ya
+    // existe (se llega a ella desde el selector) — si no existe todavía,
+    // este botón es la única forma de crearla, así que debe seguir visible
+    // aunque la semana activa (la más reciente que sí existe) sea pasada.
+    document.getElementById('add-week-btn').classList.toggle('hidden', past && state.order.includes(todayMondayKey));
     document.getElementById('legend-next').classList.toggle('hidden', past);
     renderWeekVerdict();
     renderWeekSelect();
@@ -2005,7 +2009,13 @@
     let bodyHtml;
     const guide = computeGuide(day);
     if(total === 0){
-      const prevKey = getPrevWeekKey(state.activeWeek);
+      // "Copiar semana pasada" reemplaza TODA la semana activa (los 7 días,
+      // no solo este) por una copia sin marcar de la semana anterior — tiene
+      // sentido en la semana en curso (recién creada, nada que perder) pero
+      // ensuciaría datos reales si se aplicara sobre una semana ya pasada
+      // solo porque uno de sus días quedó vacío. Por eso solo se ofrece en
+      // la semana de hoy.
+      const prevKey = state.activeWeek === todayMondayKey ? getPrevWeekKey(state.activeWeek) : null;
       bodyHtml = `
         <div class="day-empty">
           <p>Todavía no hay ejercicios para este día.</p>
@@ -2966,8 +2976,15 @@
   }
 
   async function copyPreviousWeek(){
+    // Defensa en profundidad: el botón ya solo se muestra en la semana de
+    // hoy (ver renderDayPanel()), pero esto reemplaza LOS 7 DÍAS de
+    // state.activeWeek — nunca debe poder dispararse sobre una semana pasada
+    // aunque el botón quedara visible por un render viejo.
+    if(state.activeWeek !== todayMondayKey) return;
     const prevKey = getPrevWeekKey(state.activeWeek);
     if(!prevKey) return;
+    if(!await confirmDialog({ title: '¿Copiar la semana pasada?', message: 'Se borra todo lo que ya hayas registrado esta semana (los 7 días) y se reemplaza por una copia sin marcar de la semana anterior.', confirmLabel: 'Continuar', danger: true })) return;
+    if(!await confirmDialog({ title: '¿Seguro?', message: 'Esta acción no se puede deshacer.', confirmLabel: 'Sí, copiar', danger: true })) return;
     let detail;
     try{
       detail = await Api.post(`api/weeks.php?date=${encodeURIComponent(state.activeWeek)}&action=copy-previous`);

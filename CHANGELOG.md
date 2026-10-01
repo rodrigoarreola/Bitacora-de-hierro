@@ -2,6 +2,25 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.70.1] - 2026-10-01 — Dos candados en Semana: crear la de hoy y copiar la pasada
+
+### En la app: "+ Nueva" vuelve a aparecer, y "Copiar semana pasada" ya no se sale de la semana en curso
+
+- "+ Nueva" se había quedado oculto para siempre si la semana de hoy todavía no existía: al estar viendo cualquier semana pasada (la más reciente que sí tenías), el botón para crear la semana de hoy desaparecía justo cuando hacía falta. Ahora solo se oculta si la semana de hoy ya existe.
+- "Copiar semana pasada" ahora solo aparece en la semana en curso, y pide dos confirmaciones seguidas antes de aplicarse — antes, usarlo sobre una semana pasada borraba sus 7 días y los reemplazaba al instante por una copia sin marcar de la semana anterior.
+
+### Fixed
+
+- **`js/app.js`**: `renderAll()` — `add-week-btn` se oculta con `past && state.order.includes(todayMondayKey)` en vez de solo `past`; sin eso, al abrir la app antes de crear la semana de hoy, `state.activeWeek` cae en la semana existente más reciente (pasada) y escondía el único botón para crear la de hoy. `renderDayPanel()` — el botón "Copiar semana pasada" solo se arma si `state.activeWeek === todayMondayKey`. `copyPreviousWeek()` — guarda la misma condición como defensa en profundidad y pide `confirmDialog()` dos veces antes de llamar a la API (mismo patrón que `deleteWeek()`).
+- **`api/weeks.php`**: la acción `copy-previous` (POST) rechaza con 422 cualquier `date` que no sea el lunes de la semana calendario actual — espeja la restricción del frontend por si alguien pega el POST directo.
+
+### Verificado (local, `DEV_AUTOLOGIN`)
+
+- Con la semana de hoy sin crear: "+ Nueva" visible viendo la semana pasada más reciente; crear la semana de hoy (28 sep) funciona y el riel pasa a mostrarla como "Esta semana".
+- "Copiar semana pasada" en la semana de hoy: aparecen las dos confirmaciones ("¿Copiar la semana pasada?" → "¿Seguro?") antes de llamar a la API.
+- En una semana pasada con un día vacío (lunes 21 sep): el botón "Copiar semana pasada" ya no aparece, solo "Llenar con la guía" y "+ Agregar ejercicio".
+- Sin errores en consola en ningún paso.
+
 ## [1.70.0] - 2026-09-27 — Compartir resumen como sticker, con tu foto de fondo
 
 ### En la app: compartir resumen ahora deja ver tu foto de fondo

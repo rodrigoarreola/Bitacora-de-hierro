@@ -2,6 +2,15 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.70.1",
+        "date": "2026-10-01",
+        "title": "\"+ Nueva\" vuelve a aparecer, y \"Copiar semana pasada\" ya no se sale de la semana en curso",
+        "items": [
+            "\"+ Nueva\" se había quedado oculto para siempre si la semana de hoy todavía no existía: al estar viendo cualquier semana pasada (la más reciente que sí tenías), el botón para crear la semana de hoy desaparecía justo cuando hacía falta. Ahora solo se oculta si la semana de hoy ya existe.",
+            "\"Copiar semana pasada\" ahora solo aparece en la semana en curso, y pide dos confirmaciones seguidas antes de aplicarse — antes, usarlo sobre una semana pasada borraba sus 7 días y los reemplazaba al instante por una copia sin marcar de la semana anterior."
+        ]
+    },
+    {
         "version": "1.70.0",
         "date": "2026-09-27",
         "title": "compartir resumen ahora deja ver tu foto de fondo",
