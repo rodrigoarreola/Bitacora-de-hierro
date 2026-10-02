@@ -462,7 +462,7 @@
 }
 .dashboard-share-footer .stat-ico{ grid-column:1; grid-row:1; width:32px; height:32px; margin-bottom:0; }
 .dashboard-share-footer .stat-ico .icon{ font-size:13px; }
-.dashboard-share-footer .stat-k{ grid-column:1; grid-row:2; text-align:center; font-size:10px; white-space:nowrap; }
+.dashboard-share-footer .stat-k{ grid-column:1; grid-row:2; text-align:center; font-size:12px; white-space:nowrap; }
 .dashboard-share-footer .stat-v{ grid-column:2; grid-row:1; font-size:15px; white-space:nowrap; }
 .dashboard-share-footer .stat-delta{ grid-column:2; grid-row:2; font-size:10px; white-space:nowrap; }
 
@@ -493,8 +493,32 @@
 .dashboard-share-streak-label,
 .dashboard-share .section-title,
 .dashboard-share .section-aside{
-  color:var(--white); text-shadow:0 1px 4px rgba(0,0,0,.65);
+  color:var(--white);
 }
+/* Todo el texto del export en blanco con un contorno oscuro suave, también
+   el de las cards: los grises de la app en vivo (--text-dim/--text-faint,
+   "Faltan N días…", "Tiempo/Volumen/Series", "PLATA", la nota de la racha)
+   se perdían sobre la foto aun con el fondo de la card. Los colores con
+   significado se quedan: verde de "Semana cumplida" y de las diferencias
+   que suben, rojo de las que bajan, naranja de los acentos. text-shadow
+   se hereda, así que basta con ponerlo en el marco. */
+.dashboard-share{ text-shadow:0 1px 3px rgba(0,0,0,.8), 0 0 6px rgba(0,0,0,.45); }
+.dashboard-share .streak-next-text,
+.dashboard-share .streak-next-text strong,
+.dashboard-share .streak-week-count,
+.dashboard-share .streak-week-sub,
+.dashboard-share .stat-k,
+.dashboard-share .stat-v,
+.dashboard-share .stat-delta.flat,
+.dashboard-share .medal-name,
+.dashboard-share .streak-hero-medal.bronze .medal-name,
+.dashboard-share .streak-hero-medal.silver .medal-name,
+.dashboard-share .streak-hero-medal.gold .medal-name,
+.dashboard-share .streak-hero-medal.locked .medal-name{ color:var(--white); }
+/* Textos de apoyo de la card de progreso, 2px más grandes que en la app
+   (12px → 14px): sobre una foto se leían chicos. */
+.dashboard-share .streak-next-text,
+.dashboard-share .streak-week-sub{ font-size:14px; }
 .dashboard-share .streak-hero-medal .medal-disc{ box-shadow:none; } /* html2canvas no dibuja box-shadow */
 
 /* ---------- Sesión del día (Iniciar/Finalizar entrenamiento) ---------- */

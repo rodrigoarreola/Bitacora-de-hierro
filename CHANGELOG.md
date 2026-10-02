@@ -2,6 +2,22 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), con versionado semántico. Cada versión lleva un bloque `### En la app: <título>` con el resumen en lenguaje llano que se ve en la app (Perfil → Changelog): `scripts/build-changelog.php` genera `js/changelog-data.js` a partir de esos bloques en cada commit (ver [ADR 0006](docs/adr/0006-changelog-fuente-unica.md)). Hay tags de git `vX.Y.Z` desde la 1.46.1; las versiones anteriores no tienen tag.
 
+## [1.70.2] - 2026-10-02 — Texto blanco con sombra en la imagen de Compartir resumen
+
+### En la app: la imagen de Compartir resumen se lee mejor sobre tu foto
+
+- Todo el texto de la imagen ahora es blanco, con un contorno oscuro suave: antes los textos grises ("Faltan N días…", "Tiempo", "Volumen", "Series", el nombre de la medalla) se perdían sobre la foto.
+- Los textos de apoyo ("Faltan N días…", "Ya no alcanzas…", "Tiempo/Volumen/Series") se ven 2px más grandes.
+- Se quedan los colores que significan algo: verde de "Semana cumplida" y de lo que sube, rojo de lo que baja, naranja de los acentos.
+
+### Changed
+
+- **`css/views/hoy.css`**: `.dashboard-share` lleva `text-shadow:0 1px 3px rgba(0,0,0,.8), 0 0 6px rgba(0,0,0,.45)` (se hereda a las cards); `.streak-next-text`, `.streak-week-count`, `.streak-week-sub`, `.stat-k`, `.stat-v`, `.stat-delta.flat` y `.medal-name` (todos los tiers) pasan a `var(--white)` solo dentro del export. `.streak-next-text`/`.streak-week-sub` de 12px a 14px y `.dashboard-share-footer .stat-k` de 10px a 12px.
+
+### Verificado (local, `DEV_AUTOLOGIN`)
+
+- Export renderizado con `html2canvas` sobre fondo claro (`#D8D3C4`): todos los textos se leen y "Tiempo / Volumen / Series" siguen cabiendo en la fila junto a valor y diferencia con el tamaño nuevo.
+
 ## [1.70.1] - 2026-10-01 — Dos candados en Semana: crear la de hoy y copiar la pasada
 
 ### En la app: "+ Nueva" vuelve a aparecer, y "Copiar semana pasada" ya no se sale de la semana en curso

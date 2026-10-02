@@ -2,6 +2,16 @@
 // "### En la app: …"). No editar a mano: se regenera en cada commit.
 window.APP_VERSIONS = [
     {
+        "version": "1.70.2",
+        "date": "2026-10-02",
+        "title": "la imagen de Compartir resumen se lee mejor sobre tu foto",
+        "items": [
+            "Todo el texto de la imagen ahora es blanco, con un contorno oscuro suave: antes los textos grises (\"Faltan N días…\", \"Tiempo\", \"Volumen\", \"Series\", el nombre de la medalla) se perdían sobre la foto.",
+            "Los textos de apoyo (\"Faltan N días…\", \"Ya no alcanzas…\", \"Tiempo/Volumen/Series\") se ven 2px más grandes.",
+            "Se quedan los colores que significan algo: verde de \"Semana cumplida\" y de lo que sube, rojo de lo que baja, naranja de los acentos."
+        ]
+    },
+    {
         "version": "1.70.1",
         "date": "2026-10-01",
         "title": "\"+ Nueva\" vuelve a aparecer, y \"Copiar semana pasada\" ya no se sale de la semana en curso",
